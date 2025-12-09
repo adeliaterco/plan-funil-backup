@@ -105,27 +105,27 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
     }
 
     const sequence = [
-      { delay: 300, action: () => {
+      { delay: 500, action: () => {
         setCurrentMessage(1)
         updateAnalysisPoint(0, 'active')
       }},
-      { delay: 600, action: () => {
+      { delay: 1200, action: () => {
         setIsTyping(true)
         updateAnalysisPoint(0, 'completed')
         updateAnalysisPoint(1, 'active')
       }},
-      { delay: 1000, action: () => {
+      { delay: 2000, action: () => {
         setIsTyping(false)
         setCurrentMessage(2)
         updateAnalysisPoint(1, 'completed')
         updateAnalysisPoint(2, 'active')
       }},
-      { delay: 1500, action: () => {
+      { delay: 3000, action: () => {
         setCurrentMessage(3)
         updateAnalysisPoint(2, 'completed')
         updateAnalysisPoint(3, 'active')
       }},
-      { delay: 2000, action: () => {
+      { delay: 4000, action: () => {
         updateAnalysisPoint(3, 'completed')
         animateSuccessPercentage()
       }}
