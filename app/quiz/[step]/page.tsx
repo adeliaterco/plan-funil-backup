@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -22,7 +22,6 @@ import {
   Star,
   CheckCircle,
   Trophy,
-  PlayCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -32,16 +31,38 @@ import { BonusUnlock } from "@/components/bonus-unlock"
 import { ValueCounter } from "@/components/value-counter"
 import { LoadingAnalysis } from "@/components/loading-analysis"
 
-// Função para enviar eventos a Google Analytics
-function enviarEvento(nombre_evento: string, propriedades: Record<string, any> = {}) {
-  if (typeof window !== 'undefined' && (window as any).gtag) {
-    (window as any).gtag('event', nombre_evento, propriedades);
-    console.log('Evento enviado:', nombre_evento, propriedades);
+// ✅ MELHORIA 4: GA4 com contexto de usuário - Função melhorada
+function enviarEvento(nombre_evento, propriedades = {}, userGender = "", stepNumber = 0, userId = "") {
+  if (typeof window !== 'undefined' && window.gtag) {
+    // ✅ Adicionar contexto global aos eventos
+    const eventPropriedades = {
+      ...propriedades,
+      user_gender: userGender || "não_informado",
+      step_number: stepNumber || 0,
+      user_id: userId,
+      timestamp: new Date().toISOString(),
+      evento_id: Math.random().toString(36).substr(2, 9)
+    };
+    
+    window.gtag('event', nombre_evento, eventPropriedades);
+    console.log('Evento enviado:', nombre_evento, eventPropriedades);
   }
 }
 
+// ✅ Gerar ID anônimo para usuário
+function gerarIdAnonimo() {
+  let id = typeof window !== 'undefined' ? localStorage.getItem("userId") : null;
+  if (!id) {
+    id = "user_" + Math.random().toString(36).substr(2, 9) + "_" + Date.now();
+    if (typeof window !== 'undefined') {
+      localStorage.setItem("userId", id);
+    }
+  }
+  return id;
+}
+
 // === COMPONENTE MOCKUP WHATSAPP ===
-const WhatsAppMockup = ({ userGender }: { userGender: string }) => {
+const WhatsAppMockup = ({ userGender }) => {
   const [currentMessage, setCurrentMessage] = useState(0)
   const [isTyping, setIsTyping] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -53,57 +74,71 @@ const WhatsAppMockup = ({ userGender }: { userGender: string }) => {
   ])
   const [successPercentage, setSuccessPercentage] = useState(0)
 
+  // ✅ MELHORIA 3: Memoizar getPersonalizedFirstMessage com useCallback
+  const getPersonalizedFirstMessage = useCallback(() => {
+    try {
+      const answers = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem("quizAnswers") || "{}") : {}
+      const currentSituation = answers.question7 || ""
+      
+      if (currentSituation.includes("contacto cero")) {
+        return `Hola, encontré algo que es tuyo. ¿Cuándo puedes pasar a recogerlo?`
+      }
+      if (currentSituation.includes("me ignora")) {
+        return `Hola, no voy a molestarte más. Solo quería agradecerte por algo que me enseñaste.`
+      }
+      if (currentSituation.includes("bloqueado")) {
+        return `Hola, María me pidió preguntarte sobre el evento del viernes.`
+      }
+      if (currentSituation.includes("cosas necesarias")) {
+        return `Hola, vi esta foto nuestra del viaje a la playa y me hizo sonreír. Espero que estés bien.`
+      }
+      if (currentSituation.includes("charlamos")) {
+        return `Hola, tengo que contarte algo curioso que me pasó que te va a hacer reír. ¿Tienes 5 minutos para una llamada?`
+      }
+      return `Hola, vi algo que me recordé a cuando fuimos al parque. Me alegró el día. Espero que estés bien.`
+    } catch (error) {
+      console.error('Erro ao obter primeira mensagem:', error)
+      return `Hola, vi algo que me recordé a cuando fuimos al parque. Me alegró el día. Espero que estés bien.`
+    }
+  }, [])
+
+  // ✅ MELHORIA 3: Memoizar getPersonalizedExResponse com useCallback
+  const getPersonalizedExResponse = useCallback(() => {
+    try {
+      const answers = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem("quizAnswers") || "{}") : {}
+      const currentSituation = answers.question7 || ""
+      
+      if (currentSituation.includes("contacto cero")) {
+        return "¿Qué cosa? No recuerdo haber dejado nada..."
+      }
+      if (currentSituation.includes("me ignora")) {
+        return "¿Qué me enseñé? Me tienes curiosa..."
+      }
+      if (currentSituation.includes("bloqueado")) {
+        return "Ah sí, dile que sí voy. Gracias por preguntar."
+      }
+      if (currentSituation.includes("cosas necesarias")) {
+        return "😊 Qué bonito recuerdo. Yo también estoy bien, gracias."
+      }
+      if (currentSituation.includes("charlamos")) {
+        return "Jajaja ya me tienes intrigada. Cuéntame por aquí primero"
+      }
+      return "Gracias por acordarte de mí. ¿Cómo has estado?"
+    } catch (error) {
+      console.error('Erro ao obter resposta da ex:', error)
+      return "Gracias por acordarte de mí. ¿Cómo has estado?"
+    }
+  }, [])
+
+  // ✅ CORREÇÃO DEFINITIVA: Sem nomes nas mensagens
   const getExName = () => {
     return "José Plan"
   }
 
+  // ✅ CORREÇÃO: Usar sempre sua imagem
   const getExAvatar = () => {
     return "https://i.ibb.co/5hbjyZFJ/CASAL-JOSE.webp";
   }
-
-  const getPersonalizedFirstMessage = useCallback(() => {
-    const answers = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem("quizAnswers") || "{}") : {}
-    const currentSituation = answers.question7 || ""
-    
-    if (currentSituation.includes("contacto cero")) {
-      return `Hola, encontré algo que es tuyo. ¿Cuándo puedes pasar a recogerlo?`
-    }
-    if (currentSituation.includes("me ignora")) {
-      return `Hola, no voy a molestarte más. Solo quería agradecerte por algo que me enseñaste.`
-    }
-    if (currentSituation.includes("bloqueado")) {
-      return `Hola, María me pidió preguntarte sobre el evento del viernes.`
-    }
-    if (currentSituation.includes("cosas necesarias")) {
-      return `Hola, vi esta foto nuestra del viaje a la playa y me hizo sonreír. Espero que estés bien.`
-    }
-    if (currentSituation.includes("charlamos")) {
-      return `Hola, tengo que contarte algo curioso que me pasó que te va a hacer reír. ¿Tienes 5 minutos para una llamada?`
-    }
-    return `Hola, vi algo que me recordé a cuando fuimos al parque. Me alegró el día. Espero que estés bien.`
-  }, [])
-
-  const getPersonalizedExResponse = useCallback(() => {
-    const answers = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem("quizAnswers") || "{}") : {}
-    const currentSituation = answers.question7 || ""
-    
-    if (currentSituation.includes("contacto cero")) {
-      return "¿Qué cosa? No recuerdo haber dejado nada..."
-    }
-    if (currentSituation.includes("me ignora")) {
-      return "¿Qué me enseñé? Me tienes curiosa..."
-    }
-    if (currentSituation.includes("bloqueado")) {
-      return "Ah sí, dile que sí voy. Gracias por preguntar."
-    }
-    if (currentSituation.includes("cosas necesarias")) {
-      return "😊 Qué bonito recuerdo. Yo también estoy bien, gracias."
-    }
-    if (currentSituation.includes("charlamos")) {
-      return "Jajaja ya me tienes intrigada. Cuéntame por aquí primero"
-    }
-    return "Gracias por acordarte de mí. ¿Cómo has estado?"
-  }, [])
 
   const conversation = [
     {
@@ -130,7 +165,7 @@ const WhatsAppMockup = ({ userGender }: { userGender: string }) => {
     }
   ]
 
-  const updateAnalysisPoint = (pointIndex: number, status: string) => {
+  const updateAnalysisPoint = (pointIndex, status) => {
     setAnalysisPoints(prev => prev.map((point, index) => 
       index === pointIndex ? { ...point, status } : point
     ))
@@ -173,7 +208,7 @@ const WhatsAppMockup = ({ userGender }: { userGender: string }) => {
       }, step.delay)
     }
 
-    const executeStep = (action: string) => {
+    const executeStep = (action) => {
       switch(action) {
         case 'showUserMessage':
           setCurrentMessage(1)
@@ -206,7 +241,7 @@ const WhatsAppMockup = ({ userGender }: { userGender: string }) => {
     }
 
     setTimeout(runAnimation, 300)
-  }, [getPersonalizedFirstMessage, getPersonalizedExResponse])
+  }, [getPersonalizedFirstMessage, getPersonalizedExResponse]) // ✅ Dependências adicionadas para useCallback
 
   return (
     <div className="flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-8 mb-8">
@@ -349,7 +384,7 @@ const WhatsAppMockup = ({ userGender }: { userGender: string }) => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style jsx>{\`
         .phone-mockup {
           width: 300px;
           height: 600px;
@@ -636,156 +671,11 @@ const WhatsAppMockup = ({ userGender }: { userGender: string }) => {
             margin-top: 20px;
           }
         }
-      `}</style>
+      \`}</style>
     </div>
   )
 }
 
-// === NOVO COMPONENTE: POPUP CINEMATOGRÁFICO ===
-interface PopupCinematograficoProps {
-  onContinue: () => void;
-}
-
-const PopupCinematografico: React.FC<PopupCinematograficoProps> = ({ onContinue }) => {
-  const [peopleWatching, setPeopleWatching] = useState(Math.floor(Math.random() * 50) + 100); // Start with 100-150
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    enviarEvento('popup_cinematico_view', {
-      event_category: 'quiz_start',
-      event_label: 'popup_viewed'
-    });
-
-    intervalRef.current = setInterval(() => {
-      setPeopleWatching(prev => prev + Math.floor(Math.random() * 3)); // Add 0-2 people every few seconds
-    }, 3000); // Update every 3 seconds
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, []);
-
-  const handleCtaClick = () => {
-    enviarEvento('popup_cinematico_cta_click', {
-      event_category: 'quiz_start',
-      event_label: 'descubrir_ahora_clicked'
-    });
-    onContinue();
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.8 }}
-      transition={{ duration: 0.8, ease: "easeOut" }}
-      className="fixed inset-0 bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4 z-50 overflow-hidden"
-    >
-      {/* Particle Effect (simple CSS) */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {[...Array(20)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute bg-white rounded-full opacity-0"
-            style={{
-              width: `${Math.random() * 3 + 1}px`,
-              height: `${Math.random() * 3 + 1}px`,
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              y: [0, Math.random() * 200 - 100],
-              x: [0, Math.random() * 200 - 100],
-              opacity: [0, 0.5, 0],
-              scale: [0.5, 1.5, 0.5],
-            }}
-            transition={{
-              duration: Math.random() * 5 + 5,
-              repeat: Infinity,
-              delay: Math.random() * 5,
-              ease: "linear",
-            }}
-          />
-        ))}
-      </div>
-
-      <div className="relative z-10 max-w-2xl w-full text-center bg-gray-800/30 backdrop-blur-md rounded-2xl p-6 sm:p-10 border border-orange-500/50 shadow-2xl">
-        <motion.h1
-          initial={{ y: -50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.7, ease: "easeOut" }}
-          className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white mb-4 leading-tight drop-shadow-lg"
-          style={{ textShadow: '0 0 15px rgba(255,165,0,0.7)' }}
-        >
-          ¿ELLA SIGUE PENSANDO EN TI?
-        </motion.h1>
-
-        <motion.p
-          initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.7, ease: "easeOut" }}
-          className="text-lg sm:text-xl text-orange-200 mb-8 font-medium"
-        >
-          No estás solo. Miles de personas buscan respuestas.
-        </motion.p>
-
-        <motion.div
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.9, duration: 0.8, ease: "easeOut" }}
-          className="relative w-full max-w-sm mx-auto mb-8"
-        >
-          <img
-            src="https://i.ibb.co/5hbjyZFJ/CASAL-JOSE.webp" // Placeholder image
-            alt="Pareja pensando"
-            className="w-full rounded-xl shadow-xl border-2 border-orange-400/70"
-          />
-          <motion.div
-            className="absolute inset-0 rounded-xl pointer-events-none"
-            animate={{
-              boxShadow: [
-                '0 0 10px rgba(255,165,0,0.5)',
-                '0 0 20px rgba(255,165,0,0.8)',
-                '0 0 10px rgba(255,165,0,0.5)'
-              ]
-            }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          />
-        </motion.div>
-
-        <motion.div
-          initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 1.2, duration: 0.7, ease: "easeOut" }}
-          className="mb-6"
-        >
-          <p className="text-gray-300 text-sm sm:text-base mb-2">
-            Únete a los <span className="font-bold text-orange-300">{peopleWatching}</span> que están descubriendo la verdad ahora mismo.
-          </p>
-          <Button
-            onClick={handleCtaClick}
-            size="lg"
-            className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-3 px-8 rounded-full shadow-lg text-lg sm:text-xl transform hover:scale-105 transition-all duration-300 relative overflow-hidden"
-          >
-            <span className="relative z-10 flex items-center justify-center">
-              DESCUBRIR AHORA
-              <PlayCircle className="w-6 h-6 ml-3" />
-            </span>
-            <motion.span
-              className="absolute inset-0 bg-white opacity-0"
-              whileHover={{ opacity: 0.2 }}
-              transition={{ duration: 0.2 }}
-            />
-          </Button>
-        </motion.div>
-      </div>
-    </motion.div>
-  );
-};
-
-// === COMPONENTE PRINCIPAL DO QUIZ ===
 export default function QuizStep() {
   const params = useParams()
   const router = useRouter()
@@ -800,130 +690,124 @@ export default function QuizStep() {
   const [isLoaded, setIsLoaded] = useState(false)
   const [peopleCount, setPeopleCount] = useState(17)
   const [userGender, setUserGender] = useState<string>("")
-  const [showCinematicPopup, setShowCinematicPopup] = useState(true); // Controla a exibição do popup
+  const [userId, setUserId] = useState<string>("") // ✅ MELHORIA 4: Estado para userId
+  const [validationError, setValidationError] = useState<string>("") // ✅ MELHORIA 2: Estado para erro de validação
 
-  // Total de passos agora é 14 (1 popup + 13 perguntas)
-  const TOTAL_QUIZ_STEPS = 14; 
+  const currentStep = quizSteps[step - 1]
+  const progress = (step / 13) * 100
 
-  // currentStep agora é quizSteps[step - 2] porque o step 1 é o popup, e o step 2 é quizSteps[0]
-  const currentStepData = step === 1 ? null : quizSteps[step - 2]; 
-  const progress = (step / TOTAL_QUIZ_STEPS) * 100;
-
+  // ✅ MELHORIA 1: localStorage com try-catch e reset seletivo
   useEffect(() => {
-    // Verifica se o popup já foi visto na sessão
-    const hasSeenPopup = localStorage.getItem("hasSeenCinematicPopup");
-    if (hasSeenPopup === "true") {
-      setShowCinematicPopup(false);
-      // Se o usuário está no step 1 mas já viu o popup, avança para o step 2
-      if (step === 1) {
-        const currentUrl = new URL(window.location.href);
-        let utmString = '';
-        const utmParams = new URLSearchParams();
-        for (const [key, value] of currentUrl.searchParams.entries()) {
-          if (key.startsWith('utm_')) {
-            utmParams.append(key, value);
-          }
-        }
-        if (utmParams.toString() !== '') {
-          utmString = '?' + utmParams.toString();
-        }
-        router.replace(`/quiz/2${utmString}`);
-        return;
-      }
-    } else {
-      // Se é a primeira vez e está no step 1, mostra o popup
-      if (step === 1) {
-        setShowCinematicPopup(true);
-      } else {
-        // Se não está no step 1 mas não viu o popup, redireciona para o step 1
-        const currentUrl = new URL(window.location.href);
-        let utmString = '';
-        const utmParams = new URLSearchParams();
-        for (const [key, value] of currentUrl.searchParams.entries()) {
-          if (key.startsWith('utm_')) {
-            utmParams.append(key, value);
-          }
-        }
-        if (utmParams.toString() !== '') {
-          utmString = '?' + utmParams.toString();
-        }
-        router.replace(`/quiz/1${utmString}`);
-        return;
-      }
-    }
+    let currentUserId = gerarIdAnonimo(); // Garante que o ID seja gerado e recuperado
+    setUserId(currentUserId);
 
-    // Carregar dados salvos (apenas para steps de pergunta)
-    if (step > 1) {
-      const saved = localStorage.getItem("quizData")
-      const savedBonuses = localStorage.getItem("unlockedBonuses")
-      const savedValue = localStorage.getItem("totalValue")
-      const savedGender = localStorage.getItem("userGender")
-      const savedAnswers = localStorage.getItem("quizAnswers")
+    try {
+      // Cargar dados guardados com proteção contra corrupção
+      const saved = typeof window !== 'undefined' ? localStorage.getItem("quizData") : null;
+      const savedBonuses = typeof window !== 'undefined' ? localStorage.getItem("unlockedBonuses") : null;
+      const savedValue = typeof window !== 'undefined' ? localStorage.getItem("totalValue") : null;
+      const savedGender = typeof window !== 'undefined' ? localStorage.getItem("userGender") : null;
+      const savedAnswers = typeof window !== 'undefined' ? localStorage.getItem("quizAnswers") : null;
 
-      if (saved) setQuizData(JSON.parse(saved))
-      if (savedBonuses) setUnlockedBonuses(JSON.parse(savedBonuses))
-      if (savedValue) setTotalValue(Number.parseInt(savedValue))
-      if (savedGender) setUserGender(savedGender)
+      // Parse com try-catch para cada item
+      if (saved) {
+        try {
+          setQuizData(JSON.parse(saved))
+        } catch (e) {
+          console.error('Erro ao parsear quizData, removendo...', e)
+          if (typeof window !== 'undefined') localStorage.removeItem("quizData")
+          setQuizData({})
+        }
+      }
+
+      if (savedBonuses) {
+        try {
+          setUnlockedBonuses(JSON.parse(savedBonuses))
+        } catch (e) {
+          console.error('Erro ao parsear unlockedBonuses, removendo...', e)
+          if (typeof window !== 'undefined') localStorage.removeItem("unlockedBonuses")
+          setUnlockedBonuses([])
+        }
+      }
+
+      if (savedValue) {
+        try {
+          setTotalValue(Number.parseInt(savedValue))
+        } catch (e) {
+          console.error('Erro ao parsear totalValue, removendo...', e)
+          if (typeof window !== 'undefined') localStorage.removeItem("totalValue")
+          setTotalValue(0)
+        }
+      }
+
+      if (savedGender) {
+        setUserGender(savedGender)
+      }
+
       if (savedAnswers) {
-        (window as any).quizAnswers = JSON.parse(savedAnswers)
+        try {
+          window.quizAnswers = JSON.parse(savedAnswers)
+        } catch (e) {
+          console.error('Erro ao parsear quizAnswers, removendo...', e)
+          if (typeof window !== 'undefined') localStorage.removeItem("quizAnswers")
+          window.quizAnswers = {}
+        }
       }
 
-      setTimeout(() => {
-        setIsLoaded(true)
-      }, 300)
-
-      enviarEvento('visualizou_etapa_quiz', {
-        numero_etapa: step,
-        pergunta: currentStepData?.question || `Etapa ${step}`
-      });
-
-      if (currentStepData?.autoAdvance) {
-        const timer = setTimeout(() => {
-          proceedToNextStep()
-        }, 3000)
-
-        return () => clearTimeout(timer)
+    } catch (error) {
+      console.error('Erro crítico ao carregar localStorage:', error)
+      // Reset completo se erro crítico
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem("quizData")
+        localStorage.removeItem("unlockedBonuses")
+        localStorage.removeItem("totalValue")
+        localStorage.removeItem("quizAnswers")
       }
-
-      const interval = setInterval(() => {
-        setPeopleCount((prev) => prev + Math.floor(Math.random() * 3))
-      }, 45000)
-
-      return () => clearInterval(interval)
+      setQuizData({})
+      setUnlockedBonuses([])
+      setTotalValue(0)
+      setUserId(gerarIdAnonimo()) // Regenera o ID se houver um erro crítico
     }
-  }, [step, router]);
 
-  // Handler para o botão "DESCUBRIR AHORA" do popup
-  const handlePopupContinue = () => {
-    localStorage.setItem("hasSeenCinematicPopup", "true");
-    setShowCinematicPopup(false);
-    const currentUrl = new URL(window.location.href);
-    let utmString = '';
-    const utmParams = new URLSearchParams();
-    for (const [key, value] of currentUrl.searchParams.entries()) {
-      if (key.startsWith('utm_')) {
-        utmParams.append(key, value);
-      }
+    setTimeout(() => {
+      setIsLoaded(true)
+    }, 300)
+
+    // ✅ MELHORIA 4: Enviar evento com contexto de usuário
+    enviarEvento('visualizou_etapa_quiz', {
+      numero_etapa: step,
+      pergunta: currentStep?.question || `Etapa ${step}`
+    }, userGender, step, currentUserId); // Usa currentUserId
+
+    if (currentStep?.autoAdvance) {
+      const timer = setTimeout(() => {
+        proceedToNextStep()
+      }, 3000)
+
+      return () => clearTimeout(timer)
     }
-    if (utmParams.toString() !== '') {
-      utmString = '?' + utmParams.toString();
-    }
-    router.push(`/quiz/2${utmString}`); // Avança para o Step 2 (primeira pergunta real)
-  };
+
+    const interval = setInterval(() => {
+      setPeopleCount((prev) => prev + Math.floor(Math.random() * 3))
+    }, 45000)
+
+    return () => clearInterval(interval)
+  }, [step, userGender, userId, currentStep]) // Adicionado userId às dependências
 
   const handleAnswerSelect = (answer: string) => {
     setSelectedAnswer(answer)
+    setValidationError("") // ✅ MELHORIA 2: Limpar erro ao selecionar
 
+    // ✅ MELHORIA 4: Enviar evento com contexto de usuário
     enviarEvento('selecionou_resposta', {
       numero_etapa: step,
-      pergunta: currentStepData?.question || `Etapa ${step}`,
+      pergunta: currentStep?.question || `Etapa ${step}`,
       resposta: answer
-    });
+    }, userGender, step, userId);
 
-    // Se o step atual é o novo step 2 (antigo step 1), salva o gênero
-    if (step === 2) { 
+    if (step === 1) {
       setUserGender(answer)
-      localStorage.setItem("userGender", answer)
+      if (typeof window !== 'undefined') localStorage.setItem("userGender", answer)
     }
 
     const button = document.querySelector(`button[data-option="${answer}"]`)
@@ -933,23 +817,39 @@ export default function QuizStep() {
     }
   }
 
+  // ✅ MELHORIA 2: Validação de respostas com trim() e feedback
   const handleNext = () => {
+    // Validar se resposta está vazia ou só com espaços
+    const trimmedAnswer = selectedAnswer.trim()
+    
+    if (!trimmedAnswer) {
+      setValidationError("Por favor, selecciona una respuesta antes de continuar")
+      // Vibração visual no botão
+      const button = document.querySelector('button[data-next-button]')
+      if (button) {
+        button.classList.add("shake")
+        setTimeout(() => button.classList.remove("shake"), 500)
+      }
+      return
+    }
+
+    // ✅ MELHORIA 4: Enviar evento de avanço com contexto
     enviarEvento('avancou_etapa', {
       numero_etapa: step,
-      pergunta: currentStepData?.question || `Etapa ${step}`,
-      resposta_selecionada: selectedAnswer
-    });
+      pergunta: currentStep?.question || `Etapa ${step}`,
+      resposta_selecionada: trimmedAnswer
+    }, userGender, step, userId);
 
-    const newQuizData = { ...quizData, [step]: selectedAnswer }
+    const newQuizData = { ...quizData, [step]: trimmedAnswer }
     setQuizData(newQuizData)
-    localStorage.setItem("quizData", JSON.stringify(newQuizData))
+    if (typeof window !== 'undefined') localStorage.setItem("quizData", JSON.stringify(newQuizData))
 
-    const answers = (window as any).quizAnswers || {}
-    answers[`question${step - 1}`] = selectedAnswer // Ajusta o ID da pergunta para o array quizSteps
-    (window as any).quizAnswers = answers
-    localStorage.setItem("quizAnswers", JSON.stringify(answers))
+    const answers = window.quizAnswers || {}
+    answers[`question${step}`] = trimmedAnswer
+    window.quizAnswers = answers
+    if (typeof window !== 'undefined') localStorage.setItem("quizAnswers", JSON.stringify(answers))
 
-    if (currentStepData?.elements?.analysisText || currentStepData?.elements?.profileAnalysis) {
+    if (currentStep?.elements?.analysisText || currentStep?.elements?.profileAnalysis) {
       setShowAnalysis(true)
       setTimeout(() => {
         setShowAnalysis(false)
@@ -962,54 +862,60 @@ export default function QuizStep() {
   }
 
   const proceedToNextStep = () => {
-    const currentUrl = new URL(window.location.href);
+    const currentUrl = typeof window !== 'undefined' ? new URL(window.location.href) : null;
     let utmString = '';
     
-    const utmParams = new URLSearchParams();
-    for (const [key, value] of currentUrl.searchParams.entries()) {
-      if (key.startsWith('utm_')) {
-        utmParams.append(key, value);
+    if (currentUrl) {
+      const utmParams = new URLSearchParams();
+      for (const [key, value] of currentUrl.searchParams.entries()) {
+        if (key.startsWith('utm_')) {
+          utmParams.append(key, value);
+        }
+      }
+      
+      if (utmParams.toString() !== '') {
+        utmString = '?' + utmParams.toString();
       }
     }
-    
-    if (utmParams.toString() !== '') {
-      utmString = '?' + utmParams.toString();
-    }
 
-    if (currentStepData?.bonusUnlock && !unlockedBonuses.includes(currentStepData.bonusUnlock.id)) {
+    if (currentStep?.bonusUnlock && !unlockedBonuses.includes(currentStep.bonusUnlock.id)) {
+      // ✅ MELHORIA 4: Enviar evento de bonus com contexto
       enviarEvento('desbloqueou_bonus', {
         numero_etapa: step,
-        bonus_id: currentStepData.bonusUnlock.id,
-        bonus_titulo: currentStepData.bonusUnlock.title
-      });
+        bonus_id: currentStep.bonusUnlock.id,
+        bonus_titulo: currentStep.bonusUnlock.title
+      }, userGender, step, userId);
 
-      const newUnlockedBonuses = [...unlockedBonuses, currentStepData.bonusUnlock.id]
-      const newTotalValue = totalValue + currentStepData.bonusUnlock.value
+      const newUnlockedBonuses = [...unlockedBonuses, currentStep.bonusUnlock.id]
+      const newTotalValue = totalValue + currentStep.bonusUnlock.value
 
       setUnlockedBonuses(newUnlockedBonuses)
       setTotalValue(newTotalValue)
 
       const personalizedBonus = {
-        ...currentStepData.bonusUnlock,
-        title: currentStepData.bonusUnlock?.title || 'Bonus desbloqueado',
-        description: currentStepData.bonusUnlock?.description || 'Descripción del bonus',
+        ...currentStep.bonusUnlock,
+        title: currentStep.bonusUnlock?.title || 'Bonus desbloqueado',
+        description: currentStep.bonusUnlock?.description || 'Descripción del bonus',
       }
       setNewBonus(personalizedBonus)
 
-      localStorage.setItem("unlockedBonuses", JSON.stringify(newUnlockedBonuses))
-      localStorage.setItem("totalValue", newTotalValue.toString())
+      if (typeof window !== 'undefined') {
+        localStorage.setItem("unlockedBonuses", JSON.stringify(newUnlockedBonuses))
+        localStorage.setItem("totalValue", newTotalValue.toString())
+      }
 
       setShowBonusUnlock(true)
       return
     }
 
-    if (step < TOTAL_QUIZ_STEPS) { // Ajustado para o novo total de passos
+    if (step < 13) {
       router.push(`/quiz/${step + 1}${utmString}`)
     } else {
+      // ✅ MELHORIA 4: Enviar evento de conclusão com contexto
       enviarEvento('concluiu_quiz', {
-        total_etapas_completadas: TOTAL_QUIZ_STEPS,
+        total_etapas_completadas: 13,
         total_bonus_desbloqueados: unlockedBonuses.length
-      });
+      }, userGender, 13, userId);
       
       router.push(`/resultado${utmString}`)
     }
@@ -1018,21 +924,23 @@ export default function QuizStep() {
   const handleBonusUnlockComplete = () => {
     setShowBonusUnlock(false)
     
-    const currentUrl = new URL(window.location.href);
+    const currentUrl = typeof window !== 'undefined' ? new URL(window.location.href) : null;
     let utmString = '';
     
-    const utmParams = new URLSearchParams();
-    for (const [key, value] of currentUrl.searchParams.entries()) {
-      if (key.startsWith('utm_')) {
-        utmParams.append(key, value);
+    if (currentUrl) {
+      const utmParams = new URLSearchParams();
+      for (const [key, value] of currentUrl.searchParams.entries()) {
+        if (key.startsWith('utm_')) {
+          utmParams.append(key, value);
+        }
+      }
+      
+      if (utmParams.toString() !== '') {
+        utmString = '?' + utmParams.toString();
       }
     }
     
-    if (utmParams.toString() !== '') {
-      utmString = '?' + utmParams.toString();
-    }
-    
-    if (step < TOTAL_QUIZ_STEPS) { // Ajustado para o novo total de passos
+    if (step < 13) {
       router.push(`/quiz/${step + 1}${utmString}`)
     } else {
       router.push(`/resultado${utmString}`)
@@ -1040,23 +948,26 @@ export default function QuizStep() {
   }
 
   const handleBack = () => {
+    // ✅ MELHORIA 4: Enviar evento de retorno com contexto
     enviarEvento('retornou_etapa', {
       de_etapa: step,
       para_etapa: step > 1 ? step - 1 : 'inicio'
-    });
+    }, userGender, step, userId);
     
-    const currentUrl = new URL(window.location.href);
+    const currentUrl = typeof window !== 'undefined' ? new URL(window.location.href) : null;
     let utmString = '';
     
-    const utmParams = new URLSearchParams();
-    for (const [key, value] of currentUrl.searchParams.entries()) {
-      if (key.startsWith('utm_')) {
-        utmParams.append(key, value);
+    if (currentUrl) {
+      const utmParams = new URLSearchParams();
+      for (const [key, value] of currentUrl.searchParams.entries()) {
+        if (key.startsWith('utm_')) {
+          utmParams.append(key, value);
+        }
       }
-    }
-    
-    if (utmParams.toString() !== '') {
-      utmString = '?' + utmParams.toString();
+      
+      if (utmParams.toString() !== '') {
+        utmString = '?' + utmParams.toString();
+      }
     }
     
     if (step > 1) {
@@ -1067,33 +978,29 @@ export default function QuizStep() {
   }
 
   const getStepIcon = (stepNumber: number, index: number) => {
-    // Mapeamento de ícones para as perguntas originais (step 2 em diante)
-    const iconMaps: { [key: number]: any[] } = {
-      2: [User, Users], // Antigo Step 1
-      3: [Calendar, TrendingUp, Target, Zap], // Antigo Step 2
-      4: [Clock, Calendar, MessageCircle, Heart], // Antigo Step 3
-      5: [Heart, MessageCircle, Users], // Antigo Step 4
-      6: [Calendar, Heart, TrendingUp, Clock], // Antigo Step 5
-      7: [Smile, Heart, MessageCircle, TrendingUp, Target, Zap], // Antigo Step 6
-      8: [MessageCircle, Heart, Users, TrendingUp, Smile, Users, Heart], // Antigo Step 7
-      9: [MessageCircle, Heart, Users, TrendingUp, Smile], // Antigo Step 8
-      10: [Heart, TrendingUp, Target, Zap], // Antigo Step 9
-      // Steps 11, 12, 13, 14 não têm opções de ícones dinâmicos
+    const iconMaps = {
+      1: [User, Users],
+      2: [Calendar, TrendingUp, Target, Zap],
+      3: [Clock, Calendar, MessageCircle, Heart],
+      4: [Heart, MessageCircle, Users],
+      5: [Calendar, Heart, TrendingUp, Clock],
+      6: [Smile, Heart, MessageCircle, TrendingUp, Target, Zap],
+      7: [MessageCircle, Heart, Users, TrendingUp, Smile, Users, Heart],
+      8: [MessageCircle, Heart, Users, TrendingUp, Smile],
+      9: [Heart, TrendingUp, Target, Zap],
     }
 
-    const icons = iconMaps[step] || [Heart]
+    const icons = iconMaps[stepNumber] || [Heart]
     const Icon = icons[index] || Heart
     return <Icon className="w-6 h-6" />
   }
 
   const getPersonalizedQuestion = () => {
-    if (!currentStepData) return "";
-    return getPersonalizedContent(currentStepData.question, userGender)
+    return getPersonalizedContent(currentStep.question, userGender)
   }
 
   const getPersonalizedDescription = () => {
-    if (!currentStepData) return "";
-    const desc = currentStepData.description
+    const desc = currentStep.description
     if (typeof desc === 'function') {
       try {
         return desc()
@@ -1106,8 +1013,7 @@ export default function QuizStep() {
   }
 
   const getPersonalizedSubtext = () => {
-    if (!currentStepData) return "";
-    const subtext = currentStepData.subtext
+    const subtext = currentStep.subtext
     if (typeof subtext === 'function') {
       try {
         return subtext()
@@ -1120,18 +1026,11 @@ export default function QuizStep() {
   }
 
   const getPersonalizedOptions = () => {
-    if (!currentStepData) return [];
-    const options = getPersonalizedContent(currentStepData.options, userGender)
-    return Array.isArray(options) ? options : currentStepData.options
+    const options = getPersonalizedContent(currentStep.options, userGender)
+    return Array.isArray(options) ? options : currentStep.options
   }
 
-  // Renderiza o popup se for o step 1 e ainda não foi visto
-  if (step === 1 && showCinematicPopup) {
-    return <PopupCinematografico onContinue={handlePopupContinue} />;
-  }
-
-  // Se não há dados para o step (ex: step 1 mas popup já foi visto e não redirecionou ainda)
-  if (!currentStepData) {
+  if (!currentStep) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white text-xl">Cargando...</div>
@@ -1149,17 +1048,17 @@ export default function QuizStep() {
               variant="ghost"
               onClick={handleBack}
               className="text-white hover:bg-white/20 border border-white/20"
-              disabled={currentStepData?.autoAdvance}
+              disabled={currentStep?.autoAdvance}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver
             </Button>
 
             <div className="flex items-center gap-4">
-              {currentStepData?.elements?.timer && (
+              {currentStep?.elements?.timer && (
                 <div className="flex items-center gap-2 text-white text-sm bg-white/10 px-3 py-1 rounded-full">
                   <Clock className="w-4 h-4" />
-                  <span>{currentStepData.elements.timer}</span>
+                  <span>{currentStep.elements.timer}</span>
                 </div>
               )}
             </div>
@@ -1171,13 +1070,13 @@ export default function QuizStep() {
 
           <div className="flex justify-between items-center">
             <p className="text-white text-sm">
-              Etapa {step} de {TOTAL_QUIZ_STEPS} • {Math.round(progress)}% completado
+              Etapa {step} de 13 • {Math.round(progress)}% completado
             </p>
           </div>
         </div>
 
         {/* Testimonial Display */}
-        {currentStepData?.elements?.testimonialDisplay && (currentStepData?.elements?.testimonialText || currentStepData?.elements?.testimonialData) && (
+        {currentStep?.elements?.testimonialDisplay && (currentStep?.elements?.testimonialText || currentStep?.elements?.testimonialData) && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }} 
@@ -1188,10 +1087,10 @@ export default function QuizStep() {
               <CardContent className="p-4 sm:p-6">
                 <div className="flex flex-col space-y-3">
                   <div className="flex items-center space-x-3">
-                    {currentStepData.elements.testimonialImage || (currentStepData.elements.testimonialData && currentStepData.elements.testimonialData().image) ? (
+                    {currentStep.elements.testimonialImage || (currentStep.elements.testimonialData && currentStep.elements.testimonialData().image) ? (
                       <motion.img
-                        src={currentStepData.elements.testimonialImage || (currentStepData.elements.testimonialData && currentStepData.elements.testimonialData().image)}
-                        alt={currentStepData.elements.testimonialName || (currentStepData.elements.testimonialData && currentStepData.elements.testimonialData().name) || "Cliente"}
+                        src={currentStep.elements.testimonialImage || (currentStep.elements.testimonialData && currentStep.elements.testimonialData().image)}
+                        alt={currentStep.elements.testimonialName || (currentStep.elements.testimonialData && currentStep.elements.testimonialData().name) || "Cliente"}
                         className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-yellow-500 shadow-md"
                         animate={{
                           y: [0, -2, 0],
@@ -1210,9 +1109,9 @@ export default function QuizStep() {
                     )}
 
                     <div className="flex-1 min-w-0">
-                      {currentStepData.elements.testimonialName || (currentStepData.elements.testimonialData && currentStepData.elements.testimonialData().name) ? (
+                      {currentStep.elements.testimonialName || (currentStep.elements.testimonialData && currentStep.elements.testimonialData().name) ? (
                         <p className="text-yellow-400 font-bold text-sm sm:text-base truncate">
-                          {currentStepData.elements.testimonialName || (currentStepData.elements.testimonialData && currentStepData.elements.testimonialData().name)}
+                          {currentStep.elements.testimonialName || (currentStep.elements.testimonialData && currentStep.elements.testimonialData().name)}
                         </p>
                       ) : null}
                       
@@ -1238,7 +1137,7 @@ export default function QuizStep() {
                     transition={{ delay: 0.5 }}
                   >
                     <p className="text-white text-sm sm:text-base leading-relaxed italic">
-                      "{currentStepData.elements.testimonialText || (currentStepData.elements.testimonialData && currentStepData.elements.testimonialData().text)}"
+                      "{currentStep.elements.testimonialText || (currentStep.elements.testimonialData && currentStep.elements.testimonialData().text)}"
                     </p>
                   </motion.div>
 
@@ -1266,8 +1165,8 @@ export default function QuizStep() {
           <Card className="bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-lg border-orange-500/30 shadow-2xl border-2">
             <CardContent className="p-6 sm:p-8">
               
-              {/* === RENDERIZAÇÃO ESPECIAL PARA STEP 13 (Antigo Step 12) === */}
-              {step === 13 && (
+              {/* === RENDERIZAÇÃO ESPECIAL PARA STEP 12 - COM MELHORIAS APLICADAS === */}
+              {step === 12 && (
                 <div className="text-center">
                   <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-6 leading-tight">
                     🔮 ESTO ES LO QUE ELLA REALMENTE SENTIRÍA SI LE ESCRIBIERAS HOY
@@ -1300,15 +1199,15 @@ export default function QuizStep() {
               )}
 
               {/* Auto advance step */}
-              {currentStepData?.autoAdvance && step !== 13 && (
+              {currentStep?.autoAdvance && step !== 12 && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className="text-center"
                 >
-                  {currentStepData?.elements?.expertImage ? (
+                  {currentStep?.elements?.expertImage ? (
                     <motion.img
-                      src={currentStepData.elements.expertImage}
+                      src={currentStep.elements.expertImage}
                       alt="Experto en Reconquista"
                       className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-blue-600 mx-auto mb-6"
                       animate={{
@@ -1333,7 +1232,7 @@ export default function QuizStep() {
                     transition={{ delay: 0.5 }}
                     className="mb-6"
                   >
-                    <p className="text-blue-400 font-semibold text-base sm:text-lg mb-4">{currentStepData.elements?.autoMessage}</p>
+                    <p className="text-blue-400 font-semibold text-base sm:text-lg mb-4">{currentStep.elements?.autoMessage}</p>
                   </motion.div>
 
                   <div className="flex justify-center">
@@ -1357,8 +1256,8 @@ export default function QuizStep() {
                 </motion.div>
               )}
 
-              {/* Final reveal para step 14 (Antigo Step 13) */}
-              {currentStepData?.elements?.finalReveal && (
+              {/* Final reveal para step 13 */}
+              {currentStep?.elements?.finalReveal && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -1386,7 +1285,7 @@ export default function QuizStep() {
                       <div className="flex items-center justify-center gap-2 mb-2">
                         <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-green-400" />
                         <span className="text-xl sm:text-2xl font-bold text-green-400">
-                          {currentStepData.elements.profileComplete}
+                          {currentStep.elements.profileComplete}
                         </span>
                       </div>
                       <p className="text-green-300 font-medium text-sm sm:text-base">Análisis Completo</p>
@@ -1407,12 +1306,12 @@ export default function QuizStep() {
                 </motion.div>
               )}
 
-              {/* Foto de experto para el paso 11 y 14 */}
-              {currentStepData?.elements?.expertPhoto && !currentStepData?.autoAdvance && step !== 13 && (
+              {/* Foto de experto para el paso 11 y 13 */}
+              {currentStep?.elements?.expertPhoto && !currentStep?.autoAdvance && step !== 12 && (
                 <div className="flex justify-center mb-6">
-                  {currentStepData?.elements?.expertImage ? (
+                  {currentStep?.elements?.expertImage ? (
                     <motion.img
-                      src={currentStepData.elements.expertImage}
+                      src={currentStep.elements.expertImage}
                       alt="Experto en Reconquista"
                       className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-4 border-blue-600"
                       animate={{
@@ -1433,8 +1332,8 @@ export default function QuizStep() {
                 </div>
               )}
 
-              {/* Compatibilidade calculation for step 12 */}
-              {currentStepData?.elements?.compatibilityCalc && (
+              {/* Compatibilidade calculation for step 11 */}
+              {currentStep?.elements?.compatibilityCalc && (
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: "91%" }}
@@ -1443,13 +1342,13 @@ export default function QuizStep() {
                 >
                   <div className="bg-green-900/50 border border-green-500 rounded-lg p-4 text-center">
                     <div className="text-2xl sm:text-3xl font-bold text-green-400">
-                      {currentStepData.elements.compatibilityCalc} de compatibilidad
+                      {currentStep.elements.compatibilityCalc} de compatibilidad
                     </div>
                   </div>
                 </motion.div>
               )}
 
-              {!currentStepData?.autoAdvance && step !== 13 && (
+              {!currentStep?.autoAdvance && step !== 12 && (
                 <>
                   <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-6 text-center leading-tight">
                     {getPersonalizedQuestion()}
@@ -1461,7 +1360,7 @@ export default function QuizStep() {
 
                   {getPersonalizedDescription() && (
                     <div className="text-gray-300 text-center mb-8 text-sm sm:text-base whitespace-pre-wrap">
-                      {step === 14 ? ( // Antigo Step 13
+                      {step === 13 ? (
                         <div className="space-y-6">
                           {getPersonalizedDescription().split('**').map((section, index) => {
                             if (index % 2 === 1) {
@@ -1480,15 +1379,15 @@ export default function QuizStep() {
                     </div>
                   )}
 
-                  {/* Evidência Científica - APENAS ETAPA 12 (Antigo Step 11) */}
-                  {step === 12 && currentStepData?.elements?.scientificEvidence && (
+                  {/* Evidência Científica - APENAS ETAPA 11 */}
+                  {currentStep?.elements?.scientificEvidence && (
                     <motion.div 
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.6, delay: 0.3 }}
                       className="mb-8 space-y-6"
                     >
-                      {currentStepData.elements.reportageImage && (
+                      {currentStep.elements.reportageImage && (
                         <motion.div
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
@@ -1496,14 +1395,14 @@ export default function QuizStep() {
                           className="relative"
                         >
                           <img
-                            src={currentStepData.elements.reportageImage}
+                            src={currentStep.elements.reportageImage}
                             alt="Reportagem BBC sobre neurociência"
                             className="w-full rounded-lg shadow-xl border border-gray-600 hover:shadow-2xl transition-shadow duration-300"
                           />
                         </motion.div>
                       )}
 
-                      {currentStepData.elements.curiousImage && (
+                      {currentStep.elements.curiousImage && (
                         <motion.div
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
@@ -1511,7 +1410,7 @@ export default function QuizStep() {
                           className="relative"
                         >
                           <img
-                            src={currentStepData.elements.curiousImage}
+                            src={currentStep.elements.curiousImage}
                             alt="Evidência científica curiosa"
                             className="w-full rounded-lg shadow-xl border border-gray-600 hover:shadow-2xl transition-shadow duration-300"
                           />
@@ -1535,7 +1434,7 @@ export default function QuizStep() {
                   )}
 
                   {/* Termómetro para nivel de compromiso */}
-                  {currentStepData?.elements?.thermometer && (
+                  {currentStep?.elements?.thermometer && (
                     <div className="mb-8">
                       <div className="flex justify-between text-gray-300 text-xs sm:text-sm mb-2 font-medium">
                         <span>No estoy seguro</span>
@@ -1550,6 +1449,18 @@ export default function QuizStep() {
                         />
                       </div>
                     </div>
+                  )}
+
+                  {/* ✅ MELHORIA 2: Mostrar erro de validação se houver */}
+                  {validationError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mb-4 p-4 bg-red-900/50 border border-red-500 rounded-lg flex items-center gap-2"
+                    >
+                      <AlertTriangle className="w-5 h-5 text-red-400" />
+                      <span className="text-red-300 font-medium">{validationError}</span>
+                    </motion.div>
                   )}
 
                   {getPersonalizedOptions().length > 0 && (
@@ -1606,29 +1517,29 @@ export default function QuizStep() {
                     </div>
                   )}
 
-                  {currentStepData.note && (
+                  {currentStep.note && (
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.6 }}
                       className="mt-6 text-center text-amber-300 bg-amber-900/30 p-4 rounded-lg border border-amber-600"
                     >
-                      <p className="font-medium text-sm sm:text-base">{currentStepData.note}</p>
+                      <p className="font-medium text-sm sm:text-base">{currentStep.note}</p>
                     </motion.div>
                   )}
 
-                  {currentStepData.guarantee && (
+                  {currentStep.guarantee && (
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.7 }}
                       className="mt-6 text-center text-green-300 bg-green-900/30 p-4 rounded-lg border border-green-600"
                     >
-                      <p className="font-medium text-sm sm:text-base">{currentStepData.guarantee}</p>
+                      <p className="font-medium text-sm sm:text-base">{currentStep.guarantee}</p>
                     </motion.div>
                   )}
 
-                  {currentStepData.warning && (
+                  {currentStep.warning && (
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -1636,26 +1547,28 @@ export default function QuizStep() {
                       className="mt-6 text-center text-red-300 bg-red-900/30 p-4 rounded-lg border border-red-600 flex items-center justify-center gap-2"
                     >
                       <AlertTriangle className="w-4 h-4" />
-                      <p className="font-medium text-sm sm:text-base">{currentStepData.warning}</p>
+                      <p className="font-medium text-sm sm:text-base">{currentStep.warning}</p>
                     </motion.div>
                   )}
 
-                  {selectedAnswer && getPersonalizedOptions().length > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-8 text-center"
+                  {/* ✅ MELHORIA 2: Botão "Siguiente Pregunta" sempre visível, mas desabilitado se não houver resposta válida */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-8 text-center"
+                  >
+                    <Button
+                      onClick={handleNext}
+                      data-next-button
+                      size="lg"
+                      // ✅ MELHORIA 2: Desabilitar botão se resposta vazia
+                      disabled={!selectedAnswer.trim()}
+                      className={`bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-3 px-6 sm:py-4 sm:px-8 rounded-full shadow-lg w-full sm:w-auto text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                      <Button
-                        onClick={handleNext}
-                        size="lg"
-                        className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-3 px-6 sm:py-4 sm:px-8 rounded-full shadow-lg w-full sm:w-auto text-sm sm:text-base"
-                      >
-                        {step === TOTAL_QUIZ_STEPS ? "Ver Resultado" : "Siguiente Pregunta"}
-                        <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
-                      </Button>
-                    </motion.div>
-                  )}
+                      {step === 13 ? "Ver Resultado" : "Siguiente Pregunta"}
+                      <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
+                    </Button>
+                  </motion.div>
                 </>
               )}
             </CardContent>
@@ -1663,32 +1576,45 @@ export default function QuizStep() {
         </motion.div>
 
         {/* Prueba Social */}
-        {step > 2 && !currentStepData?.autoAdvance && ( // Ajustado para o novo step 2
+        {step > 2 && !currentStep?.autoAdvance && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
             className="text-center space-y-2 mt-6"
           >
-            {currentStepData?.elements?.counter && (
+            {currentStep?.elements?.counter && (
               <p className="text-white text-xs sm:text-sm bg-white/10 px-3 py-1 rounded-full inline-block">
-                👥 {peopleCount} {currentStepData.elements.counter}
+                👥 {peopleCount} {currentStep.elements.counter}
               </p>
             )}
 
-            {currentStepData?.elements?.helpedCounter && (
+            {currentStep?.elements?.helpedCounter && (
               <p className="text-green-400 text-xs sm:text-sm font-semibold bg-green-900/20 px-3 py-1 rounded-full inline-block">
-                ✅ {currentStepData.elements.helpedCounter}
+                ✅ {currentStep.elements.helpedCounter}
               </p>
             )}
 
-            {step > 5 && ( // Ajustado para o novo step 5
+            {step > 5 && (
               <p className="text-blue-300 text-xs sm:text-sm bg-blue-900/20 px-3 py-1 rounded-full inline-block">
                 {socialProofMessages[Math.min(step - 6, socialProofMessages.length - 1)]}
               </p>
             )}
           </motion.div>
         )}
+
+        {/* CSS para animação shake */}
+        <style jsx>{\`
+          @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+          }
+          
+          button.shake {
+            animation: shake 0.5s;
+          }
+        \`}</style>
       </div>
 
       {/* Modal de Análisis de Carga */}
@@ -1696,11 +1622,11 @@ export default function QuizStep() {
         {showAnalysis && (
           <LoadingAnalysis
             message={
-              currentStepData?.elements?.analysisText ||
-              currentStepData?.elements?.profileAnalysis ||
+              currentStep?.elements?.analysisText ||
+              currentStep?.elements?.profileAnalysis ||
               "Analizando tus respuestas..."
             }
-            successMessage={currentStepData?.elements?.successRate}
+            successMessage={currentStep?.elements?.successRate}
           />
         )}
       </AnimatePresence>
