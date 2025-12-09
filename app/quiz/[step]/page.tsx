@@ -1398,11 +1398,7 @@ export default function QuizStep() {
             transition={{ delay: 0.4 }}
             className="text-center space-y-2 mt-6"
           >
-            <div className="bg-red-900/20 border border-red-400 rounded-lg p-2">
-              <p className="text-red-300 text-xs font-semibold">
-                ⚠️ IMPORTANTE: Solo {Math.floor(Math.random() * 15) + 5} espacios disponibles hoy
-              </p>
-            </div>
+
 
             {currentStep?.elements?.counter && (
               <p className="text-white text-xs sm:text-sm bg-white/10 px-3 py-1 rounded-full inline-block">
