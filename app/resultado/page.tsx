@@ -38,7 +38,6 @@ export default function ResultPageFixed() {
   const [isVideoReady, setIsVideoReady] = useState(false)
   const [videoError, setVideoError] = useState<string | null>(null)
   const [isBrowser, setIsBrowser] = useState(false)
-  const [forceReload, setForceReload] = useState(0) // Para forçar recarregamento
 
   const contentRef = useRef<HTMLDivElement>(null)
   const startTimeRef = useRef(Date.now())
@@ -47,7 +46,6 @@ export default function ResultPageFixed() {
   const decryptIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const videoContainerRef = useRef<HTMLDivElement>(null)
   const scriptLoadedRef = useRef(false)
-  const playerInstanceRef = useRef<any>(null)
 
   // ===== VERIFICAÇÃO DE AMBIENTE BROWSER =====
   useEffect(() => {
@@ -152,96 +150,75 @@ export default function ResultPageFixed() {
     }
   }, [])
 
-  // ✅ CORREÇÃO CRÍTICA DO VÍDEO: Abordagem mais direta e simples
+  // ✅ CORREÇÃO CRÍTICA DO VÍDEO: Abordagem SUPER SIMPLIFICADA
   useEffect(() => {
-    if (!showVSL || !isBrowser) return
+    if (!showVSL || !isBrowser || scriptLoadedRef.current) return
 
-    const initializeVideo = () => {
+    const initializeVideo = async () => {
       try {
         setVideoError(null)
+        setIsVideoReady(false)
         
-        // ✅ LIMPA COMPLETAMENTE QUALQUER RESÍDUO ANTERIOR
-        const existingScripts = document.querySelectorAll('script[src*="converteai.net"]')
-        existingScripts.forEach(script => script.remove())
-        
-        // Limpa window.smartplayer se existir
-        if (typeof window !== 'undefined') {
-          // @ts-ignore
-          delete window.smartplayer
-          // @ts-ignore  
-          delete window.vturb
+        // Garantir que o container existe
+        if (!videoContainerRef.current) {
+          console.log("Container não encontrado")
+          return
         }
 
-        if (!videoContainerRef.current) return
+        console.log("Iniciando carregamento do vídeo ConvertAI...")
 
-        // ✅ FORÇA LIMPEZA TOTAL DO CONTAINER
+        // ✅ MARCAR COMO CARREGADO PARA EVITAR MÚLTIPLAS CARGAS
+        scriptLoadedRef.current = true
+
+        // ✅ LIMPAR CONTAINER COMPLETAMENTE
         videoContainerRef.current.innerHTML = ''
         
-        // ✅ AGUARDA UM POUCO PARA GARANTIR LIMPEZA
-        setTimeout(() => {
-          if (!videoContainerRef.current) return
+        // ✅ INSERIR PLAYER DE FORMA MAIS DIRETA
+        videoContainerRef.current.innerHTML = `
+          <div style="position: relative; padding-bottom: 56.25%; height: 0; background: #000;">
+            <vturb-smartplayer 
+              id="vid-692ef1c85df8a7aaec7c6000" 
+              style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+              data-setup='{"autoplay":false,"controls":true}'
+            ></vturb-smartplayer>
+          </div>
+        `
 
-          // ✅ CRIA O ELEMENTO VTURB DE FORMA MAIS SIMPLES
-          const playerId = `vid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-          
-          videoContainerRef.current.innerHTML = `
-            <div style="width: 100%; position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
-              <vturb-smartplayer 
-                id="vid-692ef1c85df8a7aaec7c6000" 
-                data-setup='{"autoplay":false,"controls":true}'
-                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
-              ></vturb-smartplayer>
-            </div>
-          `
+        // ✅ AGUARDAR UM POUCO PARA O HTML SER PROCESSADO
+        await new Promise(resolve => setTimeout(resolve, 500))
 
-          // ✅ CARREGA O SCRIPT COM DELAY MAIOR
-          setTimeout(() => {
-            const script = document.createElement("script")
-            script.src = "https://scripts.converteai.net/15be01a4-4462-4736-aeb9-b95eda21b8b8/players/692ef1c85df8a7aaec7c6000/v4/player.js"
-            script.async = true
-            
-            script.onload = () => {
-              console.log("Script VSL carregado com sucesso")
-              
-              // ✅ AGUARDA MAIS TEMPO PARA INICIALIZAÇÃO COMPLETA
-              setTimeout(() => {
-                setIsVideoReady(true)
-                
-                // ✅ FORÇA REFRESH DO PLAYER SE NECESSÁRIO
-                setTimeout(() => {
-                  const vturbElement = document.getElementById('vid-692ef1c85df8a7aaec7c6000')
-                  if (vturbElement && !vturbElement.querySelector('iframe, video')) {
-                    console.log("Forçando reload do player...")
-                    setForceReload(prev => prev + 1)
-                  }
-                }, 3000)
-              }, 2000) // 2 segundos para garantir inicialização
-            }
-            
-            script.onerror = (error) => {
-              console.error("Erro ao carregar script VSL:", error)
-              setVideoError("Erro ao carregar o vídeo. Tentando novamente...")
-              
-              // ✅ RETRY AUTOMÁTICO EM CASO DE ERRO
-              setTimeout(() => {
-                setForceReload(prev => prev + 1)
-              }, 2000)
-            }
-            
-            document.head.appendChild(script)
-          }, 500) // Delay antes de carregar o script
-          
-        }, 200) // Delay após limpeza
+        // ✅ CARREGAR O SCRIPT
+        const script = document.createElement("script")
+        script.src = "https://scripts.converteai.net/15be01a4-4462-4736-aeb9-b95eda21b8b8/players/692ef1c85df8a7aaec7c6000/v4/player.js"
+        script.async = true
+        
+        script.onload = () => {
+          console.log("Script ConvertAI carregado com sucesso!")
+          setIsVideoReady(true)
+        }
+        
+        script.onerror = (error) => {
+          console.error("Erro ao carregar script ConvertAI:", error)
+          setVideoError("Erro ao carregar o script do vídeo")
+          scriptLoadedRef.current = false // Permitir nova tentativa
+        }
+        
+        document.head.appendChild(script)
         
       } catch (error) {
         console.error("Erro na inicialização do vídeo:", error)
-        setVideoError("Erro inesperado. Tentando novamente...")
-        setTimeout(() => setForceReload(prev => prev + 1), 1000)
+        setVideoError("Erro inesperado ao carregar o vídeo")
+        scriptLoadedRef.current = false // Permitir nova tentativa
       }
     }
 
-    initializeVideo()
-  }, [showVSL, isBrowser, forceReload])
+    // ✅ AGUARDAR UM POUCO ANTES DE INICIALIZAR
+    const timer = setTimeout(initializeVideo, 1000)
+    
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [showVSL, isBrowser])
 
   // ===== FUNÇÕES DE PERSONALIZAÇÃO =====
   const getPronoun = useCallback(() => userGender === "SOY MUJER" ? "él" : "ella", [userGender])
@@ -301,51 +278,67 @@ export default function ResultPageFixed() {
 
   // ===== FUNÇÃO PARA RETRY MANUAL =====
   const handleRetryVideo = () => {
+    console.log("Tentando recarregar vídeo...")
     setVideoError(null)
     setIsVideoReady(false)
-    setForceReload(prev => prev + 1)
+    scriptLoadedRef.current = false
+    
+    // Remover scripts existentes
+    const existingScripts = document.querySelectorAll('script[src*="converteai.net"]')
+    existingScripts.forEach(script => script.remove())
+    
+    // Limpar container
+    if (videoContainerRef.current) {
+      videoContainerRef.current.innerHTML = ''
+    }
+    
+    // Forçar re-execução do useEffect
+    setShowVSL(false)
+    setTimeout(() => setShowVSL(true), 100)
   }
 
-  // ===== COMPONENTE DE VÍDEO OTIMIZADO =====
+  // ✅ COMPONENTE DE VÍDEO SUPER OTIMIZADO E SIMPLIFICADO
   const VideoPlayer = () => {
     if (!isBrowser || !showVSL) {
       return null
     }
 
-    if (videoError) {
-      return (
-        <div className="flex items-center justify-center h-64 bg-red-900/30 rounded-lg text-white border border-red-500">
-          <div className="text-center p-4">
-            <p className="text-red-300 mb-3">⚠️ {videoError}</p>
-            <button 
-              onClick={handleRetryVideo}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              🔄 Tentar Novamente
-            </button>
-          </div>
-        </div>
-      )
-    }
-
     return (
-      <div className="relative w-full bg-gray-900 rounded-lg overflow-hidden">
+      <div className="relative w-full bg-black rounded-lg overflow-hidden" style={{ minHeight: '300px' }}>
+        {/* Container do vídeo */}
         <div 
           ref={videoContainerRef}
-          className="w-full min-h-[300px] flex items-center justify-center"
+          className="w-full h-full min-h-[300px] flex items-center justify-center bg-gray-900"
+          style={{ aspectRatio: '16/9' }}
         >
-          {!isVideoReady && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-800 rounded-lg text-white z-20">
+          {/* Loading overlay */}
+          {!isVideoReady && !videoError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white z-20">
               <div className="text-center">
                 <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-3"></div>
-                <p className="mb-2">Cargando video...</p>
-                <p className="text-sm text-gray-400">Esto puede tomar unos segundos</p>
+                <p className="mb-2">Cargando video ConvertAI...</p>
+                <p className="text-sm text-gray-400">Puede tomar unos segundos</p>
+              </div>
+            </div>
+          )}
+          
+          {/* Error overlay */}
+          {videoError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-red-900/30 text-white z-20">
+              <div className="text-center p-4">
+                <p className="text-red-300 mb-3">⚠️ {videoError}</p>
+                <button 
+                  onClick={handleRetryVideo}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  🔄 Tentar Novamente
+                </button>
               </div>
             </div>
           )}
         </div>
         
-        {/* ✅ BOTÃO DE RETRY SEMPRE VISÍVEL */}
+        {/* Botão de retry sempre visível */}
         <div className="absolute bottom-2 right-2 z-30">
           <button 
             onClick={handleRetryVideo}
@@ -355,6 +348,15 @@ export default function ResultPageFixed() {
             🔄
           </button>
         </div>
+        
+        {/* Debug info */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="absolute top-2 left-2 z-30 bg-black/70 text-white text-xs p-2 rounded">
+            <div>Script loaded: {scriptLoadedRef.current ? 'Sim' : 'Não'}</div>
+            <div>Video ready: {isVideoReady ? 'Sim' : 'Não'}</div>
+            <div>Error: {videoError || 'Nenhum'}</div>
+          </div>
+        )}
       </div>
     )
   }
@@ -484,7 +486,7 @@ export default function ResultPageFixed() {
               )}
             </AnimatePresence>
 
-            {/* ===== REVELACIÓN 2: VSL ESTRATÉGICO (VÍDEO SUPER OTIMIZADO) ===== */}
+            {/* ===== REVELACIÓN 2: VSL ESTRATÉGICO (VÍDEO CORRIGIDO) ===== */}
             <AnimatePresence>
               {showVSL && (
                 <motion.div
@@ -503,7 +505,7 @@ export default function ResultPageFixed() {
                       </p>
                     </div>
 
-                    {/* ✅ CORREÇÃO CRÍTICA DO VÍDEO: Container super otimizado */}
+                    {/* ✅ CONTAINER DO VÍDEO CORRIGIDO */}
                     <div className="max-w-3xl mx-auto mb-6">
                       <div className="relative bg-black rounded-xl p-4 border-2 border-blue-500 shadow-2xl">
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-green-600/20 rounded-xl animate-pulse"></div>
@@ -525,7 +527,7 @@ export default function ResultPageFixed() {
               )}
             </AnimatePresence>
 
-            {/* ===== RESTO DO CÓDIGO IGUAL... ===== */}
+            {/* ===== RESTO DO CÓDIGO CONTINUA IGUAL... ===== */}
             {/* ===== REVELACIÓN 3: OFERTA IRRESISTÍVEL ===== */}
             <AnimatePresence>
               {showOffer && (
@@ -811,21 +813,29 @@ export default function ResultPageFixed() {
             z-index: 0;
           }
 
-          /* ✅ CORREÇÃO CRÍTICA: CSS FORÇADO PARA O VÍDEO */
+          /* ✅ CORREÇÃO CRÍTICA: CSS SUPER OTIMIZADO PARA O VÍDEO */
           vturb-smartplayer {
+            display: block !important;
             width: 100% !important;
             max-width: 100% !important;
-            height: auto !important;
-            display: block !important;
-            margin: 0 auto !important;
+            height: 100% !important;
             position: relative !important;
             z-index: 1 !important;
+            background: #000 !important;
             border-radius: 8px !important;
             overflow: hidden !important;
-            contain: layout style paint !important;
           }
 
-          /* ✅ FORÇA O PLAYER A FICAR NO CONTAINER */
+          /* ✅ FORÇA TODOS OS ELEMENTOS FILHOS DO PLAYER */
+          vturb-smartplayer * {
+            width: 100% !important;
+            height: 100% !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+          }
+
+          /* ✅ FORÇA IFRAME E VÍDEO ESPECIFICAMENTE */
           vturb-smartplayer iframe,
           vturb-smartplayer video {
             width: 100% !important;
@@ -833,7 +843,18 @@ export default function ResultPageFixed() {
             position: absolute !important;
             top: 0 !important;
             left: 0 !important;
+            border: none !important;
             border-radius: 8px !important;
+          }
+
+          /* ✅ CORRIGE QUALQUER CONFLITO DE POSITIONING */
+          [id^="vid-692ef1c85df8a7aaec7c6000"] {
+            display: block !important;
+            width: 100% !important;
+            height: 100% !important;
+            position: relative !important;
+            background: #000 !important;
+            min-height: 200px !important;
           }
 
           /* Padding e Spacing */
