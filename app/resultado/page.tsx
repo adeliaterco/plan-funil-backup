@@ -40,6 +40,9 @@ export default function ResultPageFixed() {
 
   const contentRef = useRef<HTMLDivElement>(null)
   const startTimeRef = useRef(Date.now())
+  
+  // ✅ CORREÇÃO CRÍTICA DO LOOP: Ref para controlar o interval
+  const decryptIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // ===== PERSONALIZAÇÃO BASEADA NO QUIZ =====
   useEffect(() => {
@@ -75,10 +78,15 @@ export default function ResultPageFixed() {
     }
   }, [])
 
-  // ===== PROGRESSÃO AUTOMÁTICA DE REVELAÇÕES =====
+  // ===== PROGRESSÃO AUTOMÁTICA DE REVELAÇÕES ===== 
   useEffect(() => {
-    // Animação de descriptografia inicial
-    const decryptInterval = setInterval(() => {
+    // ✅ CORREÇÃO CRÍTICA DO LOOP: Limpeza adequada do interval
+    if (decryptIntervalRef.current) {
+      clearInterval(decryptIntervalRef.current)
+    }
+
+    // Animação de descriptografia inicial CONTROLADA
+    decryptIntervalRef.current = setInterval(() => {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
       const randomText = Array.from({length: 50}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
       setDecryptedText(randomText);
@@ -87,6 +95,11 @@ export default function ResultPageFixed() {
     // Sequência de revelações
     const timers = [
       setTimeout(() => {
+        // ✅ CORREÇÃO CRÍTICA DO LOOP: Para o interval quando termina
+        if (decryptIntervalRef.current) {
+          clearInterval(decryptIntervalRef.current);
+          decryptIntervalRef.current = null;
+        }
         setIsDecrypting(false);
         setDecryptedText("CÓDIGO COMPLETO LIBERADO");
         setCurrentRevelation(1);
@@ -108,36 +121,55 @@ export default function ResultPageFixed() {
     ]
 
     return () => {
-      clearInterval(decryptInterval);
+      // ✅ CORREÇÃO CRÍTICA DO LOOP: Limpeza completa na desmontagem
+      if (decryptIntervalRef.current) {
+        clearInterval(decryptIntervalRef.current);
+        decryptIntervalRef.current = null;
+      }
       timers.forEach(clearTimeout);
     }
   }, [])
 
-  // ✅ CORREÇÃO CRÍTICA DO VÍDEO: useEffect ESPECÍFICO para carregar o script do VSL
+  // ✅ CORREÇÃO CRÍTICA DO VÍDEO: useEffect ESPECÍFICO e CONTROLADO para carregar o script do VSL
   useEffect(() => {
     let playerReadyTimeout: NodeJS.Timeout;
 
+    // ✅ CORREÇÃO: Só carrega o script UMA VEZ quando showVSL vira true
     if (showVSL && !isVideoScriptLoaded) {
-      // Carrega o script APENAS quando showVSL é true e ainda não foi carregado
-      const script = document.createElement("script");
-      script.src = "https://scripts.converteai.net/15be01a4-4462-4736-aeb9-b95eda21b8b8/players/692ef1c85df8a7aaec7c6000/v4/player.js";
-      script.async = true;
-      script.onload = () => {
+      // Verifica se o script já existe para evitar duplicação
+      const existingScript = document.querySelector('script[src*="converteai.net"]');
+      
+      if (!existingScript) {
+        const script = document.createElement("script");
+        script.src = "https://scripts.converteai.net/15be01a4-4462-4736-aeb9-b95eda21b8b8/players/692ef1c85df8a7aaec7c6000/v4/player.js";
+        script.async = true;
+        script.onload = () => {
+          setIsVideoScriptLoaded(true);
+          // ✅ CORREÇÃO: Delay controlado para garantir renderização na área correta
+          playerReadyTimeout = setTimeout(() => {
+            setIsVideoReady(true);
+          }, 800); // Aumentado para 800ms para garantir estabilidade
+        };
+        script.onerror = () => {
+          console.error("Erro ao carregar script do VSL");
+          // Fallback: marca como carregado mesmo com erro para não travar
+          setIsVideoScriptLoaded(true);
+          setIsVideoReady(false);
+        };
+        document.head.appendChild(script);
+      } else {
+        // Script já existe, pode usar diretamente
         setIsVideoScriptLoaded(true);
-        // Adiciona um pequeno delay para garantir que o elemento vturb-smartplayer esteja no DOM
         playerReadyTimeout = setTimeout(() => {
           setIsVideoReady(true);
-        }, 500); // 500ms de delay para o container estar pronto
-      };
-      document.head.appendChild(script);
+        }, 300);
+      }
     }
 
     return () => {
       clearTimeout(playerReadyTimeout);
-      // Opcional: Remover o script do DOM se o componente for desmontado,
-      // mas para VSLs geralmente não é necessário e pode causar problemas se o player ainda estiver ativo.
     };
-  }, [showVSL, isVideoScriptLoaded]); // Depende de showVSL e isVideoScriptLoaded
+  }, [showVSL, isVideoScriptLoaded]); // Mantém dependências controladas
 
   // ===== FUNÇÕES DE PERSONALIZAÇÃO =====
   const getPronoun = useCallback(() => userGender === "SOY MUJER" ? "él" : "ella", [userGender])
@@ -328,20 +360,36 @@ export default function ResultPageFixed() {
                       </p>
                     </div>
 
-                    {/* VSL CENTRALIZADO */}
+                    {/* ✅ CORREÇÃO CRÍTICA DO VÍDEO: Container específico para renderização controlada */}
                     <div className="max-w-3xl mx-auto mb-6">
                       <div className="relative bg-black rounded-xl p-4 border-2 border-blue-500 shadow-2xl">
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-green-600/20 rounded-xl animate-pulse"></div>
                         <div className="relative z-10">
-                          {/* ✅ CORREÇÃO CRÍTICA DO VÍDEO: Renderiza o player APENAS quando o script está carregado e pronto */}
-                          {showVSL && isVideoReady ? (
-                            <vturb-smartplayer 
-                              id="vid-692ef1c85df8a7aaec7c6000" 
-                              data-setup='{}' // Adicionado para garantir inicialização
-                            ></vturb-smartplayer>
-                          ) : (
+                          {/* ✅ CORREÇÃO CRÍTICA DO VÍDEO: Renderização condicional TRIPLA para garantir posicionamento */}
+                          {showVSL && isVideoScriptLoaded && isVideoReady ? (
+                            <div className="w-full overflow-hidden rounded-lg">
+                              <vturb-smartplayer 
+                                id="vid-692ef1c85df8a7aaec7c6000" 
+                                data-setup='{}' 
+                                style={{
+                                  width: '100%',
+                                  maxWidth: '100%',
+                                  height: 'auto',
+                                  display: 'block',
+                                  margin: '0 auto'
+                                }}
+                              ></vturb-smartplayer>
+                            </div>
+                          ) : showVSL && !isVideoReady ? (
                             <div className="flex items-center justify-center h-64 bg-gray-800 rounded-lg text-white">
-                              Cargando video...
+                              <div className="text-center">
+                                <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+                                <p>Cargando video...</p>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center h-64 bg-gray-800 rounded-lg text-white opacity-50">
+                              <p>Preparando reproductor...</p>
                             </div>
                           )}
                         </div>
@@ -529,7 +577,7 @@ export default function ResultPageFixed() {
                       className="w-full mb-6"
                     >
                       <Button
-                        onClick={() => handlePurchase("cta_final_demostracion")}
+                        onClick={() => handlePurchase("cta_final_demostracao")}
                         size="lg"
                         className="mobile-cta-final"
                         onTouchStart={handleTouchFeedback}
