@@ -300,12 +300,13 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
   )
 }
 
-// === COMPONENTE CODE UNLOCK REVEAL CORRIGIDO - ETAPA 13 ===
+// === ✅ COMPONENTE CODE UNLOCK REVEAL CORRIGIDO - SEM BUGS ===
 const CodeUnlockReveal = ({ onComplete, userGender }) => {
-  const [decryptedText, setDecryptedText] = useState("")
+  const [displayText, setDisplayText] = useState("")
   const [isDecrypting, setIsDecrypting] = useState(true)
   const [contentRevealed, setContentRevealed] = useState(false)
   const [showButton, setShowButton] = useState(false)
+  const [decryptionComplete, setDecryptionComplete] = useState(false)
 
   const fullContent = useCallback(() => {
     const insight = getPersonalizedFirstInsight();
@@ -313,43 +314,47 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
     return `🎯 TU PLAN A PERSONALIZADO ESTÁ LISTO\n\nDespués de crear tu demostración específica, he confirmado que tu situación tiene **89% de probabilidad de éxito** usando el Plan A.\n\n${insight}\n\nEsta es solo la PRIMERA de las 21 técnicas específicas para tu caso:\n\n${technique}`;
   }, [userGender]);
 
-  const generateRandomChar = () => String.fromCharCode(33 + Math.floor(Math.random() * 94));
+  // ✅ CORREÇÃO: Caracteres aleatórios pré-gerados (sem tremulação)
+  const getRandomChars = useCallback((length) => {
+    const chars = '!@#$%^&*()_+-=[]{}|;:,.<>?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    return Array.from({length}, () => chars[Math.floor(Math.random() * chars.length)]);
+  }, []);
 
   useEffect(() => {
     let intervalId;
-    let revealTimeout;
 
     if (isDecrypting) {
       const targetText = fullContent();
-      let currentDecrypted = Array(targetText.length).fill(generateRandomChar());
+      const randomChars = getRandomChars(targetText.length);
       let revealIndex = 0;
 
-      // ✅ CORREÇÃO 1: Animação 2x mais rápida (10ms em vez de 20ms)
+      // ✅ CORREÇÃO: Animação otimizada e mais rápida
       intervalId = setInterval(() => {
         if (revealIndex < targetText.length) {
-          currentDecrypted[revealIndex] = targetText[revealIndex];
-          setDecryptedText(currentDecrypted.join(''));
+          // ✅ CORREÇÃO: Construção eficiente da string (sem tremulação)
+          const newText = targetText.substring(0, revealIndex + 1) + 
+                         randomChars.slice(revealIndex + 1).join('');
+          setDisplayText(newText);
           revealIndex++;
         } else {
           clearInterval(intervalId);
           setIsDecrypting(false);
+          setDecryptionComplete(true);
+          setDisplayText(targetText); // ✅ Texto final limpo
           
-          // ✅ CORREÇÃO 2: Removido delay duplo - botão aparece imediatamente
-          revealTimeout = setTimeout(() => {
+          // ✅ CORREÇÃO: Botão aparece IMEDIATAMENTE após descriptografia
+          setTimeout(() => {
             setContentRevealed(true);
-            setShowButton(true); // ✅ IMEDIATO, sem 1000ms extra
-          }, 300); // ✅ Reduzido de 500ms para 300ms
+            setShowButton(true);
+          }, 100); // Apenas 100ms para suavizar transição
         }
-      }, 10); // ✅ Mais rápido: 10ms por caractere
-
-      setDecryptedText(currentDecrypted.join(''));
+      }, 8); // ✅ CORREÇÃO: Ainda mais rápido (8ms por caractere)
     }
 
     return () => {
       clearInterval(intervalId);
-      clearTimeout(revealTimeout);
     };
-  }, [isDecrypting, fullContent]);
+  }, [isDecrypting, fullContent, getRandomChars]);
 
   return (
     <div className="relative min-h-[600px] bg-black overflow-hidden rounded-xl p-6 sm:p-8 flex flex-col items-center justify-center">
@@ -409,14 +414,15 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           <span className="text-white">CÓDIGO</span> <span className="text-green-500">DESBLOQUEADO</span>
         </h2>
 
+        {/* ✅ CORREÇÃO: Texto sempre visível (opacity: 1) */}
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: isDecrypting ? 1 : 0.2 }}
+          animate={{ opacity: 1 }} // ✅ SEMPRE VISÍVEL
           transition={{ duration: 0.5 }}
           className="bg-gray-900/80 border border-green-700 rounded-lg p-4 sm:p-6 mb-8 shadow-lg"
         >
           <p className="matrix-text text-left">
-            {decryptedText}
+            {displayText}
           </p>
         </motion.div>
 
@@ -448,14 +454,14 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           )}
         </AnimatePresence>
 
-        {/* ✅ CORREÇÃO 3: Botão com animação melhorada */}
+        {/* ✅ CORREÇÃO: Botão com aparição mais rápida */}
         <AnimatePresence>
           {showButton && (
             <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.8 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.8 }}
-              transition={{ duration: 0.5, type: "spring" }} // ✅ Animação mais suave
+              transition={{ duration: 0.3, type: "spring", stiffness: 200 }} // ✅ Mais rápido
               className="mt-8"
             >
               <Button
@@ -470,12 +476,12 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           )}
         </AnimatePresence>
 
-        {/* ✅ CORREÇÃO 4: Botão de emergência caso a animação falhe */}
-        {!showButton && !isDecrypting && (
+        {/* ✅ CORREÇÃO: Botão de emergência mais rápido */}
+        {!showButton && decryptionComplete && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 5 }} // Aparece após 5s se algo der errado
+            transition={{ delay: 2 }} // ✅ Reduzido de 5s para 2s
             className="mt-8"
           >
             <Button
@@ -513,7 +519,6 @@ export default function QuizStep() {
   const currentStep = quizSteps[step - 1]
   const progress = (step / 13) * 100
 
-  // ✅ CORREÇÃO: proceedToNextStep - SÓ DEPENDÊNCIAS ESSENCIAIS
   const proceedToNextStep = useCallback(() => {
     const currentUrl = new URL(window.location.href);
     let utmString = '';
@@ -569,7 +574,6 @@ export default function QuizStep() {
     }
   }, [step, router]);
 
-  // ✅ CORREÇÃO: handleNext - REMOVEU DEPENDÊNCIAS CIRCULARES
   const handleNext = useCallback(() => {
     enviarEvento('avancou_etapa', {
       numero_etapa: step,
@@ -599,7 +603,6 @@ export default function QuizStep() {
     proceedToNextStep()
   }, [step, selectedAnswer, quizData]);
 
-  // ✅ CORREÇÃO: handleAnswerSelect - REMOVEU DEPENDÊNCIAS CIRCULARES
   const handleAnswerSelect = useCallback((answer: string) => {
     setSelectedAnswer(answer)
 
@@ -626,7 +629,6 @@ export default function QuizStep() {
     });
   }, [step]);
 
-  // ✅ CORREÇÃO: useEffect - SÓ DEPENDE DE STEP
   useEffect(() => {
     const saved = localStorage.getItem("quizData")
     const savedBonuses = localStorage.getItem("unlockedBonuses")
@@ -955,7 +957,7 @@ export default function QuizStep() {
           </motion.div>
         )}
 
-        {/* ✅ STEP 13 - CÓDIGO DESBLOQUEADO COM CORREÇÃO FINAL */}
+        {/* ✅ STEP 13 - CÓDIGO DESBLOQUEADO SEM BUGS */}
         {step === 13 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
