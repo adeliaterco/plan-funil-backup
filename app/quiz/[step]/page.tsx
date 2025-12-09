@@ -30,12 +30,14 @@ import {
   quizSteps, 
   socialProofMessages, 
   getPersonalizedContent,
-  getExName,
+  getExName, // Usado para o nome no WhatsApp Mockup
   getExAvatar,
   getPersonalizedFirstMessage,
   getPersonalizedExResponse,
   getPersonalizedFollowUp,
-  getHeaderName,
+  getHeaderName, // Mantido caso seja usado em outro lugar, mas não no WhatsApp Mockup agora
+  getPersonalizedFirstInsight, // Usado para a etapa 13
+  getPersonalizedTechnique, // Usado para a etapa 13
 } from "@/lib/quiz-data"
 import { BonusUnlock } from "@/components/bonus-unlock"
 import { ValueCounter } from "@/components/value-counter"
@@ -168,7 +170,7 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
             <div className="mr-2 text-lg">←</div>
             <img src={getExAvatar()} className="w-10 h-10 rounded-full mr-2 object-cover" alt="Avatar" />
             <div className="flex-1">
-              <div className="font-bold mb-0.5">{getExName()}</div>
+              <div className="font-bold mb-0.5">{getExName()}</div> {/* Usando getExName() */}
               <div className="text-xs text-[#b3d4d1]">
                 {isTyping ? 'escribiendo...' : 'En línea'}
               </div>
@@ -303,6 +305,180 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
   )
 }
 
+// === COMPONENTE CODE UNLOCK REVEAL PARA ETAPA 13 ===
+const CodeUnlockReveal = ({ onComplete, userGender }) => {
+  const [decryptedText, setDecryptedText] = useState("")
+  const [isDecrypting, setIsDecrypting] = useState(true)
+  const [contentRevealed, setContentRevealed] = useState(false)
+  const [showButton, setShowButton] = useState(false)
+
+  const fullContent = useCallback(() => {
+    const insight = getPersonalizedFirstInsight();
+    const technique = getPersonalizedTechnique();
+    return `🎯 TU PLAN A PERSONALIZADO ESTÁ LISTO\n\nDespués de crear tu demostración específica, he confirmado que tu situación tiene **89% de probabilidad de éxito** usando el Plan A.\n\n${insight}\n\nEsta es solo la PRIMERA de las 21 técnicas específicas para tu caso:\n\n${technique}`;
+  }, [userGender]); // userGender might influence personalized content
+
+  const generateRandomChar = () => String.fromCharCode(33 + Math.floor(Math.random() * 94)); // Printable ASCII chars
+
+  useEffect(() => {
+    let intervalId;
+    let revealTimeout;
+    let buttonTimeout;
+
+    if (isDecrypting) {
+      const targetText = fullContent();
+      let currentDecrypted = Array(targetText.length).fill(generateRandomChar());
+      let revealIndex = 0;
+
+      intervalId = setInterval(() => {
+        if (revealIndex < targetText.length) {
+          currentDecrypted[revealIndex] = targetText[revealIndex];
+          setDecryptedText(currentDecrypted.join(''));
+          revealIndex++;
+        } else {
+          clearInterval(intervalId);
+          setIsDecrypting(false);
+          revealTimeout = setTimeout(() => {
+            setContentRevealed(true);
+            buttonTimeout = setTimeout(() => setShowButton(true), 1000); // Show button 1s after content
+          }, 500); // Small delay before content reveal animation
+        }
+      }, 20); // Faster decryption
+
+      // Initial random text display
+      setDecryptedText(currentDecrypted.join(''));
+    }
+
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(revealTimeout);
+      clearTimeout(buttonTimeout);
+    };
+  }, [isDecrypting, fullContent]);
+
+  return (
+    <div className="relative min-h-[600px] bg-black overflow-hidden rounded-xl p-6 sm:p-8 flex flex-col items-center justify-center">
+      {/* Matrix Background Effect */}
+      <style jsx>{`
+        @keyframes matrix-fall {
+          from { background-position: 0 0; }
+          to { background-position: -1000px -1000px; }
+        }
+        .matrix-bg {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            to bottom,
+            rgba(0, 255, 0, 0.05) 1px,
+            transparent 1px
+          ), repeating-linear-gradient(
+            to right,
+            rgba(0, 255, 0, 0.05) 1px,
+            transparent 1px
+          );
+          background-size: 20px 20px;
+          animation: matrix-fall 10s linear infinite;
+          opacity: ${isDecrypting ? 0.2 : 0};
+          transition: opacity 1s ease-out;
+          z-index: 0;
+        }
+        .matrix-text {
+          font-family: 'monospace', 'Courier New', Courier, monospace;
+          color: #0f0;
+          text-shadow: 0 0 8px #0f0;
+          white-space: pre-wrap;
+          word-break: break-all;
+          line-height: 1.2;
+          font-size: 0.9rem;
+          max-height: 400px;
+          overflow-y: auto;
+          scrollbar-width: none; /* Firefox */
+          -ms-overflow-style: none;  /* IE and Edge */
+        }
+        .matrix-text::-webkit-scrollbar {
+          display: none; /* Chrome, Safari, Opera */
+        }
+      `}</style>
+      <div className="matrix-bg"></div>
+
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 text-center max-w-2xl mx-auto"
+      >
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-green-400 mb-6">
+          <span className="text-white">CÓDIGO</span> <span className="text-green-500">DESBLOQUEADO</span>
+        </h2>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: isDecrypting ? 1 : 0.2 }}
+          transition={{ duration: 0.5 }}
+          className="bg-gray-900/80 border border-green-700 rounded-lg p-4 sm:p-6 mb-8 shadow-lg"
+        >
+          <p className="matrix-text text-left">
+            {decryptedText}
+          </p>
+        </motion.div>
+
+        <AnimatePresence>
+          {contentRevealed && (
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.5 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ type: "spring", stiffness: 100, damping: 10, duration: 0.8 }}
+              className="bg-gradient-to-br from-blue-700 to-purple-800 rounded-xl p-6 sm:p-8 shadow-2xl border-2 border-blue-500 text-white text-left mb-8"
+            >
+              <h3 className="text-2xl sm:text-3xl font-bold mb-4 text-center">
+                ¡ACCESO CONCEDIDO!
+              </h3>
+              <div className="text-gray-200 text-base sm:text-lg leading-relaxed whitespace-pre-wrap">
+                {fullContent().split('**').map((section, index) => {
+                  if (index % 2 === 1) {
+                    return <strong key={index} className="text-orange-400">{section}</strong>
+                  }
+                  return section ? (
+                    <div key={index} className="p-2 bg-gray-800/50 rounded-lg border border-gray-600 text-left mb-2">
+                      {section.trim()}
+                    </div>
+                  ) : null
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showButton && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="mt-8"
+            >
+              <Button
+                onClick={onComplete}
+                size="lg"
+                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-3 px-6 rounded-full shadow-lg w-full sm:w-auto text-lg"
+              >
+                ACCEDER AL PLAN A COMPLETO
+                <ArrowRight className="w-6 h-6 ml-3" />
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </div>
+  );
+};
+
+
 export default function QuizStep() {
   const params = useParams()
   const router = useRouter()
@@ -315,9 +491,10 @@ export default function QuizStep() {
   const [showAnalysis, setShowAnalysis] = useState(false)
   const [newBonus, setNewBonus] = useState<any>(null)
   const [isLoaded, setIsLoaded] = useState(false)
-  const [peopleCount, setPeopleCount] = useState(17)
+  const [peopleCount, setPeopleCount] = useState(17) // Mantido, mas o intervalo de atualização foi removido
   const [userGender, setUserGender] = useState<string>("")
   const [step12Completed, setStep12Completed] = useState(false)
+  const [step13AnimationComplete, setStep13AnimationComplete] = useState(false) // New state for step 13
 
   const currentStep = quizSteps[step - 1]
   const progress = (step / 13) * 100
@@ -352,16 +529,17 @@ export default function QuizStep() {
       }, 2000)
     }
 
-    const interval = setInterval(() => {
-      setPeopleCount((prev) => prev + Math.floor(Math.random() * 3))
-    }, 45000)
+    // Removed aggressive social proof interval
+    // const interval = setInterval(() => {
+    //   setPeopleCount((prev) => prev + Math.floor(Math.random() * 3))
+    // }, 45000)
 
     return () => {
       clearTimeout(loadTimer)
       if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer)
-      clearInterval(interval)
+      // clearInterval(interval) // Clear the removed interval
     }
-  }, [step])
+  }, [step, currentStep, proceedToNextStep]) // Adicionado currentStep e proceedToNextStep para dependências
 
   // ✅ Handler otimizado
   const handleAnswerSelect = useCallback((answer: string) => {
@@ -388,7 +566,7 @@ export default function QuizStep() {
       pergunta: currentStep?.question || `Etapa ${step}`,
       resposta: answer
     });
-  }, [step, currentStep])
+  }, [step, currentStep, handleNext]) // Adicionado handleNext para dependências
 
   // ✅ proceedToNextStep otimizado
   const proceedToNextStep = useCallback(() => {
@@ -477,11 +655,15 @@ export default function QuizStep() {
   // ✅ Handler para step 12
   const handleStep12Complete = useCallback(() => {
     setStep12Completed(true)
-    // Auto-advance após 2 segundos
-    setTimeout(() => {
-      handleNext()
-    }, 2000)
-  }, [handleNext])
+    // Não há auto-advance aqui, o botão aparecerá
+  }, [])
+
+  // ✅ Handler para step 13
+  const handleStep13Complete = useCallback(() => {
+    setStep13AnimationComplete(true)
+    // Este handler é chamado pelo CodeUnlockReveal quando sua animação termina
+    // O botão final do CodeUnlockReveal chamará handleNext
+  }, [])
 
   const handleBonusUnlockComplete = useCallback(() => {
     setShowBonusUnlock(false)
@@ -523,7 +705,7 @@ export default function QuizStep() {
       }
     }
     
-    if (utmString.toString() !== '') {
+    if (utmParams.toString() !== '') {
       utmString = '?' + utmParams.toString();
     }
     
@@ -768,8 +950,23 @@ export default function QuizStep() {
           </motion.div>
         )}
 
-        {/* RESTO DOS STEPS (2-11, 13) */}
-        {step !== 1 && step !== 12 && (
+        {/* ✅ STEP 13 - CÓDIGO DESBLOQUEADO */}
+        {step === 13 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: isLoaded ? 1 : 0, y: isLoaded ? 0 : 20 }}
+            transition={{ duration: 0.4 }}
+          >
+            <Card className="bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-lg border-green-500/30 shadow-2xl border-2">
+              <CardContent className="p-0"> {/* No padding here, CodeUnlockReveal handles it */}
+                <CodeUnlockReveal onComplete={handleNext} userGender={userGender} />
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* RESTO DOS STEPS (2-11) */}
+        {step !== 1 && step !== 12 && step !== 13 && (
           <>
             {/* Testimonial Display */}
             {currentStep?.elements?.testimonialDisplay && (currentStep?.elements?.testimonialText || currentStep?.elements?.testimonialData) && (
@@ -1213,7 +1410,7 @@ export default function QuizStep() {
           </>
         )}
 
-        {/* Prueba Social - OTIMIZADA */}
+        {/* Prueba Social - OTIMIZADA (sem números agressivos) */}
         {step > 2 && !currentStep?.autoAdvance && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -1221,14 +1418,8 @@ export default function QuizStep() {
             transition={{ delay: 0.4 }}
             className="text-center space-y-2 mt-6"
           >
-            <div className="bg-green-900/30 border border-green-500 rounded-lg p-3 mb-4">
-              <p className="text-green-400 text-sm font-bold">
-                ✅ {Math.floor(Math.random() * 50) + 150} personas completaron esto en las últimas 24h
-              </p>
-              <p className="text-green-300 text-xs">
-                📈 Tasa de éxito promedio: 89.4%
-              </p>
-            </div>
+            {/* Removido: "199 personas completaron esto en las últimas 24h" */}
+            {/* Removido: "Tasa de éxito promedio: 89.4%" */}
             
             <div className="bg-red-900/20 border border-red-400 rounded-lg p-2">
               <p className="text-red-300 text-xs font-semibold">
