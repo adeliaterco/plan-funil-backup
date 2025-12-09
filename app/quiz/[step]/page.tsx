@@ -886,18 +886,13 @@ export default function QuizStep() {
               <CardContent className="p-6 sm:p-8">
                 <div className="text-center">
                   <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-6 leading-tight">
-                    🔥 <span className="text-red-500">ATENCIÓN:</span> Esto Es Exactamente Lo Que Ella Te Respondería Si Le Escribes HOY
+                    🔥 <span className="text-red-500">ESTO ES LO QUE ELLA REALMENTE TE</span>RESPONDERÍA
                   </h2>
                   
                   <p className="text-orange-200 text-center mb-4 text-base sm:text-lg font-medium">
-                    ⚠️ <strong>ADVERTENCIA:</strong> Lo que verás puede ser impactante. Basado en 12,847 casos reales de tu situación exacta.
+                    ⚠️ <strong>ADVERTENCIA:</strong> Simulación personalizada para tu situación específica
                   </p>
                   
-                  <div className="bg-red-900/30 border border-red-500 rounded-lg p-4 mb-6 text-center">
-                    <p className="text-red-200 text-sm font-bold">
-                      🚨 SOLO 127 PERSONAS HAN VISTO ESTO HOY - Tu situación es crítica
-                    </p>
-                  </div>
                   
                   <WhatsAppMockup userGender={userGender} onComplete={handleStep12Complete} />
                   
