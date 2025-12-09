@@ -28,9 +28,8 @@ export default function HomePageOptimized() {
   const [isLoading, setIsLoading] = useState(false)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [isOnline, setIsOnline] = useState(true)
-  const [spotsLeft] = useState(Math.floor(Math.random() * 15) + 8) // 8-22 spots
+  const [spotsLeft] = useState(Math.floor(Math.random() * 15) + 8)
 
-  // Detecção de conexão minimalista
   useEffect(() => {
     if (typeof window === "undefined") return
 
@@ -38,11 +37,10 @@ export default function HomePageOptimized() {
     window.addEventListener("online", updateOnlineStatus, { passive: true })
     window.addEventListener("offline", updateOnlineStatus, { passive: true })
 
-    // Tracking inicial
     const timer = setTimeout(() => {
       enviarEvento("page_view_optimized", {
         device: window.innerWidth < 768 ? "mobile" : "desktop",
-        version: "finis_inspired_v1"
+        version: "finis_inspired_clean_v2"
       })
     }, 1000)
 
@@ -53,7 +51,6 @@ export default function HomePageOptimized() {
     }
   }, [])
 
-  // Função de início ultra-otimizada
   const handleStart = useCallback(() => {
     if (isLoading || !isOnline) return
 
@@ -61,7 +58,7 @@ export default function HomePageOptimized() {
     setLoadingProgress(20)
 
     enviarEvento("quiz_start_optimized", {
-      version: "finis_inspired_v1",
+      version: "finis_inspired_clean_v2",
       spots_left: spotsLeft
     })
 
@@ -73,7 +70,6 @@ export default function HomePageOptimized() {
       if (progress >= 100) {
         clearInterval(interval)
 
-        // Preservar UTMs
         let url = "/quiz/1"
         if (typeof window !== "undefined" && window.location.search) {
           const params = new URLSearchParams(window.location.search)
@@ -93,10 +89,13 @@ export default function HomePageOptimized() {
 
   return (
     <>
-      {/* ✅ INSPIRAÇÃO FINIS: FUNDO PRETO TOTAL */}
-      <div className="min-h-screen bg-black overflow-x-hidden w-full max-w-[100vw] flex flex-col items-center justify-center relative">
+      {/* ✅ FUNDO PRETO LIMPO - SEM EFEITOS */}
+      <div 
+        className="min-h-screen overflow-x-hidden w-full max-w-[100vw] flex flex-col items-center justify-center relative"
+        style={{ backgroundColor: '#000000' }}
+      >
         
-        {/* Loading overlay - INSPIRAÇÃO FINIS */}
+        {/* Loading overlay */}
         {isLoading && (
           <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50 backdrop-blur-sm">
             <div className="text-center text-white">
@@ -116,19 +115,22 @@ export default function HomePageOptimized() {
           </div>
         )}
 
-        {/* ✅ LOGO PEQUENO - INSPIRAÇÃO FINIS (canto superior) */}
+        {/* ✅ LOGO PEQUENO */}
         <div className="absolute top-6 left-6">
           <div className="text-orange-500 font-bold text-lg tracking-wider">
             PLAN <span className="text-white">/</span> <span className="text-red-500">A</span>
           </div>
         </div>
 
-        {/* ✅ CONTAINER PRINCIPAL - INSPIRAÇÃO FINIS */}
+        {/* ✅ CONTAINER PRINCIPAL */}
         <div className="text-center max-w-4xl mx-auto px-6">
           
-          {/* ✅ HEADLINE PRINCIPAL - INSPIRAÇÃO FINIS */}
+          {/* ✅ HEADLINE PRINCIPAL */}
           <div className="mb-12">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-tight mb-6">
+            <h1 className="font-black leading-tight mb-6" style={{
+              fontSize: 'clamp(2rem, 8vw, 4.5rem)',
+              lineHeight: '1.1'
+            }}>
               <div className="text-white mb-2">
                 Descubre si ella
               </div>
@@ -140,37 +142,44 @@ export default function HomePageOptimized() {
               </div>
             </h1>
             
-            {/* ✅ SUBTÍTULO MÍNIMO - INSPIRAÇÃO FINIS */}
-            <p className="text-gray-300 text-xl sm:text-2xl font-light">
+            {/* ✅ SUBTÍTULO */}
+            <p className="text-gray-300 font-light" style={{
+              fontSize: 'clamp(1.125rem, 4vw, 1.5rem)'
+            }}>
               El test psicológico que lo revela en 2 minutos
             </p>
           </div>
 
-          {/* ✅ CTA GIGANTE - INSPIRAÇÃO FINIS */}
+          {/* ✅ CTA PRINCIPAL */}
           <div className="mb-8">
             <button 
               onClick={handleStart} 
               disabled={isLoading || !isOnline} 
-              className="group relative bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 text-white font-black text-xl sm:text-2xl px-12 sm:px-16 py-6 sm:py-8 rounded-full shadow-2xl transform hover:scale-105 transition-all duration-300 border-4 border-white/20 hover:border-white/40 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+              className="group relative bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 text-white font-black rounded-full shadow-2xl transform hover:scale-105 transition-all duration-300 border-4 border-white/20 hover:border-white/40 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+              style={{
+                fontSize: 'clamp(1rem, 4vw, 1.25rem)',
+                padding: 'clamp(1rem, 4vw, 1.5rem) clamp(1.5rem, 6vw, 3rem)',
+                maxWidth: '90vw'
+              }}
             >
               {isLoading ? (
-                <span className="flex items-center gap-3">
-                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span className="flex items-center justify-center gap-3">
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                   PREPARANDO...
                 </span>
               ) : (
-                <span className="flex items-center gap-3">
+                <span className="flex items-center justify-center gap-3">
                   HACER EL TEST AHORA
-                  <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </span>
               )}
             </button>
           </div>
 
-          {/* ✅ ELEMENTOS DE URGÊNCIA MÍNIMOS - INSPIRAÇÃO FINIS */}
+          {/* ✅ ELEMENTOS DE URGÊNCIA */}
           <div className="space-y-3">
             
-            {/* Escassez sutil */}
+            {/* Escassez */}
             <div className="inline-flex items-center gap-2 bg-red-900/20 border border-red-500/30 rounded-full px-4 py-2">
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
               <span className="text-red-300 text-sm font-medium">
@@ -178,21 +187,21 @@ export default function HomePageOptimized() {
               </span>
             </div>
 
-            {/* Prova social mínima */}
+            {/* Prova social */}
             <div className="text-gray-400 text-sm">
               ✅ +12,847 personas ya conocen la verdad sobre su ex
             </div>
           </div>
         </div>
 
-        {/* ✅ INDICADOR DE CONEXÃO - INSPIRAÇÃO FINIS */}
+        {/* ✅ INDICADOR DE CONEXÃO */}
         {!isOnline && (
           <div className="fixed top-0 left-0 right-0 bg-red-600 text-white text-center py-2 z-50">
             ⚠️ Sin conexión - Conéctate para continuar
           </div>
         )}
 
-        {/* ✅ CSS GLOBAL - INSPIRAÇÃO FINIS */}
+        {/* ✅ CSS LIMPO - SEM EFEITOS PROBLEMÁTICOS */}
         <style jsx global>{`
           * {
             box-sizing: border-box;
@@ -202,49 +211,26 @@ export default function HomePageOptimized() {
             margin: 0;
             padding: 0;
             overflow-x: hidden;
-            background: #000;
+            background: #000000;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           }
 
-          /* Animação sutil para o fundo */
-          @keyframes subtle-pulse {
-            0%, 100% { opacity: 0.1; }
-            50% { opacity: 0.2; }
+          /* Hover sutil no CTA */
+          button:hover:not(:disabled) {
+            box-shadow: 0 0 30px rgba(249, 115, 22, 0.2);
           }
 
-          .bg-black {
-            background: radial-gradient(circle at 50% 50%, rgba(15, 15, 15, 1) 0%, rgba(0, 0, 0, 1) 100%);
-            animation: subtle-pulse 8s ease-in-out infinite;
-          }
-
-          /* Efeito hover no CTA */
-          button:hover {
-            box-shadow: 0 0 50px rgba(249, 115, 22, 0.3);
-          }
-
-          /* Responsividade extrema */
+          /* Responsividade */
           @media (max-width: 640px) {
-            h1 {
-              font-size: 2.5rem !important;
-              line-height: 1.1 !important;
-            }
-            
-            button {
-              font-size: 1.25rem !important;
-              padding: 1.25rem 2rem !important;
-              width: 100% !important;
-              max-width: 320px !important;
+            .max-w-4xl {
+              padding-left: 1rem;
+              padding-right: 1rem;
             }
           }
 
           @media (max-width: 480px) {
-            h1 {
-              font-size: 2rem !important;
-            }
-            
             button {
-              font-size: 1.125rem !important;
-              padding: 1rem 1.5rem !important;
+              width: 100% !important;
             }
           }
         `}</style>
