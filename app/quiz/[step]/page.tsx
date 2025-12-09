@@ -411,7 +411,7 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
         className="relative z-10 text-center max-w-2xl mx-auto"
       >
         <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-green-400 mb-6">
-          <span className="text-white">CÓDIGO</span> <span className="text-green-500">DESBLOQUEADO</span>
+          <span className="text-white">PLAN</span> <span className="text-green-500">DESBLOQUEADO</span>
         </h2>
 
         {/* ✅ CORREÇÃO: Texto sempre visível (opacity: 1) */}
