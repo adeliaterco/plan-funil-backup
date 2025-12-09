@@ -49,7 +49,7 @@ function enviarEvento(nombre_evento, propriedades = {}) {
   }
 }
 
-// === COMPONENTE WHATSAPP MOCKUP CORRIGIDO ===
+// === COMPONENTE WHATSAPP MOCKUP FUNCIONAL ===
 const WhatsAppMockup = ({ userGender, onComplete }) => {
   const [currentMessage, setCurrentMessage] = useState(0)
   const [isTyping, setIsTyping] = useState(false)
@@ -60,8 +60,9 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
     { status: 'pending', text: 'Respuesta emocional detectada...' }
   ])
   const [successPercentage, setSuccessPercentage] = useState(0)
+  const [animationComplete, setAnimationComplete] = useState(false)
   
-  // ✅ useRef para controle de execução única
+  // ✅ Referencias para controle total
   const hasStartedRef = useRef(false)
   const timeoutsRef = useRef([])
   const onCompleteCalledRef = useRef(false)
@@ -76,7 +77,7 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
   const animateSuccessPercentage = useCallback(() => {
     let current = 0
     const target = 89
-    const increment = target / 20
+    const increment = target / 15 // Mais rápido
     
     if (intervalRef.current) clearInterval(intervalRef.current)
     
@@ -86,19 +87,13 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
         current = target
         clearInterval(intervalRef.current)
         intervalRef.current = null
-        
-        // ✅ onComplete chamado apenas uma vez
-        if (!onCompleteCalledRef.current) {
-          onCompleteCalledRef.current = true
-          const timeoutId = setTimeout(() => onComplete(), 200)
-          timeoutsRef.current.push(timeoutId)
-        }
+        setAnimationComplete(true)
       }
       setSuccessPercentage(Math.round(current))
-    }, 40)
-  }, [onComplete])
+    }, 50)
+  }, [])
 
-  // ✅ useEffect com cleanup adequado
+  // ✅ useEffect com controle rigoroso
   useEffect(() => {
     if (hasStartedRef.current) return
     hasStartedRef.current = true
@@ -109,29 +104,29 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
       return timeoutId
     }
 
-    // ✅ Timing acelerado - Sequência em 4 segundos
+    // ✅ Sequência ultra-rápida - 3 segundos total
     const sequence = [
-      { delay: 400, action: () => {
+      { delay: 300, action: () => {
         setCurrentMessage(1)
         updateAnalysisPoint(0, 'active')
       }},
-      { delay: 800, action: () => {
+      { delay: 600, action: () => {
         setIsTyping(true)
         updateAnalysisPoint(0, 'completed')
         updateAnalysisPoint(1, 'active')
       }},
-      { delay: 1400, action: () => {
+      { delay: 1000, action: () => {
         setIsTyping(false)
         setCurrentMessage(2)
         updateAnalysisPoint(1, 'completed')
         updateAnalysisPoint(2, 'active')
       }},
-      { delay: 2200, action: () => {
+      { delay: 1500, action: () => {
         setCurrentMessage(3)
         updateAnalysisPoint(2, 'completed')
         updateAnalysisPoint(3, 'active')
       }},
-      { delay: 2800, action: () => {
+      { delay: 2000, action: () => {
         updateAnalysisPoint(3, 'completed')
         animateSuccessPercentage()
       }}
@@ -150,19 +145,24 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
     }
   }, [updateAnalysisPoint, animateSuccessPercentage])
 
-  const conversation = [
-    { type: 'sent', message: getPersonalizedFirstMessage(), delay: 0, timestamp: 'Día 1 - 19:30' },
-    { type: 'typing', duration: 0 },
-    { type: 'received', message: getPersonalizedExResponse(), delay: 0, timestamp: '19:47' },
-    { type: 'sent', message: getPersonalizedFollowUp(), delay: 0, timestamp: '19:52' }
-  ];
+  // ✅ Auto-complete após animação
+  useEffect(() => {
+    if (animationComplete && !onCompleteCalledRef.current) {
+      onCompleteCalledRef.current = true
+      const timeoutId = setTimeout(() => {
+        onComplete && onComplete()
+      }, 1000) // 1 segundo após completar
+      timeoutsRef.current.push(timeoutId)
+    }
+  }, [animationComplete, onComplete])
 
   return (
     <div className="flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-8 mb-8">
       {/* iPhone Mockup */}
-      <div className="w-[300px] h-[600px] lg:w-[300px] lg:h-[600px] relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-[35px] p-2 shadow-2xl">
+      <div className="w-[300px] h-[600px] relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-[35px] p-2 shadow-2xl">
         <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[150px] h-[25px] bg-black rounded-b-[15px] z-10"></div>
         <div className="bg-black h-full rounded-[28px] overflow-hidden flex flex-col">
+          
           {/* WhatsApp Header */}
           <div className="bg-[#075e54] pt-9 pb-4 px-4 flex items-center text-white text-sm">
             <div className="mr-2 text-lg">←</div>
@@ -182,6 +182,7 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
           
           {/* Chat Messages */}
           <div className="flex-1 bg-[#ece5dd] p-4 overflow-y-auto relative" style={{backgroundImage: `url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'><rect width='20' height='20' fill='%23ece5dd'/><rect x='0' y='0' width='10' height='10' fill='%23e8ddd4'/><rect x='10' y='10' width='10' height='10' fill='%23e8ddd4'/></svg>")`}}>
+            
             <div className="text-center my-2">
               <span className="bg-black/10 text-gray-600 px-3 py-1 rounded-full text-xs">Hoy</span>
             </div>
@@ -192,10 +193,10 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.3 }}
                   className="ml-auto bg-[#dcf8c6] rounded-xl rounded-br-sm max-w-[80%] my-2 p-2 pb-1 text-sm leading-tight text-right"
                 >
-                  {conversation[0].message}
+                  {getPersonalizedFirstMessage()}
                   <div className="px-1 pt-1 text-xs text-gray-600">19:30 ✓✓</div>
                 </motion.div>
               )}
@@ -206,8 +207,7 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.1 }}
-                className="mr-auto bg-white rounded-xl rounded-bl-sm max-w-[60px] my-2 p-3 animate-pulse"
+                className="mr-auto bg-white rounded-xl rounded-bl-sm max-w-[60px] my-2 p-3"
               >
                 <div className="flex gap-1">
                   <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0s'}}></span>
@@ -223,10 +223,10 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.3 }}
                   className="mr-auto bg-white rounded-xl rounded-bl-sm max-w-[80%] my-2 p-2 pb-1 text-sm leading-tight text-left"
                 >
-                  {conversation[2].message}
+                  {getPersonalizedExResponse()}
                   <div className="px-1 pt-1 text-xs text-gray-600">19:47</div>
                 </motion.div>
               )}
@@ -238,10 +238,10 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.3 }}
                   className="ml-auto bg-[#dcf8c6] rounded-xl rounded-br-sm max-w-[80%] my-2 p-2 pb-1 text-sm leading-tight text-right"
                 >
-                  {conversation[3].message}
+                  {getPersonalizedFollowUp()}
                   <div className="px-1 pt-1 text-xs text-gray-600">19:52 ✓✓</div>
                 </motion.div>
               )}
@@ -317,11 +317,12 @@ export default function QuizStep() {
   const [isLoaded, setIsLoaded] = useState(false)
   const [peopleCount, setPeopleCount] = useState(17)
   const [userGender, setUserGender] = useState<string>("")
+  const [step12Completed, setStep12Completed] = useState(false)
 
   const currentStep = quizSteps[step - 1]
   const progress = (step / 13) * 100
 
-  // ✅ useEffect otimizado com cleanup
+  // ✅ useEffect otimizado
   useEffect(() => {
     const saved = localStorage.getItem("quizData")
     const savedBonuses = localStorage.getItem("unlockedBonuses")
@@ -360,9 +361,9 @@ export default function QuizStep() {
       if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer)
       clearInterval(interval)
     }
-  }, [step, currentStep])
+  }, [step])
 
-  // ✅ Handler otimizado com useCallback
+  // ✅ Handler otimizado
   const handleAnswerSelect = useCallback((answer: string) => {
     setSelectedAnswer(answer)
 
@@ -387,12 +388,6 @@ export default function QuizStep() {
       pergunta: currentStep?.question || `Etapa ${step}`,
       resposta: answer
     });
-
-    const button = document.querySelector(`button[data-option="${answer}"]`)
-    if (button) {
-      button.classList.add("scale-105")
-      setTimeout(() => button.classList.remove("scale-105"), 200)
-    }
   }, [step, currentStep])
 
   // ✅ proceedToNextStep otimizado
@@ -479,6 +474,15 @@ export default function QuizStep() {
     proceedToNextStep()
   }, [step, selectedAnswer, quizData, currentStep, proceedToNextStep])
 
+  // ✅ Handler para step 12
+  const handleStep12Complete = useCallback(() => {
+    setStep12Completed(true)
+    // Auto-advance após 2 segundos
+    setTimeout(() => {
+      handleNext()
+    }, 2000)
+  }, [handleNext])
+
   const handleBonusUnlockComplete = useCallback(() => {
     setShowBonusUnlock(false)
     
@@ -519,7 +523,7 @@ export default function QuizStep() {
       }
     }
     
-    if (utmParams.toString() !== '') {
+    if (utmString.toString() !== '') {
       utmString = '?' + utmParams.toString();
     }
     
@@ -594,7 +598,7 @@ export default function QuizStep() {
   return (
     <div className="min-h-screen bg-black p-4">
       <div className="max-w-4xl mx-auto">
-        {/* Encabezado com progresso */}
+        {/* Header com progresso */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <Button
@@ -628,7 +632,7 @@ export default function QuizStep() {
           </div>
         </div>
 
-        {/* ✅ STEP 1 ULTRA-SIMPLES */}
+        {/* ✅ STEP 1 */}
         {step === 1 && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -708,7 +712,7 @@ export default function QuizStep() {
           </motion.div>
         )}
 
-        {/* ✅ STEP 12 - WHATSAPP MOCKUP CORRIGIDO */}
+        {/* ✅ STEP 12 - VERSÃO FUNCIONAL COMPLETA */}
         {step === 12 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -732,7 +736,28 @@ export default function QuizStep() {
                     </p>
                   </div>
                   
-                  <WhatsAppMockup userGender={userGender} onComplete={handleNext} />
+                  <WhatsAppMockup userGender={userGender} onComplete={handleStep12Complete} />
+                  
+                  {/* ✅ Botão de emergência - aparece após animação */}
+                  <AnimatePresence>
+                    {step12Completed && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="mt-6"
+                      >
+                        <Button
+                          onClick={handleNext}
+                          size="lg"
+                          className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-3 px-6 rounded-full shadow-lg w-full sm:w-auto"
+                        >
+                          VER MI PLAN PERSONALIZADO
+                          <ArrowRight className="w-5 h-5 ml-2" />
+                        </Button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   
                   <p className="text-gray-400 text-xs mt-3">
                     ⏰ Disponible solo por las próximas 4 horas
@@ -743,7 +768,7 @@ export default function QuizStep() {
           </motion.div>
         )}
 
-        {/* RESTO DOS STEPS (MANTIDOS IGUAIS) */}
+        {/* RESTO DOS STEPS (2-11, 13) */}
         {step !== 1 && step !== 12 && (
           <>
             {/* Testimonial Display */}
@@ -1124,21 +1149,6 @@ export default function QuizStep() {
                                   <span className="flex-1 font-medium text-sm sm:text-base leading-relaxed">{option}</span>
                                 </div>
                               </button>
-
-                              {!selectedAnswer && (
-                                <motion.div
-                                  className="absolute inset-0 rounded-lg border-2 border-orange-400/50 pointer-events-none"
-                                  animate={{
-                                    opacity: [0, 0.3, 0],
-                                    scale: [1, 1.02, 1],
-                                  }}
-                                  transition={{
-                                    duration: 1,
-                                    repeat: Number.POSITIVE_INFINITY,
-                                    delay: index * 0.2,
-                                  }}
-                                />
-                              )}
                             </motion.div>
                           ))}
                         </div>
