@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -30,13 +30,13 @@ import {
   quizSteps, 
   socialProofMessages, 
   getPersonalizedContent,
-  getExName, // Importar estas funções do quiz-data
+  getExName,
   getExAvatar,
   getPersonalizedFirstMessage,
   getPersonalizedExResponse,
   getPersonalizedFollowUp,
   getHeaderName,
-} from "@/lib/quiz-data" // ✅ Ajuste o path se necessário
+} from "@/lib/quiz-data"
 import { BonusUnlock } from "@/components/bonus-unlock"
 import { ValueCounter } from "@/components/value-counter"
 import { LoadingAnalysis } from "@/components/loading-analysis"
@@ -49,7 +49,7 @@ function enviarEvento(nombre_evento, propriedades = {}) {
   }
 }
 
-// === COMPONENTE MOCKUP WHATSAPP (AGORA INTEGRADO E ESTILIZADO COM TAILWIND) ===
+// === COMPONENTE WHATSAPP MOCKUP CORRIGIDO ===
 const WhatsAppMockup = ({ userGender, onComplete }) => {
   const [currentMessage, setCurrentMessage] = useState(0)
   const [isTyping, setIsTyping] = useState(false)
@@ -60,93 +60,102 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
     { status: 'pending', text: 'Respuesta emocional detectada...' }
   ])
   const [successPercentage, setSuccessPercentage] = useState(0)
+  
+  // ✅ useRef para controle de execução única
+  const hasStartedRef = useRef(false)
+  const timeoutsRef = useRef([])
+  const onCompleteCalledRef = useRef(false)
+  const intervalRef = useRef(null)
 
-  const updateAnalysisPoint = (pointIndex, status) => {
+  const updateAnalysisPoint = useCallback((pointIndex, status) => {
     setAnalysisPoints(prev => prev.map((point, index) => 
       index === pointIndex ? { ...point, status } : point
     ))
-  }
+  }, [])
 
-  const animateSuccessPercentage = () => {
+  const animateSuccessPercentage = useCallback(() => {
     let current = 0
     const target = 89
-    const increment = target / 30
+    const increment = target / 20
     
-    const interval = setInterval(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current)
+    
+    intervalRef.current = setInterval(() => {
       current += increment
       if (current >= target) {
         current = target
-        clearInterval(interval)
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+        
+        // ✅ onComplete chamado apenas uma vez
+        if (!onCompleteCalledRef.current) {
+          onCompleteCalledRef.current = true
+          const timeoutId = setTimeout(() => onComplete(), 200)
+          timeoutsRef.current.push(timeoutId)
+        }
       }
       setSuccessPercentage(Math.round(current))
-    }, 30)
-  }
+    }, 40)
+  }, [onComplete])
+
+  // ✅ useEffect com cleanup adequado
+  useEffect(() => {
+    if (hasStartedRef.current) return
+    hasStartedRef.current = true
+
+    const addTimeout = (callback, delay) => {
+      const timeoutId = setTimeout(callback, delay)
+      timeoutsRef.current.push(timeoutId)
+      return timeoutId
+    }
+
+    // ✅ Timing acelerado - Sequência em 4 segundos
+    const sequence = [
+      { delay: 400, action: () => {
+        setCurrentMessage(1)
+        updateAnalysisPoint(0, 'active')
+      }},
+      { delay: 800, action: () => {
+        setIsTyping(true)
+        updateAnalysisPoint(0, 'completed')
+        updateAnalysisPoint(1, 'active')
+      }},
+      { delay: 1400, action: () => {
+        setIsTyping(false)
+        setCurrentMessage(2)
+        updateAnalysisPoint(1, 'completed')
+        updateAnalysisPoint(2, 'active')
+      }},
+      { delay: 2200, action: () => {
+        setCurrentMessage(3)
+        updateAnalysisPoint(2, 'completed')
+        updateAnalysisPoint(3, 'active')
+      }},
+      { delay: 2800, action: () => {
+        updateAnalysisPoint(3, 'completed')
+        animateSuccessPercentage()
+      }}
+    ]
+
+    sequence.forEach(step => addTimeout(step.action, step.delay))
+
+    // ✅ Cleanup obrigatório
+    return () => {
+      timeoutsRef.current.forEach(clearTimeout)
+      timeoutsRef.current = []
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+  }, [updateAnalysisPoint, animateSuccessPercentage])
 
   const conversation = [
     { type: 'sent', message: getPersonalizedFirstMessage(), delay: 0, timestamp: 'Día 1 - 19:30' },
-    { type: 'typing', duration: 0 }, // Placeholder, handled by isTyping state
+    { type: 'typing', duration: 0 },
     { type: 'received', message: getPersonalizedExResponse(), delay: 0, timestamp: '19:47' },
     { type: 'sent', message: getPersonalizedFollowUp(), delay: 0, timestamp: '19:52' }
   ];
-
-  // ✅ ANIMAÇÃO ULTRA-ACELERADA
-  useEffect(() => {
-    let stepIndex = 0
-    const steps = [
-      { delay: 300, action: 'showUserMessage' },
-      { delay: 800, action: 'showTyping' },
-      { delay: 1200, action: 'hideTyping' },
-      { delay: 1400, action: 'showExResponse' },
-      { delay: 2000, action: 'showUserFollowup' },
-      { delay: 2300, action: 'showSuccess' }
-    ]
-
-    const executeStep = (action) => {
-      switch(action) {
-        case 'showUserMessage':
-          setCurrentMessage(1)
-          updateAnalysisPoint(0, 'active')
-          break
-        case 'showTyping':
-          setIsTyping(true)
-          updateAnalysisPoint(0, 'completed')
-          updateAnalysisPoint(1, 'active')
-          break
-        case 'hideTyping':
-          setIsTyping(false)
-          break
-        case 'showExResponse':
-          setCurrentMessage(2)
-          updateAnalysisPoint(1, 'completed')
-          updateAnalysisPoint(2, 'active')
-          break
-        case 'showUserFollowup':
-          setCurrentMessage(3)
-          updateAnalysisPoint(2, 'completed')
-          updateAnalysisPoint(3, 'active')
-          break
-        case 'showSuccess':
-          updateAnalysisPoint(3, 'completed')
-          animateSuccessPercentage()
-          // Sinaliza a conclusão para o pai para auto-advance
-          setTimeout(() => onComplete(), 500); // Pequeno delay após o início da porcentagem de sucesso
-          break
-      }
-    }
-
-    const runAnimationSequence = () => {
-      if (stepIndex >= steps.length) return
-      
-      const step = steps[stepIndex]
-      setTimeout(() => {
-        executeStep(step.action)
-        stepIndex++
-        runAnimationSequence()
-      }, step.delay)
-    }
-
-    setTimeout(runAnimationSequence, 100)
-  }, [onComplete]) // Adiciona onComplete ao array de dependências
 
   return (
     <div className="flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-8 mb-8">
@@ -312,8 +321,8 @@ export default function QuizStep() {
   const currentStep = quizSteps[step - 1]
   const progress = (step / 13) * 100
 
+  // ✅ useEffect otimizado com cleanup
   useEffect(() => {
-    // Carregar dados guardados
     const saved = localStorage.getItem("quizData")
     const savedBonuses = localStorage.getItem("unlockedBonuses")
     const savedValue = localStorage.getItem("totalValue")
@@ -328,31 +337,33 @@ export default function QuizStep() {
       window.quizAnswers = JSON.parse(savedAnswers)
     }
 
-    setTimeout(() => {
-      setIsLoaded(true)
-    }, 100)
+    const loadTimer = setTimeout(() => setIsLoaded(true), 100)
 
     enviarEvento('visualizou_etapa_quiz', {
       numero_etapa: step,
       pergunta: currentStep?.question || `Etapa ${step}`
     });
 
+    let autoAdvanceTimer
     if (currentStep?.autoAdvance) {
-      const timer = setTimeout(() => {
+      autoAdvanceTimer = setTimeout(() => {
         proceedToNextStep()
       }, 2000)
-
-      return () => clearTimeout(timer)
     }
 
     const interval = setInterval(() => {
       setPeopleCount((prev) => prev + Math.floor(Math.random() * 3))
     }, 45000)
 
-    return () => clearInterval(interval)
-  }, [step])
+    return () => {
+      clearTimeout(loadTimer)
+      if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer)
+      clearInterval(interval)
+    }
+  }, [step, currentStep])
 
-  const handleAnswerSelect = (answer: string) => {
+  // ✅ Handler otimizado com useCallback
+  const handleAnswerSelect = useCallback((answer: string) => {
     setSelectedAnswer(answer)
 
     if (step === 1) {
@@ -382,8 +393,9 @@ export default function QuizStep() {
       button.classList.add("scale-105")
       setTimeout(() => button.classList.remove("scale-105"), 200)
     }
-  }
+  }, [step, currentStep])
 
+  // ✅ proceedToNextStep otimizado
   const proceedToNextStep = useCallback(() => {
     const currentUrl = new URL(window.location.href);
     let utmString = '';
@@ -438,7 +450,8 @@ export default function QuizStep() {
     }
   }, [currentStep, unlockedBonuses, totalValue, step, router]);
 
-  const handleNext = () => {
+  // ✅ handleNext otimizado
+  const handleNext = useCallback(() => {
     enviarEvento('avancou_etapa', {
       numero_etapa: step,
       pergunta: currentStep?.question || `Etapa ${step}`,
@@ -464,9 +477,9 @@ export default function QuizStep() {
     }
 
     proceedToNextStep()
-  }
+  }, [step, selectedAnswer, quizData, currentStep, proceedToNextStep])
 
-  const handleBonusUnlockComplete = () => {
+  const handleBonusUnlockComplete = useCallback(() => {
     setShowBonusUnlock(false)
     
     const currentUrl = new URL(window.location.href);
@@ -488,9 +501,9 @@ export default function QuizStep() {
     } else {
       router.push(`/resultado${utmString}`)
     }
-  }
+  }, [step, router])
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     enviarEvento('retornou_etapa', {
       de_etapa: step,
       para_etapa: step > 1 ? step - 1 : 'inicio'
@@ -515,7 +528,7 @@ export default function QuizStep() {
     } else {
       router.push(`/${utmString}`)
     }
-  }
+  }, [step, router])
 
   const getStepIcon = (stepNumber: number, index: number) => {
     const iconMaps = {
@@ -581,7 +594,7 @@ export default function QuizStep() {
   return (
     <div className="min-h-screen bg-black p-4">
       <div className="max-w-4xl mx-auto">
-        {/* Encabezado con progreso */}
+        {/* Encabezado com progresso */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <Button
@@ -615,7 +628,7 @@ export default function QuizStep() {
           </div>
         </div>
 
-        {/* ✅ STEP 1 ULTRA-SIMPLES - EXPLOSÃO DE DOPAMINA */}
+        {/* ✅ STEP 1 ULTRA-SIMPLES */}
         {step === 1 && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -645,7 +658,7 @@ export default function QuizStep() {
 
                 <div className="space-y-4 max-w-md mx-auto">
                   <motion.button
-                    onClick={() => handleAnswerSelect("masculino")}
+                    onClick={() => handleAnswerSelect("SOY HOMBRE")}
                     className="w-full p-6 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white rounded-xl text-xl sm:text-2xl font-bold transform transition-all duration-200 hover:scale-105 shadow-lg border-2 border-blue-400"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -658,7 +671,7 @@ export default function QuizStep() {
                   </motion.button>
 
                   <motion.button
-                    onClick={() => handleAnswerSelect("feminino")}
+                    onClick={() => handleAnswerSelect("SOY MUJER")}
                     className="w-full p-6 bg-gradient-to-r from-pink-600 to-purple-800 hover:from-pink-500 hover:to-purple-700 text-white rounded-xl text-xl sm:text-2xl font-bold transform transition-all duration-200 hover:scale-105 shadow-lg border-2 border-pink-400"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -695,7 +708,7 @@ export default function QuizStep() {
           </motion.div>
         )}
 
-        {/* ✅ STEP 12 - WHATSAPP MOCKUP INTEGRADO */}
+        {/* ✅ STEP 12 - WHATSAPP MOCKUP CORRIGIDO */}
         {step === 12 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -719,7 +732,7 @@ export default function QuizStep() {
                     </p>
                   </div>
                   
-                  <WhatsAppMockup userGender={userGender} onComplete={handleNext} /> {/* Pass handleNext as onComplete */}
+                  <WhatsAppMockup userGender={userGender} onComplete={handleNext} />
                   
                   <p className="text-gray-400 text-xs mt-3">
                     ⏰ Disponible solo por las próximas 4 horas
@@ -730,7 +743,7 @@ export default function QuizStep() {
           </motion.div>
         )}
 
-        {/* RESTO DOS STEPS (MANTIDOS IGUAIS COM ANIMAÇÕES OTIMIZADAS) */}
+        {/* RESTO DOS STEPS (MANTIDOS IGUAIS) */}
         {step !== 1 && step !== 12 && (
           <>
             {/* Testimonial Display */}
