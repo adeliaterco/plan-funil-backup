@@ -1,4 +1,8 @@
+// quiz-data.js
+
+// 
 // === FUNÇÕES DE PERSONALIZAÇÃO MELHORADAS ===
+// 
 
 // Função para capturar respostas do usuário
 function getUserAnswer(questionId) {
@@ -11,7 +15,9 @@ function getUserGender() {
     return getUserAnswer('question1') || 'SOY HOMBRE';
 }
 
+// 
 // === NOVAS FUNÇÕES PARA MOCKUP ===
+// 
 
 // Função para gerar nome da ex personalizado
 function getExName() {
@@ -177,21 +183,62 @@ Envía solo esto. No esperes respuesta inmediata.
 ¿Por qué funciona? Reactiva conexión emocional sin presión ni demandas.`;
 }
 
+// Função utilitaria para personalizar textos basados no gênero
+export function getPersonalizedContent(content, gender) {
+    if (typeof content === "string") {
+        return content
+    }
+
+    if (typeof content === "object" && content !== null) {
+        if (content.SOY_HOMBRE && content.SOY_MUJER) { // ✅ CORRIGIDO
+            return gender === "SOY HOMBRE" ? content.SOY_HOMBRE : content.SOY_MUJER
+        }
+        // ✅ FALLBACK para compatibilidade com versões antigas
+        if (content.masculino && content.feminino) {
+            return gender === "SOY HOMBRE" ? content.masculino : content.feminino
+        }
+        return content
+    }
+
+    return content
+}
+
+// 
 // === QUIZ STEPS ATUALIZADOS ===
+// 
 
 export const quizSteps = [
     {
         id: 1,
-        question: "¡NO DEJES QUE LA PERSONA QUE AMAS SALGA DE TU VIDA PARA SIEMPRE!",
-        description: "INICIANDO ANÁLISIS PSICOLÓGICO - Para revelar si ella aún siente algo por ti, necesito mapear tu perfil emocional específico.",
-        subtext: "DATO CRÍTICO #1 - Tu género influye directamente en cómo ella procesa la separación:",
-        options: ["SOY HOMBRE", "SOY MUJER"], // ✅ CORRIGIDO
-        warning: "⚠️ IMPORTANTE: Este análisis fue desarrollado basándose en 12,000 casos reales de reconquista. Cada respuesta ajusta tu diagnóstico.",
+        // ✅ HEADLINE OTIMIZADA: Intriga ao invés de pânico
+        question: "🧠 ANTES DE REVELAR LA VERDAD...",
+        
+        // ✅ DESCRIÇÃO CONCISA: Direto ao ponto
+        description: "Necesito entender tu situación exacta",
+        
+        // ✅ SUBTEXT NARRATIVO: Credibilidade + justificativa + urgência
+        subtext: "Basándome en 12,000 casos de reconquista, descubrí algo fundamental: El género determina cómo ella procesa lo que siente por ti. Por eso, esta pregunta es CRÍTICA. Tu respuesta cambiará completamente el análisis que recibirás.",
+        
+        // ✅ MANTÉM OPÇÕES (já corretas)
+        options: ["SOY HOMBRE", "SOY MUJER"],
+        
+        // ✅ WARNING OTIMIZADO: Mais natural
+        warning: "⚠️ Este análisis fue desarrollado basándose en 12,000 casos reales. Cada respuesta ajusta tu diagnóstico personalizado.",
+        
+        // ✅ ELEMENTOS MELHORADOS
         elements: {
             psychologicalTest: true,
-            timer: "Análisis en progreso...",
+            timer: "2 min", // ✅ NOVO: Timer
             analysisIcon: true,
-            badge: "ANÁLISIS PSICOLÓGICO",
+            badge: "ANÁLISIS PERSONALIZADO", // ✅ NOVO: Badge
+            // ✅ NOVOS ELEMENTOS UX
+            autoAdvance: true, // ✅ NOVO: Auto-advance
+            autoMessage: "Mapeando tu perfil emocional específico...", // ✅ NOVO: Auto-message
+            counter: "hombres respondieron esta pregunta", // ✅ NOVO: Counter dinâmico (placeholder)
+            helpedCounter: "Ayudados con esta pregunta", // ✅ NOVO: Helped Counter (placeholder)
+            // ✅ SUCESSO RATE
+            successRate: "87% de compatibilidad detectada", // ✅ NOVO: Success Rate
+            profileComplete: "8%" // ✅ NOVO: Profile Complete
         }
     },
 
@@ -1042,9 +1089,11 @@ ${getPersonalizedTechnique()}`,
             guarantee: "Garantía incondicional de 30 días - Si no funciona, te devuelvo el dinero"
         }
     }
-]
+];
 
+// 
 // === MANTÉM RESTO DO CÓDIGO ORIGINAL ===
+// 
 
 export const testimonials = [
     {
@@ -1062,7 +1111,7 @@ export const testimonials = [
         text: "Pensé que era imposible porque estaba con otro tipo. En 16 días lo dejó por mí.",
         rating: 5,
     }
-]
+];
 
 export const socialProofMessages = [
     "Estás entre el 17% más decidido a reconquistar",
@@ -1071,29 +1120,12 @@ export const socialProofMessages = [
     "Estás más comprometido que el 73% que hizo esta prueba",
     "Solo 27 spots disponibles hoy para este método",
     "4,129 personas recuperaron sus relaciones este año"
-]
+];
 
-// Função utilitaria para personalizar textos basados no gênero
-export function getPersonalizedContent(content, gender) {
-    if (typeof content === "string") {
-        return content
-    }
+// 
+// === EXPORTS GLOBAIS (se necessário para acesso direto no window) ===
+// 
 
-    if (typeof content === "object" && content !== null) {
-        if (content.SOY_HOMBRE && content.SOY_MUJER) { // ✅ CORRIGIDO
-            return gender === "SOY HOMBRE" ? content.SOY_HOMBRE : content.SOY_MUJER
-        }
-        // ✅ FALLBACK para compatibilidade com versões antigas
-        if (content.masculino && content.feminino) {
-            return gender === "SOY HOMBRE" ? content.masculino : content.feminino
-        }
-        return content
-    }
-
-    return content
-}
-
-// Expor funções globalmente para o quiz-step (se necessário)
 if (typeof window !== 'undefined') {
     window.getPersonalizedFirstInsight = getPersonalizedFirstInsight;
     window.getPersonalizedTechnique = getPersonalizedTechnique;
@@ -1104,3 +1136,90 @@ if (typeof window !== 'undefined') {
     window.getPersonalizedFollowUp = getPersonalizedFollowUp;
     window.getHeaderName = getHeaderName;
 }
+
+// 
+// === INSTRUÇÕES PARA TRACKING GA4 (INTEGRAR NO SEU CÓDIGO DE ANALYTICS) ===
+// 
+/*
+Para rastrear o Step 1 otimizado no GA4, você precisará integrar estes eventos
+no seu código JavaScript onde o quiz é renderizado e as interações ocorrem.
+
+1.  **Quando o Step 1 é visualizado:**
+    Chame este evento quando o quiz carrega o Step 1.
+    Exemplo:
+    ```javascript
+    // No componente ou função que renderiza o Step 1
+    if (window.gtag) {
+        window.gtag('event', 'quiz_step_viewed', {
+            event_category: 'quiz_engagement',
+            event_label: 'step_1_optimized_view',
+            step_number: 1,
+            step_name: 'gender_selection',
+            copy_version: 'optimized'
+        });
+    }
+    ```
+
+2.  **Quando uma opção é selecionada no Step 1:**
+    Chame este evento quando o usuário clica em "SOY HOMBRE" ou "SOY MUJER".
+    Você precisará capturar a resposta e o tempo gasto no step.
+    Exemplo:
+    ```javascript
+    // Na função que lida com a seleção de resposta para o Step 1
+    function handleStep1Answer(answer) {
+        const startTime = window.quizStepStartTime || Date.now(); // Assumindo que você registra o início do step
+        const timeSpent = (Date.now() - startTime) / 1000; // Tempo em segundos
+
+        if (window.gtag) {
+            window.gtag('event', 'quiz_answer_selected', {
+                event_category: 'quiz_engagement',
+                event_label: `step_1_answer_${answer.toLowerCase().replace(/\s/g, '_')}`,
+                step_number: 1,
+                step_name: 'gender_selection',
+                selected_answer: answer,
+                time_on_step: timeSpent,
+                copy_version: 'optimized'
+            });
+        }
+        // ... lógica para avançar para o próximo step
+    }
+    ```
+
+3.  **Quando o Step 1 é concluído (avança para o Step 2):**
+    Chame este evento após a seleção da resposta e antes de carregar o Step 2.
+    Exemplo:
+    ```javascript
+    // Após a lógica de handleStep1Answer e antes de carregar o próximo step
+    if (window.gtag) {
+        window.gtag('event', 'quiz_step_completed', {
+            event_category: 'quiz_engagement',
+            event_label: 'step_1_completed',
+            step_number: 1,
+            step_name: 'gender_selection',
+            copy_version: 'optimized'
+        });
+    }
+    ```
+
+4.  **Para rastrear abandono no Step 1 (se o usuário sair da página):**
+    Isso geralmente requer um listener de `beforeunload` ou `visibilitychange` que verifica se o Step 1 estava ativo e se o usuário não avançou. É mais complexo e pode ser implementado posteriormente.
+    Um exemplo simplificado (requer lógica para verificar se o step 1 estava ativo e não foi concluído):
+    ```javascript
+    // Exemplo conceitual, requer implementação mais robusta
+    window.addEventListener('beforeunload', () => {
+        if (window.currentQuizStep === 1 && !window.step1Completed) {
+            if (window.gtag) {
+                window.gtag('event', 'quiz_step_abandoned', {
+                    event_category: 'quiz_engagement',
+                    event_label: 'step_1_abandoned',
+                    step_number: 1,
+                    step_name: 'gender_selection',
+                    copy_version: 'optimized'
+                });
+            }
+        }
+    });
+    ```
+
+Certifique-se de que `window.gtag` esteja disponível globalmente (configurado pelo seu script GA4).
+*/
