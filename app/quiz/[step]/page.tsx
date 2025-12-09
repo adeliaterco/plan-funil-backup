@@ -1390,35 +1390,39 @@ export default function QuizStep() {
           </>
         )}
 
-// ✅ FUNÇÕES PARA MENSAGENS PROGRESSIVAS
-const getProgressiveUrgencyMessage = useCallback((step) => {
-  const messages = {
-    3: "🔍 Analizando tu perfil emocional específico...",
-    4: "📊 Calculando probabilidades de reconquista...", 
-    5: "🎯 Identificando tu estrategia personalizada...",
-    6: "⚡ Desbloqueando técnicas avanzadas para tu caso...",
-    7: "🔥 Generando tu plan personalizado...",
-    8: "🚨 ANÁLISIS CRÍTICO: Tu caso está 80% procesado",
-    9: "⏰ ÚLTIMA FASE: No abandones cuando falta tan poco",
-    10: "🎁 Tu plan personalizado está casi listo...",
-    11: "🔒 ACCESO EXCLUSIVO: Revelación científica final"
-  }
-  
-  return messages[step] || "✅ Continuando con tu análisis personalizado..."
-}, [])
+        {/* Prueba Social - OTIMIZADA (sem números agressivos) */}
+        {step > 2 && !currentStep?.autoAdvance && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="text-center space-y-2 mt-6"
+          >
+            <div className="bg-red-900/20 border border-red-400 rounded-lg p-2">
+              <p className="text-red-300 text-xs font-semibold">
+                ⚠️ IMPORTANTE: Solo {Math.floor(Math.random() * 15) + 5} espacios disponibles hoy
+              </p>
+            </div>
 
-const getProgressiveUrgencyStyle = useCallback((step) => {
-  if (step <= 5) {
-    // Steps iniciais - informativo (azul)
-    return "bg-blue-900/20 border border-blue-400/50 rounded-lg p-3 text-blue-300"
-  } else if (step <= 7) {
-    // Steps médios - antecipação (laranja)
-    return "bg-orange-900/20 border border-orange-400/50 rounded-lg p-3 text-orange-300"
-  } else {
-    // Steps finais - urgência real (vermelho)
-    return "bg-red-900/30 border border-red-500/50 rounded-lg p-3 text-red-300"
-  }
-}, [])
+            {currentStep?.elements?.counter && (
+              <p className="text-white text-xs sm:text-sm bg-white/10 px-3 py-1 rounded-full inline-block">
+                👥 {peopleCount} {currentStep.elements.counter}
+              </p>
+            )}
+
+            {currentStep?.elements?.helpedCounter && (
+              <p className="text-green-400 text-xs sm:text-sm font-semibold bg-green-900/20 px-3 py-1 rounded-full inline-block">
+                ✅ {currentStep.elements.helpedCounter}
+              </p>
+            )}
+
+            {step > 5 && (
+              <p className="text-blue-300 text-xs sm:text-sm bg-blue-900/20 px-3 py-1 rounded-full inline-block">
+                {socialProofMessages[Math.min(step - 6, socialProofMessages.length - 1)]}
+              </p>
+            )}
+          </motion.div>
+        )}
       </div>
 
       {/* Modal de Análise de Carga */}
