@@ -591,7 +591,7 @@ export default function QuizStep() {
       
       setTimeout(() => {
         handleNext()
-      }, 500)
+      }, 800)
       return
     }
 
