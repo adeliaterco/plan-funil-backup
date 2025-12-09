@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import dynamic from 'next/dynamic'
 import {
   Shield,
   ArrowRight,
@@ -19,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { CountdownTimer } from "@/components/countdown-timer"
-import { enviarEvento } from "../../lib/analytics" // Certifique-se de que este caminho está correto
+import { enviarEvento } from "../../lib/analytics"
 
 export default function ResultPageFixed() {
   // ===== ESTADOS =====
@@ -34,8 +35,10 @@ export default function ResultPageFixed() {
   const [isDecrypting, setIsDecrypting] = useState(true)
   const [activeBuyers, setActiveBuyers] = useState(Math.floor(Math.random() * 5) + 8)
   
-  // ✅ CORREÇÃO CRÍTICA DO VÍDEO: Estados simplificados
+  // ✅ CORREÇÃO CRÍTICA: Estados seguros para o vídeo
   const [isVideoReady, setIsVideoReady] = useState(false)
+  const [videoError, setVideoError] = useState<string | null>(null)
+  const [isBrowser, setIsBrowser] = useState(false)
 
   const contentRef = useRef<HTMLDivElement>(null)
   const startTimeRef = useRef(Date.now())
@@ -44,153 +47,190 @@ export default function ResultPageFixed() {
   const decryptIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const videoContainerRef = useRef<HTMLDivElement>(null)
   const scriptLoadedRef = useRef(false)
+  const cleanupRef = useRef<(() => void) | null>(null)
+
+  // ===== VERIFICAÇÃO DE AMBIENTE BROWSER =====
+  useEffect(() => {
+    setIsBrowser(typeof window !== 'undefined' && typeof document !== 'undefined')
+  }, [])
 
   // ===== PERSONALIZAÇÃO BASEADA NO QUIZ =====
   useEffect(() => {
-    const savedGender = localStorage.getItem("userGender") || ""
-    const savedAnswers = JSON.parse(localStorage.getItem("quizAnswers") || "{}")
-    
-    setUserGender(savedGender)
-    setUserAnswers(savedAnswers)
+    if (!isBrowser) return
 
-    setTimeout(() => setIsLoaded(true), 300)
+    try {
+      const savedGender = localStorage.getItem("userGender") || ""
+      const savedAnswers = JSON.parse(localStorage.getItem("quizAnswers") || "{}")
+      
+      setUserGender(savedGender)
+      setUserAnswers(savedAnswers)
 
-    enviarEvento("viu_resultado_dopamina_v4", {
-      timestamp: new Date().toISOString(),
-      user_gender: savedGender,
-      version: "matrix_continuity"
-    })
+      setTimeout(() => setIsLoaded(true), 300)
 
-    startTimeRef.current = Date.now()
-
-    // Simular compradores em tempo real
-    const interval = setInterval(() => {
-      setActiveBuyers(prev => prev + Math.floor(Math.random() * 2) + 1)
-    }, 45000)
-
-    return () => {
-      clearInterval(interval)
-      const timeSpent = (Date.now() - startTimeRef.current) / 1000
-      enviarEvento('tempo_pagina_resultado_dopamina', {
-        tempo_segundos: timeSpent,
-        conversao: false,
+      enviarEvento("viu_resultado_dopamina_v4", {
+        timestamp: new Date().toISOString(),
+        user_gender: savedGender,
         version: "matrix_continuity"
       })
+
+      startTimeRef.current = Date.now()
+
+      // Simular compradores em tempo real
+      const interval = setInterval(() => {
+        setActiveBuyers(prev => prev + Math.floor(Math.random() * 2) + 1)
+      }, 45000)
+
+      return () => {
+        clearInterval(interval)
+        if (isBrowser) {
+          const timeSpent = (Date.now() - startTimeRef.current) / 1000
+          enviarEvento('tempo_pagina_resultado_dopamina', {
+            tempo_segundos: timeSpent,
+            conversao: false,
+            version: "matrix_continuity"
+          })
+        }
+      }
+    } catch (error) {
+      console.error("Erro na inicialização:", error)
     }
-  }, [])
+  }, [isBrowser])
 
   // ===== PROGRESSÃO AUTOMÁTICA DE REVELAÇÕES ===== 
   useEffect(() => {
-    // ✅ CORREÇÃO CRÍTICA DO LOOP: Limpeza adequada do interval
-    if (decryptIntervalRef.current) {
-      clearInterval(decryptIntervalRef.current)
-    }
+    try {
+      // ✅ CORREÇÃO CRÍTICA DO LOOP: Limpeza adequada do interval
+      if (decryptIntervalRef.current) {
+        clearInterval(decryptIntervalRef.current)
+      }
 
-    // Animação de descriptografia inicial CONTROLADA
-    decryptIntervalRef.current = setInterval(() => {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
-      const randomText = Array.from({length: 30}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-      setDecryptedText(randomText);
-    }, 100);
+      // Animação de descriptografia inicial CONTROLADA
+      decryptIntervalRef.current = setInterval(() => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
+        const randomText = Array.from({length: 30}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+        setDecryptedText(randomText);
+      }, 100);
 
-    // Sequência de revelações
-    const timers = [
-      setTimeout(() => {
-        // ✅ CORREÇÃO CRÍTICA DO LOOP: Para o interval quando termina
+      // Sequência de revelações
+      const timers = [
+        setTimeout(() => {
+          // ✅ CORREÇÃO CRÍTICA DO LOOP: Para o interval quando termina
+          if (decryptIntervalRef.current) {
+            clearInterval(decryptIntervalRef.current);
+            decryptIntervalRef.current = null;
+          }
+          setIsDecrypting(false);
+          setDecryptedText("CÓDIGO COMPLETO LIBERADO");
+          setCurrentRevelation(1);
+        }, 3000),
+        
+        setTimeout(() => {
+          setShowVSL(true);
+          setCurrentRevelation(2);
+        }, 6000),
+        
+        setTimeout(() => {
+          setShowOffer(true);
+          setCurrentRevelation(3);
+        }, 9000),
+        
+        setTimeout(() => {
+          setShowFinalCTA(true);
+        }, 12000),
+      ]
+
+      return () => {
+        // ✅ CORREÇÃO CRÍTICA DO LOOP: Limpeza completa na desmontagem
         if (decryptIntervalRef.current) {
           clearInterval(decryptIntervalRef.current);
           decryptIntervalRef.current = null;
         }
-        setIsDecrypting(false);
-        setDecryptedText("CÓDIGO COMPLETO LIBERADO");
-        setCurrentRevelation(1);
-      }, 3000),
-      
-      setTimeout(() => {
-        setShowVSL(true); // Ativa a exibição do VSL
-        setCurrentRevelation(2);
-      }, 6000), // VSL aparece após 6 segundos
-      
-      setTimeout(() => {
-        setShowOffer(true);
-        setCurrentRevelation(3);
-      }, 9000), // Oferta aparece após 9 segundos
-      
-      setTimeout(() => {
-        setShowFinalCTA(true);
-      }, 12000), // CTA final aparece após 12 segundos
-    ]
-
-    return () => {
-      // ✅ CORREÇÃO CRÍTICA DO LOOP: Limpeza completa na desmontagem
-      if (decryptIntervalRef.current) {
-        clearInterval(decryptIntervalRef.current);
-        decryptIntervalRef.current = null;
+        timers.forEach(clearTimeout);
       }
-      timers.forEach(clearTimeout);
+    } catch (error) {
+      console.error("Erro na progressão de revelações:", error)
     }
   }, [])
 
-  // ✅ CORREÇÃO CRÍTICA DO VÍDEO: useEffect ROBUSTO para controle total do player
+  // ✅ CORREÇÃO CRÍTICA DO VÍDEO: useEffect SEGURO com tratamento de erros
   useEffect(() => {
-    if (showVSL && !scriptLoadedRef.current) {
-      // Marca como carregado imediatamente para evitar duplicação
-      scriptLoadedRef.current = true;
+    if (!showVSL || !isBrowser || scriptLoadedRef.current) return
 
-      // Remove qualquer script anterior
-      const existingScript = document.querySelector('script[src*="converteai.net"]');
-      if (existingScript) {
-        existingScript.remove();
-      }
+    const loadVideoScript = async () => {
+      try {
+        scriptLoadedRef.current = true
+        setVideoError(null)
 
-      // ✅ FORÇA O CONTAINER NO DOM ANTES DO SCRIPT
-      const forceContainer = () => {
-        if (videoContainerRef.current) {
-          // Limpa o container
-          videoContainerRef.current.innerHTML = '';
-          
-          // Cria o elemento vturb DIRETAMENTE no container
-          const vturbElement = document.createElement('vturb-smartplayer');
-          vturbElement.id = 'vid-692ef1c85df8a7aaec7c6000';
-          vturbElement.setAttribute('data-setup', '{}');
-          
-          // ✅ FORÇA ESTILOS INLINE PARA GARANTIR POSICIONAMENTO
-          vturbElement.style.cssText = `
-            width: 100% !important;
-            max-width: 100% !important;
-            height: auto !important;
-            display: block !important;
-            margin: 0 auto !important;
-            position: relative !important;
-            z-index: 1 !important;
-          `;
-          
-          videoContainerRef.current.appendChild(vturbElement);
-          
-          // ✅ CARREGA O SCRIPT APENAS APÓS O CONTAINER ESTAR PRONTO
-          const script = document.createElement("script");
-          script.src = "https://scripts.converteai.net/15be01a4-4462-4736-aeb9-b95eda21b8b8/players/692ef1c85df8a7aaec7c6000/v4/player.js";
-          script.async = true;
-          
-          script.onload = () => {
-            setTimeout(() => {
-              setIsVideoReady(true);
-            }, 1000); // 1 segundo para garantir inicialização
-          };
-          
-          script.onerror = () => {
-            console.error("Erro ao carregar script do VSL");
-            setIsVideoReady(false);
-          };
-          
-          document.head.appendChild(script);
+        // Verifica se o script já existe
+        const existingScript = document.querySelector('script[src*="converteai.net"]')
+        if (existingScript) {
+          existingScript.remove()
         }
-      };
 
-      // ✅ PEQUENO DELAY PARA GARANTIR QUE O DOM ESTEJA PRONTO
-      setTimeout(forceContainer, 200);
+        // Aguarda o container estar disponível
+        await new Promise(resolve => setTimeout(resolve, 300))
+
+        if (!videoContainerRef.current) {
+          throw new Error('Container do vídeo não encontrado')
+        }
+
+        // Limpa o container
+        videoContainerRef.current.innerHTML = ''
+
+        // ✅ ABORDAGEM MAIS SEGURA: Usa innerHTML ao invés de createElement
+        videoContainerRef.current.innerHTML = `
+          <vturb-smartplayer 
+            id="vid-692ef1c85df8a7aaec7c6000" 
+            data-setup="{}"
+            style="width: 100%; max-width: 100%; height: auto; display: block; margin: 0 auto; position: relative; z-index: 1;"
+          ></vturb-smartplayer>
+        `
+
+        // Carrega o script
+        const script = document.createElement("script")
+        script.src = "https://scripts.converteai.net/15be01a4-4462-4736-aeb9-b95eda21b8b8/players/692ef1c85df8a7aaec7c6000/v4/player.js"
+        script.async = true
+
+        script.onload = () => {
+          setTimeout(() => {
+            setIsVideoReady(true)
+          }, 1500) // Aumentado para 1.5s para maior estabilidade
+        }
+
+        script.onerror = (error) => {
+          console.error("Erro ao carregar script do VSL:", error)
+          setVideoError("Erro ao carregar o vídeo. Tente recarregar a página.")
+          setIsVideoReady(false)
+        }
+
+        document.head.appendChild(script)
+
+        // Função de limpeza
+        cleanupRef.current = () => {
+          if (document.head.contains(script)) {
+            document.head.removeChild(script)
+          }
+          if (videoContainerRef.current) {
+            videoContainerRef.current.innerHTML = ''
+          }
+        }
+
+      } catch (error) {
+        console.error("Erro no carregamento do vídeo:", error)
+        setVideoError("Erro inesperado ao carregar o vídeo.")
+        setIsVideoReady(false)
+        scriptLoadedRef.current = false
+      }
     }
-  }, [showVSL]);
+
+    loadVideoScript()
+
+    return () => {
+      if (cleanupRef.current) {
+        cleanupRef.current()
+      }
+    }
+  }, [showVSL, isBrowser])
 
   // ===== FUNÇÕES DE PERSONALIZAÇÃO =====
   const getPronoun = useCallback(() => userGender === "SOY MUJER" ? "él" : "ella", [userGender])
@@ -211,36 +251,95 @@ export default function ResultPageFixed() {
 
   // ===== FUNÇÃO DE COMPRA OTIMIZADA =====
   const handlePurchase = useCallback((position = "principal") => {
-    const timeToAction = (Date.now() - startTimeRef.current) / 1000
-    
-    enviarEvento("clicou_comprar_dopamina_v4", {
-      posicao: position,
-      revelacao_atual: currentRevelation,
-      timestamp: new Date().toISOString(),
-      user_gender: userGender,
-      situacao: getPersonalizedSituation(),
-      tempo_ate_acao: timeToAction,
-      conversao: true,
-      version: "matrix_continuity"
-    })
-    
-    enviarEvento('tempo_pagina_resultado_dopamina', {
-      tempo_segundos: timeToAction,
-      conversao: true,
-      version: "matrix_continuity"
-    })
-    
-    setTimeout(() => {
-      window.open("https://pay.hotmart.com/F100142422S?off=efckjoa7&checkoutMode=10", "_blank")
-    }, 100)
-  }, [currentRevelation, userGender, getPersonalizedSituation])
+    if (!isBrowser) return
+
+    try {
+      const timeToAction = (Date.now() - startTimeRef.current) / 1000
+      
+      enviarEvento("clicou_comprar_dopamina_v4", {
+        posicao: position,
+        revelacao_atual: currentRevelation,
+        timestamp: new Date().toISOString(),
+        user_gender: userGender,
+        situacao: getPersonalizedSituation(),
+        tempo_ate_acao: timeToAction,
+        conversao: true,
+        version: "matrix_continuity"
+      })
+      
+      enviarEvento('tempo_pagina_resultado_dopamina', {
+        tempo_segundos: timeToAction,
+        conversao: true,
+        version: "matrix_continuity"
+      })
+      
+      setTimeout(() => {
+        window.open("https://pay.hotmart.com/F100142422S?off=efckjoa7&checkoutMode=10", "_blank")
+      }, 100)
+    } catch (error) {
+      console.error("Erro na função de compra:", error)
+    }
+  }, [currentRevelation, userGender, getPersonalizedSituation, isBrowser])
 
   // ===== FEEDBACK TÁTIL =====
   const handleTouchFeedback = useCallback(() => {
-    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    if (isBrowser && 'vibrate' in navigator) {
       navigator.vibrate(10)
     }
-  }, [])
+  }, [isBrowser])
+
+  // ===== COMPONENTE DE VÍDEO SEGURO =====
+  const VideoPlayer = () => {
+    if (!isBrowser || !showVSL) {
+      return null
+    }
+
+    if (videoError) {
+      return (
+        <div className="flex items-center justify-center h-64 bg-red-900/30 rounded-lg text-white border border-red-500">
+          <div className="text-center p-4">
+            <p className="text-red-300 mb-2">⚠️ {videoError}</p>
+            <button 
+              onClick={() => {
+                setVideoError(null)
+                scriptLoadedRef.current = false
+                setIsVideoReady(false)
+              }}
+              className="text-blue-300 underline hover:text-blue-200"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div 
+        ref={videoContainerRef}
+        className="relative w-full min-h-[300px] bg-gray-900 rounded-lg flex items-center justify-center overflow-hidden"
+        style={{
+          position: 'relative',
+          width: '100%',
+          maxWidth: '100%',
+          aspectRatio: '16/9'
+        }}
+      >
+        {!isVideoReady && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-800 rounded-lg text-white z-20">
+            <div className="text-center">
+              <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+              <p>Cargando video...</p>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  if (!isBrowser) {
+    return <div>Cargando...</div>
+  }
 
   return (
     <>
@@ -363,7 +462,7 @@ export default function ResultPageFixed() {
               )}
             </AnimatePresence>
 
-            {/* ===== REVELACIÓN 2: VSL ESTRATÉGICO (VÍDEO TOTALMENTE CORRIGIDO) ===== */}
+            {/* ===== REVELACIÓN 2: VSL ESTRATÉGICO (VÍDEO TOTALMENTE SEGURO) ===== */}
             <AnimatePresence>
               {showVSL && (
                 <motion.div
@@ -382,30 +481,13 @@ export default function ResultPageFixed() {
                       </p>
                     </div>
 
-                    {/* ✅ CORREÇÃO CRÍTICA DO VÍDEO: Container com controle total */}
+                    {/* ✅ CORREÇÃO CRÍTICA DO VÍDEO: Container seguro com tratamento de erro */}
                     <div className="max-w-3xl mx-auto mb-6">
                       <div className="relative bg-black rounded-xl p-4 border-2 border-blue-500 shadow-2xl overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-green-600/20 rounded-xl animate-pulse"></div>
                         
-                        {/* ✅ CONTAINER FORÇADO PARA O VÍDEO */}
-                        <div 
-                          ref={videoContainerRef}
-                          className="relative z-10 w-full min-h-[300px] bg-gray-900 rounded-lg flex items-center justify-center overflow-hidden"
-                          style={{
-                            position: 'relative',
-                            width: '100%',
-                            maxWidth: '100%',
-                            aspectRatio: '16/9'
-                          }}
-                        >
-                          {!isVideoReady && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-gray-800 rounded-lg text-white z-20">
-                              <div className="text-center">
-                                <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
-                                <p>Cargando video...</p>
-                              </div>
-                            </div>
-                          )}
+                        <div className="relative z-10">
+                          <VideoPlayer />
                         </div>
                       </div>
                     </div>
