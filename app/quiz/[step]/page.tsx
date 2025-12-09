@@ -26,20 +26,36 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { quizSteps, socialProofMessages, getPersonalizedContent } from "@/lib/quiz-data"
+import { 
+  quizSteps, 
+  socialProofMessages, 
+  getPersonalizedContent, 
+  getPersonalizedFirstInsight, 
+  getPersonalizedTechnique,
+  getExName, // ✅ Importado para WhatsAppMockup
+  getExAvatar, // ✅ Importado para WhatsAppMockup
+  getPersonalizedFirstMessage, // ✅ Importado para WhatsAppMockup
+  getPersonalizedExResponse, // ✅ Importado para WhatsAppMockup
+  getPersonalizedFollowUp, // ✅ Importado para WhatsAppMockup
+  getHeaderName // ✅ Importado para WhatsAppMockup
+} from "@/lib/quiz-data"
 import { BonusUnlock } from "@/components/bonus-unlock"
-import { ValueCounter } from "@/components/value-counter"
-import { LoadingAnalysis } from "@/components/loading-analysis"
+import { ValueCounter } from "@/components/value-counter" // Assumindo que este componente existe
+import { LoadingAnalysis } from "@/components/loading-analysis" // Assumindo que este componente existe
 
-// ✅ OTIMIZAÇÃO: Função de eventos com menos overhead
-function enviarEvento(nombre_evento, propriedades = {}) {
-  if (typeof window !== 'undefined' && window.gtag) {
-    window.gtag('event', nombre_evento, propriedades);
+// ✅ OTIMIZAÇÃO: Função de eventos GA4 centralizada e segura
+function enviarEvento(nombre_evento: string, propriedades: Record<string, any> = {}) {
+  try {
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', nombre_evento, propriedades);
+    }
+  } catch (e) {
+    console.error('Erro ao enviar evento GA4:', e);
   }
 }
 
-// === COMPONENTE MOCKUP WHATSAPP ===
-const WhatsAppMockup = ({ userGender }) => {
+// === COMPONENTE WHATSAPP MOCKUP (STEP 12) ===
+const WhatsAppMockup = ({ userGender }: { userGender: string }) => {
   const [currentMessage, setCurrentMessage] = useState(0)
   const [isTyping, setIsTyping] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -51,98 +67,32 @@ const WhatsAppMockup = ({ userGender }) => {
   ])
   const [successPercentage, setSuccessPercentage] = useState(0)
 
-  // ✅ OTIMIZAÇÃO: Cachear nomes com useMemo
-  const exName = useMemo(() => "José Plan", [])
-  const exAvatar = useMemo(() => "https://i.ibb.co/5hbjyZFJ/CASAL-JOSE.webp", [])
+  // ✅ OTIMIZAÇÃO: Cachear nomes e mensagens com useMemo/useCallback
+  const exName = useMemo(() => getExName(), [])
+  const exAvatar = useMemo(() => getExAvatar(), [])
+  const headerName = useMemo(() => getHeaderName(), [])
 
-  // ✅ OTIMIZAÇÃO: Memoizar dados do localStorage
-  const quizAnswers = useMemo(() => {
-    if (typeof window === "undefined") return {}
-    try {
-      return JSON.parse(localStorage.getItem("quizAnswers") || "{}")
-    } catch {
-      return {}
-    }
-  }, [])
-
-  const getPersonalizedFirstMessage = useCallback(() => {
-    const currentSituation = quizAnswers.question7 || ""
-    
-    if (currentSituation.includes("contacto cero")) {
-      return `Hola, encontré algo que es tuyo. ¿Cuándo puedes pasar a recogerlo?`
-    }
-    if (currentSituation.includes("me ignora")) {
-      return `Hola, no voy a molestarte más. Solo quería agradecerte por algo que me enseñaste.`
-    }
-    if (currentSituation.includes("bloqueado")) {
-      return `Hola, María me pidió preguntarte sobre el evento del viernes.`
-    }
-    if (currentSituation.includes("cosas necesarias")) {
-      return `Hola, vi esta foto nuestra del viaje a la playa y me hizo sonreír. Espero que estés bien.`
-    }
-    if (currentSituation.includes("charlamos")) {
-      return `Hola, tengo que contarte algo curioso que me pasó que te va a hacer reír. ¿Tienes 5 minutos para una llamada?`
-    }
-    return `Hola, vi algo que me recordé a cuando fuimos al parque. Me alegró el día. Espero que estés bien.`
-  }, [quizAnswers])
-
-  const getPersonalizedExResponse = useCallback(() => {
-    const currentSituation = quizAnswers.question7 || ""
-    
-    if (currentSituation.includes("contacto cero")) {
-      return "¿Qué cosa? No recuerdo haber dejado nada..."
-    }
-    if (currentSituation.includes("me ignora")) {
-      return "¿Qué me enseñé? Me tienes curiosa..."
-    }
-    if (currentSituation.includes("bloqueado")) {
-      return "Ah sí, dile que sí voy. Gracias por preguntar."
-    }
-    if (currentSituation.includes("cosas necesarias")) {
-      return "😊 Qué bonito recuerdo. Yo también estoy bien, gracias."
-    }
-    if (currentSituation.includes("charlamos")) {
-      return "Jajaja ya me tienes intrigada. Cuéntame por aquí primero"
-    }
-    return "Gracias por acordarte de mí. ¿Cómo has estado?"
-  }, [quizAnswers])
+  const personalizedFirstMessage = useMemo(() => getPersonalizedFirstMessage(), [])
+  const personalizedExResponse = useMemo(() => getPersonalizedExResponse(), [])
+  const personalizedFollowUp = useMemo(() => getPersonalizedFollowUp(), [])
 
   const conversation = useMemo(() => [
-    {
-      type: 'sent',
-      message: getPersonalizedFirstMessage(),
-      delay: 1000,
-      timestamp: 'Día 1 - 19:30'
-    },
-    {
-      type: 'typing',
-      duration: 1500
-    },
-    {
-      type: 'received', 
-      message: getPersonalizedExResponse(),
-      delay: 500,
-      timestamp: '19:47'
-    },
-    {
-      type: 'sent',
-      message: "Me alegra que respondas. ¿Te parece si hablamos mejor mañana? Tengo algunas cosas que hacer ahora.",
-      delay: 1000,
-      timestamp: '19:52'
-    }
-  ], [getPersonalizedFirstMessage, getPersonalizedExResponse])
+    { type: 'sent', message: personalizedFirstMessage, timestamp: '19:30' },
+    { type: 'typing', duration: 1500 }, // Duração do typing indicator
+    { type: 'received', message: personalizedExResponse, timestamp: '19:47' },
+    { type: 'sent', message: personalizedFollowUp, timestamp: '19:52' }
+  ], [personalizedFirstMessage, personalizedExResponse, personalizedFollowUp])
 
-  const updateAnalysisPoint = useCallback((pointIndex, status) => {
+  const updateAnalysisPoint = useCallback((pointIndex: number, status: 'pending' | 'active' | 'completed') => {
     setAnalysisPoints(prev => prev.map((point, index) => 
       index === pointIndex ? { ...point, status } : point
     ))
   }, [])
 
-  // ✅ OTIMIZAÇÃO: Animar percentual mais rápido
   const animateSuccessPercentage = useCallback(() => {
     let current = 0
     const target = 89
-    const increment = target / 20 // ✅ Reduzido de 30 para 20 (mais rápido)
+    const increment = target / 20 // ✅ Mais rápido
     
     const interval = setInterval(() => {
       current += increment
@@ -151,14 +101,13 @@ const WhatsAppMockup = ({ userGender }) => {
         clearInterval(interval)
       }
       setSuccessPercentage(Math.round(current))
-    }, 20) // ✅ Reduzido de 30ms para 20ms
+    }, 20) // ✅ Mais rápido
   }, [])
 
-  // ✅ ANIMAÇÃO ACELERADA - PASSO CRÍTICO
+  // ✅ ANIMAÇÃO ACELERADA - PASSO CRÍTICO (Total: 2.2 segundos)
   useEffect(() => {
     let stepIndex = 0
     
-    // ✅ NOVO TIMING OTIMIZADO - Total: 2.2 segundos
     const steps = [
       { delay: 300, action: 'showUserMessage' },     // ✅ -200ms
       { delay: 700, action: 'showTyping' },          // ✅ -800ms (era 1500)
@@ -176,12 +125,12 @@ const WhatsAppMockup = ({ userGender }) => {
         executeStep(step.action)
         stepIndex++
         runAnimation()
-      }, step.delay)
+      }, step.delay - (stepIndex > 0 ? steps[stepIndex - 1].delay : 0)) // Ajusta delay para ser relativo ao anterior
 
       return () => clearTimeout(timeout)
     }
 
-    const executeStep = (action) => {
+    const executeStep = (action: string) => {
       switch(action) {
         case 'showUserMessage':
           setCurrentMessage(1)
@@ -213,7 +162,8 @@ const WhatsAppMockup = ({ userGender }) => {
       }
     }
 
-    runAnimation()
+    const initialTimeout = setTimeout(() => runAnimation(), 0); // Inicia imediatamente
+    return () => clearTimeout(initialTimeout);
   }, [updateAnalysisPoint, animateSuccessPercentage])
 
   return (
@@ -228,7 +178,7 @@ const WhatsAppMockup = ({ userGender }) => {
               <div className="back-arrow">←</div>
               <img src={exAvatar} className="contact-avatar" alt="Avatar" loading="lazy" />
               <div className="contact-info">
-                <div className="contact-name">{exName}</div>
+                <div className="contact-name">{headerName}</div>
                 <div className="last-seen">
                   {isTyping ? 'escribiendo...' : 'En línea'}
                 </div>
@@ -256,7 +206,7 @@ const WhatsAppMockup = ({ userGender }) => {
                     className="message-bubble sent"
                   >
                     <div className="message-content">{conversation[0].message}</div>
-                    <div className="message-time">19:30 ✓✓</div>
+                    <div className="message-time">{conversation[0].timestamp} ✓✓</div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -287,7 +237,7 @@ const WhatsAppMockup = ({ userGender }) => {
                     className="message-bubble received"
                   >
                     <div className="message-content">{conversation[2].message}</div>
-                    <div className="message-time">19:47</div>
+                    <div className="message-time">{conversation[2].timestamp}</div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -302,7 +252,7 @@ const WhatsAppMockup = ({ userGender }) => {
                     className="message-bubble sent"
                   >
                     <div className="message-content">{conversation[3].message}</div>
-                    <div className="message-time">19:52 ✓✓</div>
+                    <div className="message-time">{conversation[3].timestamp} ✓✓</div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -321,7 +271,7 @@ const WhatsAppMockup = ({ userGender }) => {
         </div>
       </div>
       
-      {/* Análisis en tiempo real */}
+      {/* Análise em tempo real */}
       <div className="real-time-analysis">
         <h3 className="text-lg font-bold text-white mb-4 text-center">
           📊 ANÁLISIS PSICOLÓGICO EN TIEMPO REAL
@@ -357,6 +307,7 @@ const WhatsAppMockup = ({ userGender }) => {
         </div>
       </div>
 
+      {/* ✅ CSS INLINE COMPLETO */}
       <style jsx>{`
         .phone-mockup {
           width: 300px;
@@ -649,6 +600,7 @@ const WhatsAppMockup = ({ userGender }) => {
   )
 }
 
+// === COMPONENTE PRINCIPAL QUIZ STEP ===
 export default function QuizStep() {
   const params = useParams()
   const router = useRouter()
@@ -665,24 +617,29 @@ export default function QuizStep() {
   const [userGender, setUserGender] = useState<string>("")
 
   const currentStep = quizSteps[step - 1]
-  const progress = (step / 13) * 100
+  const progress = (step / quizSteps.length) * 100 // ✅ Usar quizSteps.length para total
 
   // ✅ OTIMIZAÇÃO: Cachear localStorage data em useMemo
   const cachedStorageData = useMemo(() => {
     if (typeof window === "undefined") return {}
     
-    const saved = localStorage.getItem("quizData")
-    const savedBonuses = localStorage.getItem("unlockedBonuses")
-    const savedValue = localStorage.getItem("totalValue")
-    const savedGender = localStorage.getItem("userGender")
-    const savedAnswers = localStorage.getItem("quizAnswers")
+    try {
+      const saved = localStorage.getItem("quizData")
+      const savedBonuses = localStorage.getItem("unlockedBonuses")
+      const savedValue = localStorage.getItem("totalValue")
+      const savedGender = localStorage.getItem("userGender")
+      const savedAnswers = localStorage.getItem("quizAnswers")
 
-    return {
-      quizData: saved ? JSON.parse(saved) : {},
-      bonuses: savedBonuses ? JSON.parse(savedBonuses) : [],
-      value: savedValue ? Number.parseInt(savedValue) : 0,
-      gender: savedGender || "",
-      answers: savedAnswers ? JSON.parse(savedAnswers) : {}
+      return {
+        quizData: saved ? JSON.parse(saved) : {},
+        bonuses: savedBonuses ? JSON.parse(savedBonuses) : [],
+        value: savedValue ? Number.parseInt(savedValue) : 0,
+        gender: savedGender || "",
+        answers: savedAnswers ? JSON.parse(savedAnswers) : {}
+      }
+    } catch (e) {
+      console.error('Erro ao ler localStorage:', e);
+      return { quizData: {}, bonuses: [], value: 0, gender: "", answers: {} };
     }
   }, [])
 
@@ -691,8 +648,9 @@ export default function QuizStep() {
     setUnlockedBonuses(cachedStorageData.bonuses)
     setTotalValue(cachedStorageData.value)
     setUserGender(cachedStorageData.gender)
-    if (cachedStorageData.answers) {
-      window.quizAnswers = cachedStorageData.answers
+    // ✅ Garantir que window.quizAnswers esteja disponível para as funções de quiz-data
+    if (typeof window !== 'undefined') {
+      (window as any).quizAnswers = cachedStorageData.answers
     }
 
     setTimeout(() => {
@@ -719,7 +677,7 @@ export default function QuizStep() {
     }, 45000)
 
     return () => clearInterval(interval)
-  }, [step])
+  }, [step, currentStep, proceedToNextStep]) // ✅ Adicionado proceedToNextStep como dependência
 
   const handleAnswerSelect = useCallback((answer: string) => {
     setSelectedAnswer(answer)
@@ -732,7 +690,9 @@ export default function QuizStep() {
 
     if (step === 1) {
       setUserGender(answer)
-      localStorage.setItem("userGender", answer)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem("userGender", answer)
+      }
     }
 
     const button = document.querySelector(`button[data-option="${answer}"]`)
@@ -751,12 +711,17 @@ export default function QuizStep() {
 
     const newQuizData = { ...quizData, [step]: selectedAnswer }
     setQuizData(newQuizData)
-    localStorage.setItem("quizData", JSON.stringify(newQuizData))
+    if (typeof window !== 'undefined') {
+      localStorage.setItem("quizData", JSON.stringify(newQuizData))
+    }
 
-    const answers = window.quizAnswers || {}
-    answers[`question${step}`] = selectedAnswer
-    window.quizAnswers = answers
-    localStorage.setItem("quizAnswers", JSON.stringify(answers))
+    // ✅ Atualizar window.quizAnswers para as funções de quiz-data
+    if (typeof window !== 'undefined') {
+      const answers = (window as any).quizAnswers || {}
+      answers[`question${step}`] = selectedAnswer
+      (window as any).quizAnswers = answers
+      localStorage.setItem("quizAnswers", JSON.stringify(answers))
+    }
 
     if (currentStep?.elements?.analysisText || currentStep?.elements?.profileAnalysis) {
       setShowAnalysis(true)
@@ -768,21 +733,23 @@ export default function QuizStep() {
     }
 
     proceedToNextStep()
-  }, [quizData, step, currentStep, selectedAnswer])
+  }, [quizData, step, currentStep, selectedAnswer, proceedToNextStep])
 
   const proceedToNextStep = useCallback(() => {
-    const currentUrl = new URL(window.location.href);
     let utmString = '';
-    
-    const utmParams = new URLSearchParams();
-    for (const [key, value] of currentUrl.searchParams.entries()) {
-      if (key.startsWith('utm_')) {
-        utmParams.append(key, value);
+    if (typeof window !== 'undefined') {
+      const currentUrl = new URL(window.location.href);
+      const utmParams = new URLSearchParams();
+      
+      for (const [key, value] of currentUrl.searchParams.entries()) {
+        if (key.startsWith('utm_')) {
+          utmParams.append(key, value);
+        }
       }
-    }
-    
-    if (utmParams.toString() !== '') {
-      utmString = '?' + utmParams.toString();
+      
+      if (utmParams.toString() !== '') {
+        utmString = '?' + utmParams.toString();
+      }
     }
 
     if (currentStep?.bonusUnlock && !unlockedBonuses.includes(currentStep.bonusUnlock.id)) {
@@ -805,48 +772,52 @@ export default function QuizStep() {
       }
       setNewBonus(personalizedBonus)
 
-      localStorage.setItem("unlockedBonuses", JSON.stringify(newUnlockedBonuses))
-      localStorage.setItem("totalValue", newTotalValue.toString())
+      if (typeof window !== 'undefined') {
+        localStorage.setItem("unlockedBonuses", JSON.stringify(newUnlockedBonuses))
+        localStorage.setItem("totalValue", newTotalValue.toString())
+      }
 
       setShowBonusUnlock(true)
       return
     }
 
-    if (step < 13) {
+    if (step < quizSteps.length) { // ✅ Usar quizSteps.length
       router.push(`/quiz/${step + 1}${utmString}`)
     } else {
       enviarEvento('concluiu_quiz', {
-        total_etapas_completadas: 13,
+        total_etapas_completadas: quizSteps.length,
         total_bonus_desbloqueados: unlockedBonuses.length
       });
       
       router.push(`/resultado${utmString}`)
     }
-  }, [step, currentStep, unlockedBonuses, totalValue, router])
+  }, [step, currentStep, unlockedBonuses, totalValue, router, quizSteps.length])
 
   const handleBonusUnlockComplete = useCallback(() => {
     setShowBonusUnlock(false)
     
-    const currentUrl = new URL(window.location.href);
     let utmString = '';
-    
-    const utmParams = new URLSearchParams();
-    for (const [key, value] of currentUrl.searchParams.entries()) {
-      if (key.startsWith('utm_')) {
-        utmParams.append(key, value);
+    if (typeof window !== 'undefined') {
+      const currentUrl = new URL(window.location.href);
+      const utmParams = new URLSearchParams();
+      
+      for (const [key, value] of currentUrl.searchParams.entries()) {
+        if (key.startsWith('utm_')) {
+          utmParams.append(key, value);
+        }
+      }
+      
+      if (utmParams.toString() !== '') {
+        utmString = '?' + utmParams.toString();
       }
     }
     
-    if (utmParams.toString() !== '') {
-      utmString = '?' + utmParams.toString();
-    }
-    
-    if (step < 13) {
+    if (step < quizSteps.length) { // ✅ Usar quizSteps.length
       router.push(`/quiz/${step + 1}${utmString}`)
     } else {
       router.push(`/resultado${utmString}`)
     }
-  }, [step, router])
+  }, [step, router, quizSteps.length])
 
   const handleBack = useCallback(() => {
     enviarEvento('retornou_etapa', {
@@ -854,18 +825,20 @@ export default function QuizStep() {
       para_etapa: step > 1 ? step - 1 : 'inicio'
     });
     
-    const currentUrl = new URL(window.location.href);
     let utmString = '';
-    
-    const utmParams = new URLSearchParams();
-    for (const [key, value] of currentUrl.searchParams.entries()) {
-      if (key.startsWith('utm_')) {
-        utmParams.append(key, value);
+    if (typeof window !== 'undefined') {
+      const currentUrl = new URL(window.location.href);
+      const utmParams = new URLSearchParams();
+      
+      for (const [key, value] of currentUrl.searchParams.entries()) {
+        if (key.startsWith('utm_')) {
+          utmParams.append(key, value);
+        }
       }
-    }
-    
-    if (utmParams.toString() !== '') {
-      utmString = '?' + utmParams.toString();
+      
+      if (utmParams.toString() !== '') {
+        utmString = '?' + utmParams.toString();
+      }
     }
     
     if (step > 1) {
@@ -876,7 +849,7 @@ export default function QuizStep() {
   }, [step, router])
 
   const getStepIcon = useCallback((stepNumber: number, index: number) => {
-    const iconMaps = {
+    const iconMaps: { [key: number]: any[] } = {
       1: [User, Users],
       2: [Calendar, TrendingUp, Target, Zap],
       3: [Clock, Calendar, MessageCircle, Heart],
@@ -889,43 +862,53 @@ export default function QuizStep() {
     }
 
     const icons = iconMaps[stepNumber] || [Heart]
-    const Icon = icons[index] || Heart
+    const Icon = icons[index % icons.length] || Heart // ✅ Garantir que o índice não exceda o array
     return <Icon className="w-6 h-6" />
   }, [])
 
   const getPersonalizedQuestion = useCallback(() => {
-    return getPersonalizedContent(currentStep.question, userGender)
+    try {
+      return getPersonalizedContent(currentStep.question, userGender)
+    } catch (e) {
+      console.error('Erro ao personalizar questão:', e)
+      return currentStep.question
+    }
   }, [currentStep, userGender])
 
   const getPersonalizedDescription = useCallback(() => {
-    const desc = currentStep.description
-    if (typeof desc === 'function') {
-      try {
+    try {
+      const desc = currentStep.description
+      if (typeof desc === 'function') {
         return desc()
-      } catch (error) {
-        console.error('Erro ao executar função de description:', error)
-        return ''
       }
+      return getPersonalizedContent(desc, userGender)
+    } catch (e) {
+      console.error('Erro ao personalizar descrição:', e)
+      return ''
     }
-    return getPersonalizedContent(desc, userGender)
   }, [currentStep, userGender])
 
   const getPersonalizedSubtext = useCallback(() => {
-    const subtext = currentStep.subtext
-    if (typeof subtext === 'function') {
-      try {
+    try {
+      const subtext = currentStep.subtext
+      if (typeof subtext === 'function') {
         return subtext()
-      } catch (error) {
-        console.error('Erro ao executar função de subtext:', error)
-        return ''
       }
+      return getPersonalizedContent(subtext, userGender)
+    } catch (e) {
+      console.error('Erro ao personalizar subtexto:', e)
+      return ''
     }
-    return getPersonalizedContent(subtext, userGender)
   }, [currentStep, userGender])
 
   const getPersonalizedOptions = useCallback(() => {
-    const options = getPersonalizedContent(currentStep.options, userGender)
-    return Array.isArray(options) ? options : currentStep.options
+    try {
+      const options = getPersonalizedContent(currentStep.options, userGender)
+      return Array.isArray(options) ? options : currentStep.options
+    } catch (e) {
+      console.error('Erro ao personalizar opções:', e)
+      return []
+    }
   }, [currentStep, userGender])
 
   if (!currentStep) {
@@ -968,7 +951,7 @@ export default function QuizStep() {
 
           <div className="flex justify-between items-center">
             <p className="text-white text-sm">
-              Etapa {step} de 13 • {Math.round(progress)}% completado
+              Etapa {step} de {quizSteps.length} • {Math.round(progress)}% completado
             </p>
           </div>
         </div>
@@ -1157,7 +1140,7 @@ export default function QuizStep() {
               )}
 
               {/* Final reveal para step 13 */}
-              {currentStep?.elements?.finalReveal && (
+              {step === quizSteps.length && currentStep?.elements?.finalReveal && ( // ✅ Usar quizSteps.length
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -1261,9 +1244,9 @@ export default function QuizStep() {
 
                   {getPersonalizedDescription() && (
                     <div className="text-gray-300 text-center mb-8 text-sm sm:text-base whitespace-pre-wrap">
-                      {step === 13 ? (
+                      {step === quizSteps.length ? ( // ✅ Usar quizSteps.length
                         <div className="space-y-6">
-                          {getPersonalizedDescription().split('**').map((section, index) => {
+                          {getPersonalizedDescription().split('**').map((section: string, index: number) => {
                             if (index % 2 === 1) {
                               return <strong key={index} className="text-orange-400">{section}</strong>
                             }
@@ -1318,7 +1301,7 @@ export default function QuizStep() {
                             loading="lazy"
                           />
                           <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold">
-                            NEUROCIÊNCIA
+                            NEUROCIENCIA
                           </div>
                         </motion.div>
                       )}
@@ -1356,7 +1339,7 @@ export default function QuizStep() {
 
                   {getPersonalizedOptions().length > 0 && (
                     <div className="space-y-3 sm:space-y-4">
-                      {getPersonalizedOptions().map((option, index) => (
+                      {getPersonalizedOptions().map((option: string, index: number) => (
                         <motion.div
                           key={index}
                           initial={{ opacity: 0, x: -20 }}
@@ -1454,7 +1437,7 @@ export default function QuizStep() {
                         size="lg"
                         className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-3 px-6 sm:py-4 sm:px-8 rounded-full shadow-lg w-full sm:w-auto text-sm sm:text-base"
                       >
-                        {step === 13 ? "Ver Resultado" : "Siguiente Pregunta"}
+                        {step === quizSteps.length ? "Ver Resultado" : "Siguiente Pregunta"}
                         <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
                       </Button>
                     </motion.div>

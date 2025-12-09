@@ -1,256 +1,188 @@
-// === CONSTANTES OTIMIZADAS ===
+// 
+// /lib/quiz-data.ts
+// Este arquivo contém a lógica de dados e personalização para o quiz.
+// 
 
-const GENDER_VALUES = {
-  MALE: "SOY_HOMBRE",
-  FEMALE: "SOY_MUJER"
-} as const
+// === 1. CONSTANTES ===
+export const GENDER_VALUES = {
+  MALE: "SOY HOMBRE",
+  FEMALE: "SOY MUJER"
+} as const;
 
-const FEMALE_NAMES = ['María', 'Ana', 'Carmen', 'Isabel', 'Sofía', 'Elena', 'Laura']
-const MALE_NAMES = ['Carlos', 'José', 'Antonio', 'Manuel', 'Luis', 'Miguel', 'Alejandro']
+export const FEMALE_NAMES = ['María', 'Ana', 'Carmen', 'Isabel', 'Sofía', 'Elena', 'Laura'];
+export const MALE_NAMES = ['Carlos', 'José', 'Antonio', 'Manuel', 'Luis', 'Miguel', 'Alejandro'];
 
-const SITUATION_PATTERNS = {
+export const SITUATION_PATTERNS = {
   ZERO_CONTACT: "contacto cero",
   IGNORING: "me ignora",
-  BLOCKED: "bloqueado",
-  NECESSARY_ONLY: "cosas necesarias",
-  CHATTING: "charlamos",
-  FRIENDS: "amigos"
-} as const
+  BLOCKED: "bloqueó", // Corrigido para corresponder ao texto da opção
+  NECESSARY_ONLY: "solo temas necesarios", // Corrigido para corresponder ao texto da opção
+  CHATTING: "charlamos a veces", // Corrigido para corresponder ao texto da opção
+  FRIENDS: "somos 'amigos'", // Corrigido para corresponder ao texto da opção
+  INTIMATE_ENCOUNTERS: "encuentros íntimos" // Corrigido para corresponder ao texto da opção
+} as const;
 
-// ✅ CACHE SEM JSON.stringify() - Usa chaves simples
-const exNameCache = new Map<string, string>()
-let lastCachedGender = ''
-
-// === FUNÇÕES DE PERSONALIZAÇÃO OTIMIZADAS ===
-
-// ✅ OTIMIZAÇÃO 1: Cache localStorage com padrão seguro
+// === 2. CLASSE QuizDataCache para cache de localStorage ===
 class QuizDataCache {
-  private static instance: QuizDataCache
-  private cache: Map<string, any> = new Map()
-  private lastUpdate: number = 0
-  private updateInterval: number = 1000 // 1 segundo
+  private static instance: QuizDataCache;
+  private cache: Map<string, any> = new Map();
+  private lastUpdate: number = 0;
+  private updateInterval: number = 1000; // Cache válido por 1 segundo
+
+  private constructor() {} // Singleton pattern
 
   static getInstance(): QuizDataCache {
     if (!QuizDataCache.instance) {
-      QuizDataCache.instance = new QuizDataCache()
+      QuizDataCache.instance = new QuizDataCache();
     }
-    return QuizDataCache.instance
+    return QuizDataCache.instance;
   }
 
   getQuizAnswers(): Record<string, string> {
-    const now = Date.now()
-    
-    // ✅ Usar cache se atualizado há menos de 1s
+    const now = Date.now();
+    // Retorna do cache se for recente
     if (this.cache.has('quizAnswers') && now - this.lastUpdate < this.updateInterval) {
-      return this.cache.get('quizAnswers') || {}
+      return this.cache.get('quizAnswers') || {};
     }
 
-    if (typeof window === 'undefined') return {}
+    if (typeof window === 'undefined') return {};
 
     try {
-      const answers = JSON.parse(localStorage.getItem('quizAnswers') || '{}')
-      this.cache.set('quizAnswers', answers)
-      this.lastUpdate = now
-      return answers
-    } catch {
-      return {}
+      const answers = JSON.parse(localStorage.getItem('quizAnswers') || '{}');
+      this.cache.set('quizAnswers', answers);
+      this.lastUpdate = now;
+      return answers;
+    } catch (e) {
+      console.error('QuizDataCache: Erro ao ler quizAnswers do localStorage:', e);
+      return {};
     }
   }
 
   getUserGender(): string {
-    const answers = this.getQuizAnswers()
-    return answers.question1 || GENDER_VALUES.MALE
+    try {
+      const answers = this.getQuizAnswers();
+      return answers.question1 || GENDER_VALUES.MALE;
+    } catch (e) {
+      console.error('QuizDataCache: Erro ao obter gênero do usuário:', e);
+      return GENDER_VALUES.MALE;
+    }
   }
 
   getCurrentSituation(): string {
-    const answers = this.getQuizAnswers()
-    return answers.question7 || ''
+    try {
+      const answers = this.getQuizAnswers();
+      return answers.question7 || '';
+    } catch (e) {
+      console.error('QuizDataCache: Erro ao obter situação atual:', e);
+      return '';
+    }
   }
 
   clear(): void {
-    this.cache.clear()
+    this.cache.clear();
+    this.lastUpdate = 0;
   }
 }
 
-// ✅ OTIMIZAÇÃO 2: getUserAnswer com cache
-function getUserAnswer(questionId: string): string {
+// === 3. FUNÇÕES BÁSICAS ===
+export function getUserAnswer(questionId: string): string {
   try {
-    const cache = QuizDataCache.getInstance()
-    const answers = cache.getQuizAnswers()
-    return answers[questionId] || ''
+    const cache = QuizDataCache.getInstance();
+    const answers = cache.getQuizAnswers();
+    return answers[questionId] || '';
   } catch (e) {
-    console.error('Erro ao obter resposta:', e)
-    return ''
+    console.error(`getUserAnswer: Erro ao obter resposta para ${questionId}:`, e);
+    return '';
   }
 }
 
-function getUserGender(): string {
+export function getUserGender(): string {
   try {
-    const cache = QuizDataCache.getInstance()
-    return cache.getUserGender()
+    const cache = QuizDataCache.getInstance();
+    return cache.getUserGender();
   } catch (e) {
-    console.error('Erro ao obter gênero:', e)
-    return GENDER_VALUES.MALE
+    console.error('getUserGender: Erro ao obter gênero:', e);
+    return GENDER_VALUES.MALE;
   }
 }
 
-// ✅ OTIMIZAÇÃO 3: Mapa de situações para evitar múltiplos .includes()
-function getSituationKey(situation: string): string | null {
-  if (!situation) return null
+export function getSituationKey(situation: string): keyof typeof SITUATION_PATTERNS | null {
+  if (!situation) return null;
+
+  // Normaliza a string da situação para comparação
+  const normalizedSituation = situation.toLowerCase();
 
   for (const [key, pattern] of Object.entries(SITUATION_PATTERNS)) {
-    if (situation.toLowerCase().includes(pattern.toLowerCase())) {
-      return key
+    if (normalizedSituation.includes(pattern.toLowerCase())) {
+      return key as keyof typeof SITUATION_PATTERNS;
     }
   }
-
-  return null
+  return null;
 }
 
-// ✅ OTIMIZAÇÃO 4: Mapear respostas por situação (sem if/else chain)
+// === 4. MAPS PARA PERSONALIZAÇÃO ===
+
+// Mapas de mensagens para o WhatsApp Mockup
 const messageMapBySituation = {
-  ZERO_CONTACT: {
+  [SITUATION_PATTERNS.ZERO_CONTACT]: {
     first: `Hola, encontré algo que es tuyo. ¿Cuándo puedes pasar a recogerlo?`,
     response: "¿Qué cosa? No recuerdo haber dejado nada..."
   },
-  IGNORING: {
+  [SITUATION_PATTERNS.IGNORING]: {
     first: `Hola, no voy a molestarte más. Solo quería agradecerte por algo que me enseñaste.`,
     response: "¿Qué me enseñé? Me tienes curiosa..."
   },
-  BLOCKED: {
+  [SITUATION_PATTERNS.BLOCKED]: {
     first: `Hola, María me pidió preguntarte sobre el evento del viernes.`,
     response: "Ah sí, dile que sí voy. Gracias por preguntar."
   },
-  NECESSARY_ONLY: {
+  [SITUATION_PATTERNS.NECESSARY_ONLY]: {
     first: `Hola, vi esta foto nuestra del viaje a la playa y me hizo sonreír. Espero que estés bien.`,
     response: "😊 Qué bonito recuerdo. Yo también estoy bien, gracias."
   },
-  CHATTING: {
+  [SITUATION_PATTERNS.CHATTING]: {
     first: `Hola, tengo que contarte algo curioso que me pasó que te va a hacer reír. ¿Tienes 5 minutos para una llamada?`,
     response: "Jajaja ya me tienes intrigada. Cuéntame por aquí primero"
+  },
+  [SITUATION_PATTERNS.FRIENDS]: {
+    first: `Hola, vi algo que me recordó a cuando fuimos al parque. Me alegró el día. Espero que estés bien.`,
+    response: "Gracias por acordarte de mí. ¿Cómo has estado?"
+  },
+  [SITUATION_PATTERNS.INTIMATE_ENCOUNTERS]: {
+    first: `Hola, vi algo que me recordó a cuando fuimos al parque. Me alegró el día. Espero que estés bien.`,
+    response: "Gracias por acordarte de mí. ¿Cómo has estado?"
   }
-}
+};
 
 const defaultMessages = {
-  first: `Hola, vi algo que me recordé a cuando fuimos al parque. Me alegró el día. Espero que estés bien.`,
+  first: `Hola, vi algo que me recordó a cuando fuimos al parque. Me alegró el día. Espero que estés bien.`,
   response: "Gracias por acordarte de mí. ¿Cómo has estado?"
-}
+};
 
-// ✅ OTIMIZAÇÃO 5: Funções memoizadas SEM JSON.stringify()
-function getExName(): string {
-  try {
-    const gender = getUserGender()
-    
-    // ✅ Cache com chave simples (não JSON)
-    if (lastCachedGender === gender && exNameCache.has(gender)) {
-      return exNameCache.get(gender) || 'José Plan'
-    }
-
-    const names = gender === GENDER_VALUES.MALE ? FEMALE_NAMES : MALE_NAMES
-    const result = names[Math.floor(Math.random() * names.length)]
-    
-    // ✅ Cachea resultado com chave simples
-    exNameCache.set(gender, result)
-    lastCachedGender = gender
-    
-    return result
-  } catch (e) {
-    console.error('Erro ao gerar nome:', e)
-    return 'José Plan'
-  }
-}
-
-function getExAvatar(): string {
-  // ✅ CORRIGIDO: Sempre retorna a mesma imagem
-  return "https://i.ibb.co/5hbjyZFJ/CASAL-JOSE.webp"
-}
-
-function getHeaderName(): string {
-  return "José Plan"
-}
-
-// ✅ OTIMIZAÇÃO 6: Funções de mensagem simplificadas com map lookup
-function getPersonalizedFirstMessage(): string {
-  try {
-    const currentSituation = getUserAnswer('question7')
-    const situationKey = getSituationKey(currentSituation)
-    
-    if (situationKey && messageMapBySituation[situationKey as keyof typeof messageMapBySituation]) {
-      return messageMapBySituation[situationKey as keyof typeof messageMapBySituation].first
-    }
-    
-    return defaultMessages.first
-  } catch (e) {
-    console.error('Erro ao gerar primeira mensagem:', e)
-    return defaultMessages.first
-  }
-}
-
-function getPersonalizedExResponse(): string {
-  try {
-    const currentSituation = getUserAnswer('question7')
-    const situationKey = getSituationKey(currentSituation)
-    
-    if (situationKey && messageMapBySituation[situationKey as keyof typeof messageMapBySituation]) {
-      return messageMapBySituation[situationKey as keyof typeof messageMapBySituation].response
-    }
-    
-    return defaultMessages.response
-  } catch (e) {
-    console.error('Erro ao gerar resposta:', e)
-    return defaultMessages.response
-  }
-}
-
-function getPersonalizedFollowUp(): string {
-  return "Me alegra que respondas. ¿Te parece si hablamos mejor mañana? Tengo algunas cosas que hacer ahora."
-}
-
-// ✅ OTIMIZAÇÃO 7: Insights com map pattern
+// Mapas de insights personalizados
 const insightMapBySituation = {
-  ZERO_CONTACT: 
+  [SITUATION_PATTERNS.ZERO_CONTACT]: 
     "❌ ERROR DETECTADO: Estás aplicando contacto cero de forma INCORRECTA. El 73% de los hombres cometen este error que los aleja definitivamente de su ex.",
-  IGNORING: 
+  [SITUATION_PATTERNS.IGNORING]: 
     "❌ ERROR DETECTADO: Estás siendo IGNORADO porque usas las palabras EQUIVOCADAS. Hay 3 tipos de mensajes que rompen el muro del silencio.",
-  BLOCKED: 
+  [SITUATION_PATTERNS.BLOCKED]: 
     "❌ ERROR DETECTADO: Fuiste BLOQUEADO porque ella siente PRESIÓN. Existe una técnica específica para casos de bloqueo que funciona en 9 de cada 10 veces.",
-  NECESSARY_ONLY: 
+  [SITUATION_PATTERNS.NECESSARY_ONLY]: 
     "❌ ERROR DETECTADO: El contacto 'solo por necesidad' está MATANDO tu atractivo. Cada mensaje aburrido te aleja más de la reconquista.",
-  CHATTING: 
+  [SITUATION_PATTERNS.CHATTING]: 
     "❌ ERROR DETECTADO: Charlar 'como amigos' es la TRAMPA más peligrosa. Estás en la zona de confort que te mantiene lejos de su corazón.",
-  FRIENDS: 
-    "❌ ERROR DETECTADO: Ser 'solo amigos' es el LIMBO emocional. El 87% que se queda aquí nunca sale de esta zona."
-}
+  [SITUATION_PATTERNS.FRIENDS]: 
+    "❌ ERROR DETECTADO: Ser 'solo amigos' es el LIMBO emocional. El 87% que se queda aquí nunca sale de esta zona.",
+  [SITUATION_PATTERNS.INTIMATE_ENCOUNTERS]:
+    "❌ ERROR DETECTADO: Los 'encuentros íntimos' sin definición están creando una relación sin futuro. Necesitas un protocolo de definición."
+};
 
 const defaultInsight = 
-  "❌ ERROR DETECTADO: Tu estrategia actual está generando el EFECTO CONTRARIO al que buscas. Hay un patrón específico que debes romper."
+  "❌ ERROR DETECTADO: Tu estrategia actual está generando el EFECTO CONTRARIO al que buscas. Hay un patrón específico que debes romper.";
 
-export function getPersonalizedFirstInsight(): string {
-  try {
-    const currentSituation = getUserAnswer('question7')
-    const whoEnded = getUserAnswer('question4')
-    const situationKey = getSituationKey(currentSituation)
-
-    // ✅ Buscar por situação primeiro
-    if (situationKey && insightMapBySituation[situationKey as keyof typeof insightMapBySituation]) {
-      return insightMapBySituation[situationKey as keyof typeof insightMapBySituation]
-    }
-
-    // ✅ Depois verificar quem terminou
-    if (whoEnded && whoEnded.toLowerCase().includes("terminó conmigo")) {
-      return "❌ ERROR DETECTADO: Después de que TE DEJARAN, tu estrategia actual está creando más RESISTENCIA. El 84% cometen este error psicológico."
-    }
-
-    return defaultInsight
-  } catch (e) {
-    console.error('Erro ao gerar insight:', e)
-    return defaultInsight
-  }
-}
-
-// ✅ OTIMIZACIÓN 8: Técnicas com factory functions
+// Mapas de técnicas personalizadas (funções para permitir variáveis dinâmicas)
 const techniqueMapBySituation = {
-  ZERO_CONTACT: (timeApart: string, pronoun: string) => 
+  [SITUATION_PATTERNS.ZERO_CONTACT]: (timeApart: string, pronoun: string) => 
     `🎯 TU TÉCNICA: "RUPTURA DEL SILENCIO MAGNÉTICO"
     
 Tu situación: Contacto cero + ${timeApart}
@@ -263,7 +195,7 @@ PASO 2: Cuando responda (lo hará en 67% de los casos):
 
 ¿Por qué funciona? Crea CURIOSIDAD sin presión. El cerebro femenino no puede resistir el misterio.`,
 
-  IGNORING: (timeApart: string, pronoun: string) => 
+  [SITUATION_PATTERNS.IGNORING]: (timeApart: string, pronoun: string) => 
     `🎯 TU TÉCNICA: "MENSAJE DE CURIOSIDAD IRRESISTIBLE"
     
 Tu situación: Te ignora + ${timeApart} separados
@@ -273,8 +205,60 @@ MENSAJE EXACTO para enviar:
 
 NO envíes nada más. Espera 72h.
 
-¿Por qué funciona? Rompe el patrón de expectativa. ${pronoun} esperaba súplicas, no gratitud.`
-}
+¿Por qué funciona? Rompe el patrón de expectativa. ${pronoun} esperaba súplicas, no gratitud.`,
+
+  [SITUATION_PATTERNS.BLOCKED]: (timeApart: string, pronoun: string) =>
+    `🎯 TU TÉCNICA: "ACCESO INDIRECTO ESTRATÉGICO"
+    
+Tu situación: Te bloqueó + ${timeApart} separados
+
+PASO 1: Contacta a un amigo en común con un mensaje neutro.
+"Hola [Nombre del amigo], ¿sabes si [Nombre de tu ex] irá al evento X?"
+
+PASO 2: Si tu ex se entera, espera su reacción. Si no, el amigo puede mencionar casualmente que preguntaste.
+
+¿Por qué funciona? Elimina la presión directa y activa la curiosidad de ${pronoun}.`,
+
+  [SITUATION_PATTERNS.NECESSARY_ONLY]: (timeApart: string, pronoun: string) =>
+    `🎯 TU TÉCNICA: "ESCALADA EMOCIONAL INESPERADA"
+    
+Tu situación: Solo temas necesarios + ${timeApart} separados
+
+MENSAJE EXACTO para enviar (cuando surja un tema necesario):
+"Ok, sobre [tema necesario]. Por cierto, vi [algo que te recordó a ella/él] y me hizo sonreír. Espero que estés bien."
+
+¿Por qué funciona? Rompe el patrón de comunicación aburrida e introduce una emoción positiva inesperada.`,
+
+  [SITUATION_PATTERNS.CHATTING]: (timeApart: string, pronoun: string) =>
+    `🎯 TU TÉCNICA: "DIFERENCIACIÓN Y VALOR"
+    
+Tu situación: Charlan a veces + ${timeApart} separados
+
+MENSAJE EXACTO para enviar:
+"Tengo que contarte algo curioso que me pasó que te va a hacer reír. ¿Tienes 5 minutos para una llamada?"
+
+¿Por qué funciona? Crea intriga y te posiciona como alguien con una vida interesante, no solo un amigo.`,
+
+  [SITUATION_PATTERNS.FRIENDS]: (timeApart: string, pronoun: string) =>
+    `🎯 TU TÉCNICA: "RUPTURA DE PATRÓN AMISTOSO"
+    
+Tu situación: Son 'amigos' + ${timeApart} separados
+
+MENSAJE EXACTO para enviar:
+"Me di cuenta de que nuestra 'amistad' es un poco extraña. ¿No crees?"
+
+¿Por qué funciona? Desafía el status quo, genera incomodidad (positiva) y abre la puerta a una conversación más profunda.`,
+
+  [SITUATION_PATTERNS.INTIMATE_ENCOUNTERS]: (timeApart: string, pronoun: string) =>
+    `🎯 TU TÉCNICA: "PROTOCOLO DE DEFINICIÓN CLARA"
+    
+Tu situación: Encuentros íntimos + ${timeApart} separados
+
+MENSAJE EXACTO para enviar:
+"Necesito que seamos claros sobre lo que está pasando entre nosotros. ¿Podemos hablar seriamente?"
+
+¿Por qué funciona? Establece límites, muestra que valoras la relación y fuerza una definición, evitando el limbo.`
+};
 
 const defaultTechnique = (currentSituation: string) => 
   `🎯 TU TÉCNICA: "REACTIVACIÓN EMOCIONAL"
@@ -286,64 +270,148 @@ MENSAJE ESPECÍFICO:
 
 Envía solo esto. No esperes respuesta inmediata.
 
-¿Por qué funciona? Reactiva conexión emocional sin presión ni demandas.`
+¿Por qué funciona? Reactiva conexión emocional sin presión ni demandas.`;
+
+// === 5. FUNÇÕES EXPORTADAS (com try/catch e cache simples) ===
+
+let exNameCachedResult: string | null = null;
+let exNameCacheGender: string | null = null;
+
+export function getExName(): string {
+  try {
+    const gender = getUserGender();
+    
+    // Cache o resultado para a sessão atual e gênero
+    if (exNameCachedResult && exNameCacheGender === gender) {
+      return exNameCachedResult;
+    }
+
+    const names = gender === GENDER_VALUES.MALE ? FEMALE_NAMES : MALE_NAMES;
+    const result = names[Math.floor(Math.random() * names.length)];
+    
+    exNameCachedResult = result;
+    exNameCacheGender = gender;
+    
+    return result;
+  } catch (e) {
+    console.error('getExName: Erro ao gerar nome da ex:', e);
+    return 'José Plan'; // Fallback
+  }
+}
+
+export function getExAvatar(): string {
+  return "https://i.ibb.co/5hbjyZFJ/CASAL-JOSE.webp";
+}
+
+export function getHeaderName(): string {
+  return "José Plan";
+}
+
+export function getPersonalizedFirstMessage(): string {
+  try {
+    const currentSituation = getUserAnswer('question7');
+    const situationKey = getSituationKey(currentSituation);
+    
+    if (situationKey && messageMapBySituation[situationKey]) {
+      return messageMapBySituation[situationKey].first;
+    }
+    return defaultMessages.first;
+  } catch (e) {
+    console.error('getPersonalizedFirstMessage: Erro ao gerar primeira mensagem:', e);
+    return defaultMessages.first;
+  }
+}
+
+export function getPersonalizedExResponse(): string {
+  try {
+    const currentSituation = getUserAnswer('question7');
+    const situationKey = getSituationKey(currentSituation);
+    
+    if (situationKey && messageMapBySituation[situationKey]) {
+      return messageMapBySituation[situationKey].response;
+    }
+    return defaultMessages.response;
+  } catch (e) {
+    console.error('getPersonalizedExResponse: Erro ao gerar resposta da ex:', e);
+    return defaultMessages.response;
+  }
+}
+
+export function getPersonalizedFollowUp(): string {
+  return "Me alegra que respondas. ¿Te parece si hablamos mejor mañana? Tengo algunas cosas que hacer ahora.";
+}
+
+export function getPersonalizedFirstInsight(): string {
+  try {
+    const currentSituation = getUserAnswer('question7');
+    const whoEnded = getUserAnswer('question4');
+    const situationKey = getSituationKey(currentSituation);
+
+    if (situationKey && insightMapBySituation[situationKey]) {
+      return insightMapBySituation[situationKey];
+    }
+
+    if (whoEnded && whoEnded.toLowerCase().includes("terminó conmigo")) {
+      return "❌ ERROR DETECTADO: Después de que TE DEJARAN, tu estrategia actual está creando más RESISTENCIA. El 84% cometen este error psicológico.";
+    }
+
+    return defaultInsight;
+  } catch (e) {
+    console.error('getPersonalizedFirstInsight: Erro ao gerar insight:', e);
+    return defaultInsight;
+  }
+}
 
 export function getPersonalizedTechnique(): string {
   try {
-    const currentSituation = getUserAnswer('question7')
-    const timeApart = getUserAnswer('question3')
-    const gender = getUserGender()
-    const pronoun = gender === GENDER_VALUES.MALE ? "ella" : "él"
+    const currentSituation = getUserAnswer('question7');
+    const timeApart = getUserAnswer('question3');
+    const gender = getUserGender();
+    const pronoun = gender === GENDER_VALUES.MALE ? "ella" : "él";
     
-    const situationKey = getSituationKey(currentSituation)
+    const situationKey = getSituationKey(currentSituation);
 
-    // ✅ Buscar na mapa de técnicas
-    if (situationKey && techniqueMapBySituation[situationKey as keyof typeof techniqueMapBySituation]) {
-      return techniqueMapBySituation[situationKey as keyof typeof techniqueMapBySituation](timeApart, pronoun)
+    if (situationKey && techniqueMapBySituation[situationKey]) {
+      return techniqueMapBySituation[situationKey](timeApart, pronoun);
     }
 
-    return defaultTechnique(currentSituation)
+    return defaultTechnique(currentSituation);
   } catch (e) {
-    console.error('Erro ao gerar técnica:', e)
-    return defaultTechnique('')
+    console.error('getPersonalizedTechnique: Erro ao gerar técnica:', e);
+    return defaultTechnique('');
   }
 }
 
-// ✅ OTIMIZAÇÃO 9: getPersonalizedContent SEM JSON.stringify()
 export function getPersonalizedContent(content: any, gender: string): any {
   try {
-    // ✅ Não tentar serializar com JSON.stringify!
     if (typeof content === "string") {
-      return content
+      return content;
     }
 
     if (typeof content === "object" && content !== null && !Array.isArray(content)) {
-      // ✅ Verificar se é um objeto simples (não função ou circular)
-      if (content.SOY_HOMBRE && content.SOY_MUJER) {
-        return gender === GENDER_VALUES.MALE ? content.SOY_HOMBRE : content.SOY_MUJER
+      // Verifica se é um objeto com chaves de gênero
+      if (content[GENDER_VALUES.MALE] && content[GENDER_VALUES.FEMALE]) {
+        return gender === GENDER_VALUES.MALE ? content[GENDER_VALUES.MALE] : content[GENDER_VALUES.FEMALE];
       }
-      
-      // ✅ Fallback para compatibilidade
+      // Fallback para compatibilidade com versões antigas (masculino/feminino)
       if (content.masculino && content.feminino) {
-        return gender === GENDER_VALUES.MALE ? content.masculino : content.feminino
+        return gender === GENDER_VALUES.MALE ? content.masculino : content.feminino;
       }
-      
-      return content
+      return content; // Retorna o objeto se não for específico de gênero
     }
 
     if (Array.isArray(content)) {
-      return content
+      return content; // Retorna o array diretamente
     }
 
-    return content
+    return content; // Retorna qualquer outro tipo de conteúdo
   } catch (e) {
-    console.error('Erro ao personalizar conteúdo:', e)
-    return content
+    console.error('getPersonalizedContent: Erro ao personalizar conteúdo:', e);
+    return content;
   }
 }
 
-// === QUIZ STEPS ATUALIZADOS ===
-
+// === 6. ARRAY quizSteps com 13 steps completos ===
 export const quizSteps = [
     {
         id: 1,
@@ -593,18 +661,18 @@ export const quizSteps = [
         question: "🎯 TU PLAN A PERSONALIZADO ESTÁ LISTO",
         description: () => {
           try {
-            const insight = getPersonalizedFirstInsight()
-            const technique = getPersonalizedTechnique()
+            const insight = getPersonalizedFirstInsight();
+            const technique = getPersonalizedTechnique();
             return `Después de crear tu demostración específica, he confirmado que tu situación tiene **89% de probabilidad de éxito** usando el Plan A.
 
 ${insight}
 
 **Esta es solo la PRIMERA de las 21 técnicas específicas para tu caso:**
 
-${technique}`
+${technique}`;
           } catch (e) {
-            console.error('Erro ao gerar descrição:', e)
-            return "Tu plan personalizado está listo."
+            console.error('quizSteps[12].description: Erro ao gerar descrição final:', e);
+            return "Tu plan personalizado está listo.";
           }
         },
         subtext: "Plan completo personalizado + 21 técnicas específicas para tu situación",
@@ -634,8 +702,9 @@ ${technique}`
             guarantee: "Garantía incondicional de 30 días - Si no funciona, te devuelvo el dinero"
         }
     }
-]
+];
 
+// === 7. ARRAY testimonials ===
 export const testimonials = [
     {
         name: "Carlos M., 34 años",
@@ -652,8 +721,9 @@ export const testimonials = [
         text: "Pensé que era imposible porque estaba con otro tipo. En 16 días lo dejó por mí.",
         rating: 5,
     }
-]
+];
 
+// === 8. ARRAY socialProofMessages ===
 export const socialProofMessages = [
     "Estás entre el 17% más decidido a reconquistar",
     "Tu perfil muestra alta compatibilidad",
@@ -661,18 +731,31 @@ export const socialProofMessages = [
     "Estás más comprometido que el 73% que hizo esta prueba",
     "Solo 27 spots disponibles hoy para este método",
     "4,129 personas recuperaron sus relaciones este año"
-]
+];
 
-// ✅ EXPORT sin JSON.stringify!
+// === 10. EXPORTAR COMO NAMESPACE __quizUtils NO WINDOW ===
+// Isso evita poluir o escopo global e previne erros de "Cannot create property on string"
 if (typeof window !== 'undefined') {
-    (window as any).getPersonalizedFirstInsight = getPersonalizedFirstInsight
-    (window as any).getPersonalizedTechnique = getPersonalizedTechnique
-    (window as any).getExName = getExName
-    (window as any).getExAvatar = getExAvatar
-    (window as any).getPersonalizedFirstMessage = getPersonalizedFirstMessage
-    (window as any).getPersonalizedExResponse = getPersonalizedExResponse
-    (window as any).getPersonalizedFollowUp = getPersonalizedFollowUp
-    (window as any).getHeaderName = getHeaderName
-    (window as any).getPersonalizedContent = getPersonalizedContent
-    (window as any).QuizDataCache = QuizDataCache
+    (window as any).__quizUtils = {
+        GENDER_VALUES,
+        FEMALE_NAMES,
+        MALE_NAMES,
+        SITUATION_PATTERNS,
+        QuizDataCache: QuizDataCache.getInstance(), // Exporta a instância do singleton
+        getUserAnswer,
+        getUserGender,
+        getSituationKey,
+        getExName,
+        getExAvatar,
+        getHeaderName,
+        getPersonalizedFirstMessage,
+        getPersonalizedExResponse,
+        getPersonalizedFollowUp,
+        getPersonalizedFirstInsight,
+        getPersonalizedTechnique,
+        getPersonalizedContent,
+        quizSteps,
+        testimonials,
+        socialProofMessages,
+    };
 }
