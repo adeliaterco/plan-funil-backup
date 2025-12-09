@@ -34,15 +34,16 @@ export default function ResultPageFixed() {
   const [isDecrypting, setIsDecrypting] = useState(true)
   const [activeBuyers, setActiveBuyers] = useState(Math.floor(Math.random() * 5) + 8)
   
-  // ✅ CORREÇÃO CRÍTICA DO VÍDEO: Novos estados para controle
-  const [isVideoScriptLoaded, setIsVideoScriptLoaded] = useState(false)
+  // ✅ CORREÇÃO CRÍTICA DO VÍDEO: Estados simplificados
   const [isVideoReady, setIsVideoReady] = useState(false)
 
   const contentRef = useRef<HTMLDivElement>(null)
   const startTimeRef = useRef(Date.now())
   
-  // ✅ CORREÇÃO CRÍTICA DO LOOP: Ref para controlar o interval
+  // ✅ CORREÇÃO CRÍTICA: Refs para controle preciso
   const decryptIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const videoContainerRef = useRef<HTMLDivElement>(null)
+  const scriptLoadedRef = useRef(false)
 
   // ===== PERSONALIZAÇÃO BASEADA NO QUIZ =====
   useEffect(() => {
@@ -88,7 +89,7 @@ export default function ResultPageFixed() {
     // Animação de descriptografia inicial CONTROLADA
     decryptIntervalRef.current = setInterval(() => {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
-      const randomText = Array.from({length: 50}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+      const randomText = Array.from({length: 30}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
       setDecryptedText(randomText);
     }, 100);
 
@@ -130,46 +131,66 @@ export default function ResultPageFixed() {
     }
   }, [])
 
-  // ✅ CORREÇÃO CRÍTICA DO VÍDEO: useEffect ESPECÍFICO e CONTROLADO para carregar o script do VSL
+  // ✅ CORREÇÃO CRÍTICA DO VÍDEO: useEffect ROBUSTO para controle total do player
   useEffect(() => {
-    let playerReadyTimeout: NodeJS.Timeout;
+    if (showVSL && !scriptLoadedRef.current) {
+      // Marca como carregado imediatamente para evitar duplicação
+      scriptLoadedRef.current = true;
 
-    // ✅ CORREÇÃO: Só carrega o script UMA VEZ quando showVSL vira true
-    if (showVSL && !isVideoScriptLoaded) {
-      // Verifica se o script já existe para evitar duplicação
+      // Remove qualquer script anterior
       const existingScript = document.querySelector('script[src*="converteai.net"]');
-      
-      if (!existingScript) {
-        const script = document.createElement("script");
-        script.src = "https://scripts.converteai.net/15be01a4-4462-4736-aeb9-b95eda21b8b8/players/692ef1c85df8a7aaec7c6000/v4/player.js";
-        script.async = true;
-        script.onload = () => {
-          setIsVideoScriptLoaded(true);
-          // ✅ CORREÇÃO: Delay controlado para garantir renderização na área correta
-          playerReadyTimeout = setTimeout(() => {
-            setIsVideoReady(true);
-          }, 800); // Aumentado para 800ms para garantir estabilidade
-        };
-        script.onerror = () => {
-          console.error("Erro ao carregar script do VSL");
-          // Fallback: marca como carregado mesmo com erro para não travar
-          setIsVideoScriptLoaded(true);
-          setIsVideoReady(false);
-        };
-        document.head.appendChild(script);
-      } else {
-        // Script já existe, pode usar diretamente
-        setIsVideoScriptLoaded(true);
-        playerReadyTimeout = setTimeout(() => {
-          setIsVideoReady(true);
-        }, 300);
+      if (existingScript) {
+        existingScript.remove();
       }
-    }
 
-    return () => {
-      clearTimeout(playerReadyTimeout);
-    };
-  }, [showVSL, isVideoScriptLoaded]); // Mantém dependências controladas
+      // ✅ FORÇA O CONTAINER NO DOM ANTES DO SCRIPT
+      const forceContainer = () => {
+        if (videoContainerRef.current) {
+          // Limpa o container
+          videoContainerRef.current.innerHTML = '';
+          
+          // Cria o elemento vturb DIRETAMENTE no container
+          const vturbElement = document.createElement('vturb-smartplayer');
+          vturbElement.id = 'vid-692ef1c85df8a7aaec7c6000';
+          vturbElement.setAttribute('data-setup', '{}');
+          
+          // ✅ FORÇA ESTILOS INLINE PARA GARANTIR POSICIONAMENTO
+          vturbElement.style.cssText = `
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+            display: block !important;
+            margin: 0 auto !important;
+            position: relative !important;
+            z-index: 1 !important;
+          `;
+          
+          videoContainerRef.current.appendChild(vturbElement);
+          
+          // ✅ CARREGA O SCRIPT APENAS APÓS O CONTAINER ESTAR PRONTO
+          const script = document.createElement("script");
+          script.src = "https://scripts.converteai.net/15be01a4-4462-4736-aeb9-b95eda21b8b8/players/692ef1c85df8a7aaec7c6000/v4/player.js";
+          script.async = true;
+          
+          script.onload = () => {
+            setTimeout(() => {
+              setIsVideoReady(true);
+            }, 1000); // 1 segundo para garantir inicialização
+          };
+          
+          script.onerror = () => {
+            console.error("Erro ao carregar script do VSL");
+            setIsVideoReady(false);
+          };
+          
+          document.head.appendChild(script);
+        }
+      };
+
+      // ✅ PEQUENO DELAY PARA GARANTIR QUE O DOM ESTEJA PRONTO
+      setTimeout(forceContainer, 200);
+    }
+  }, [showVSL]);
 
   // ===== FUNÇÕES DE PERSONALIZAÇÃO =====
   const getPronoun = useCallback(() => userGender === "SOY MUJER" ? "él" : "ella", [userGender])
@@ -258,6 +279,7 @@ export default function ResultPageFixed() {
                     <motion.div
                       animate={{ opacity: [1, 0.5, 1] }}
                       transition={{ duration: 0.5, repeat: Infinity }}
+                      className="break-all"
                     >
                       PROCESANDO DATOS... {decryptedText}
                     </motion.div>
@@ -341,7 +363,7 @@ export default function ResultPageFixed() {
               )}
             </AnimatePresence>
 
-            {/* ===== REVELACIÓN 2: VSL ESTRATÉGICO (COM VÍDEO CORRIGIDO) ===== */}
+            {/* ===== REVELACIÓN 2: VSL ESTRATÉGICO (VÍDEO TOTALMENTE CORRIGIDO) ===== */}
             <AnimatePresence>
               {showVSL && (
                 <motion.div
@@ -360,36 +382,28 @@ export default function ResultPageFixed() {
                       </p>
                     </div>
 
-                    {/* ✅ CORREÇÃO CRÍTICA DO VÍDEO: Container específico para renderização controlada */}
+                    {/* ✅ CORREÇÃO CRÍTICA DO VÍDEO: Container com controle total */}
                     <div className="max-w-3xl mx-auto mb-6">
-                      <div className="relative bg-black rounded-xl p-4 border-2 border-blue-500 shadow-2xl">
+                      <div className="relative bg-black rounded-xl p-4 border-2 border-blue-500 shadow-2xl overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-green-600/20 rounded-xl animate-pulse"></div>
-                        <div className="relative z-10">
-                          {/* ✅ CORREÇÃO CRÍTICA DO VÍDEO: Renderização condicional TRIPLA para garantir posicionamento */}
-                          {showVSL && isVideoScriptLoaded && isVideoReady ? (
-                            <div className="w-full overflow-hidden rounded-lg">
-                              <vturb-smartplayer 
-                                id="vid-692ef1c85df8a7aaec7c6000" 
-                                data-setup='{}' 
-                                style={{
-                                  width: '100%',
-                                  maxWidth: '100%',
-                                  height: 'auto',
-                                  display: 'block',
-                                  margin: '0 auto'
-                                }}
-                              ></vturb-smartplayer>
-                            </div>
-                          ) : showVSL && !isVideoReady ? (
-                            <div className="flex items-center justify-center h-64 bg-gray-800 rounded-lg text-white">
+                        
+                        {/* ✅ CONTAINER FORÇADO PARA O VÍDEO */}
+                        <div 
+                          ref={videoContainerRef}
+                          className="relative z-10 w-full min-h-[300px] bg-gray-900 rounded-lg flex items-center justify-center overflow-hidden"
+                          style={{
+                            position: 'relative',
+                            width: '100%',
+                            maxWidth: '100%',
+                            aspectRatio: '16/9'
+                          }}
+                        >
+                          {!isVideoReady && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-gray-800 rounded-lg text-white z-20">
                               <div className="text-center">
                                 <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
                                 <p>Cargando video...</p>
                               </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-center h-64 bg-gray-800 rounded-lg text-white opacity-50">
-                              <p>Preparando reproductor...</p>
                             </div>
                           )}
                         </div>
@@ -692,6 +706,32 @@ export default function ResultPageFixed() {
             z-index: 0;
           }
 
+          /* ✅ CORREÇÃO CRÍTICA: CSS FORÇADO PARA O VÍDEO */
+          vturb-smartplayer {
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+            display: block !important;
+            margin: 0 auto !important;
+            position: relative !important;
+            z-index: 1 !important;
+            aspect-ratio: 16/9 !important;
+            border-radius: 8px !important;
+            overflow: hidden !important;
+            contain: layout style paint !important;
+          }
+
+          /* ✅ FORÇA O PLAYER A FICAR NO CONTAINER */
+          vturb-smartplayer iframe,
+          vturb-smartplayer video {
+            width: 100% !important;
+            height: 100% !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            border-radius: 8px !important;
+          }
+
           /* Padding e Spacing */
           .mobile-padding {
             padding: clamp(1rem, 4vw, 2rem) clamp(0.75rem, 3vw, 1rem);
@@ -724,19 +764,6 @@ export default function ResultPageFixed() {
             position: relative !important;
             overflow: hidden !important;
             border-radius: clamp(0.5rem, 2vw, 1rem) !important;
-          }
-
-          vturb-smartplayer {
-            display: block !important;
-            margin: 0 auto !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            border-radius: clamp(0.5rem, 2vw, 1rem) !important;
-            overflow: hidden !important;
-            aspect-ratio: 16/9 !important;
-            height: auto !important;
-            min-height: clamp(200px, 40vw, 400px) !important;
-            contain: layout style paint !important; /* Otimização de renderização */
           }
 
           .mobile-border-orange {
@@ -922,6 +949,11 @@ export default function ResultPageFixed() {
             word-wrap: break-word !important;
             overflow-wrap: break-word !important;
             word-break: break-word !important;
+          }
+
+          .break-all {
+            word-break: break-all !important;
+            overflow-wrap: anywhere !important;
           }
 
           /* Imagens */
