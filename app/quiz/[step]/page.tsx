@@ -30,14 +30,14 @@ import {
   quizSteps, 
   socialProofMessages, 
   getPersonalizedContent,
-  getExName, // Usado para o nome no WhatsApp Mockup
+  getExName,
   getExAvatar,
   getPersonalizedFirstMessage,
   getPersonalizedExResponse,
   getPersonalizedFollowUp,
-  getHeaderName, // Mantido caso seja usado em outro lugar, mas não no WhatsApp Mockup agora
-  getPersonalizedFirstInsight, // Usado para a etapa 13
-  getPersonalizedTechnique, // Usado para a etapa 13
+  getHeaderName,
+  getPersonalizedFirstInsight,
+  getPersonalizedTechnique,
 } from "@/lib/quiz-data"
 import { BonusUnlock } from "@/components/bonus-unlock"
 import { ValueCounter } from "@/components/value-counter"
@@ -64,7 +64,6 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
   const [successPercentage, setSuccessPercentage] = useState(0)
   const [animationComplete, setAnimationComplete] = useState(false)
   
-  // ✅ Referencias para controle total
   const hasStartedRef = useRef(false)
   const timeoutsRef = useRef([])
   const onCompleteCalledRef = useRef(false)
@@ -79,7 +78,7 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
   const animateSuccessPercentage = useCallback(() => {
     let current = 0
     const target = 89
-    const increment = target / 15 // Mais rápido
+    const increment = target / 15
     
     if (intervalRef.current) clearInterval(intervalRef.current)
     
@@ -95,7 +94,6 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
     }, 50)
   }, [])
 
-  // ✅ useEffect com controle rigoroso
   useEffect(() => {
     if (hasStartedRef.current) return
     hasStartedRef.current = true
@@ -106,7 +104,6 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
       return timeoutId
     }
 
-    // ✅ Sequência ultra-rápida - 3 segundos total
     const sequence = [
       { delay: 300, action: () => {
         setCurrentMessage(1)
@@ -136,7 +133,6 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
 
     sequence.forEach(step => addTimeout(step.action, step.delay))
 
-    // ✅ Cleanup obrigatório
     return () => {
       timeoutsRef.current.forEach(clearTimeout)
       timeoutsRef.current = []
@@ -147,13 +143,12 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
     }
   }, [updateAnalysisPoint, animateSuccessPercentage])
 
-  // ✅ Auto-complete após animação
   useEffect(() => {
     if (animationComplete && !onCompleteCalledRef.current) {
       onCompleteCalledRef.current = true
       const timeoutId = setTimeout(() => {
         onComplete && onComplete()
-      }, 1000) // 1 segundo após completar
+      }, 1000)
       timeoutsRef.current.push(timeoutId)
     }
   }, [animationComplete, onComplete])
@@ -170,7 +165,7 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
             <div className="mr-2 text-lg">←</div>
             <img src={getExAvatar()} className="w-10 h-10 rounded-full mr-2 object-cover" alt="Avatar" />
             <div className="flex-1">
-              <div className="font-bold mb-0.5">{getExName()}</div> {/* Usando getExName() */}
+              <div className="font-bold mb-0.5">{getExName()}</div>
               <div className="text-xs text-[#b3d4d1]">
                 {isTyping ? 'escribiendo...' : 'En línea'}
               </div>
@@ -316,9 +311,9 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
     const insight = getPersonalizedFirstInsight();
     const technique = getPersonalizedTechnique();
     return `🎯 TU PLAN A PERSONALIZADO ESTÁ LISTO\n\nDespués de crear tu demostración específica, he confirmado que tu situación tiene **89% de probabilidad de éxito** usando el Plan A.\n\n${insight}\n\nEsta es solo la PRIMERA de las 21 técnicas específicas para tu caso:\n\n${technique}`;
-  }, [userGender]); // userGender might influence personalized content
+  }, [userGender]);
 
-  const generateRandomChar = () => String.fromCharCode(33 + Math.floor(Math.random() * 94)); // Printable ASCII chars
+  const generateRandomChar = () => String.fromCharCode(33 + Math.floor(Math.random() * 94));
 
   useEffect(() => {
     let intervalId;
@@ -340,12 +335,11 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           setIsDecrypting(false);
           revealTimeout = setTimeout(() => {
             setContentRevealed(true);
-            buttonTimeout = setTimeout(() => setShowButton(true), 1000); // Show button 1s after content
-          }, 500); // Small delay before content reveal animation
+            buttonTimeout = setTimeout(() => setShowButton(true), 1000);
+          }, 500);
         }
-      }, 20); // Faster decryption
+      }, 20);
 
-      // Initial random text display
       setDecryptedText(currentDecrypted.join(''));
     }
 
@@ -395,11 +389,11 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           font-size: 0.9rem;
           max-height: 400px;
           overflow-y: auto;
-          scrollbar-width: none; /* Firefox */
-          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;
+          -ms-overflow-style: none;
         }
         .matrix-text::-webkit-scrollbar {
-          display: none; /* Chrome, Safari, Opera */
+          display: none;
         }
       `}</style>
       <div className="matrix-bg"></div>
@@ -478,7 +472,6 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
   );
 };
 
-
 export default function QuizStep() {
   const params = useParams()
   const router = useRouter()
@@ -491,57 +484,102 @@ export default function QuizStep() {
   const [showAnalysis, setShowAnalysis] = useState(false)
   const [newBonus, setNewBonus] = useState<any>(null)
   const [isLoaded, setIsLoaded] = useState(false)
-  const [peopleCount, setPeopleCount] = useState(17) // Mantido, mas o intervalo de atualização foi removido
+  const [peopleCount, setPeopleCount] = useState(17)
   const [userGender, setUserGender] = useState<string>("")
   const [step12Completed, setStep12Completed] = useState(false)
-  const [step13AnimationComplete, setStep13AnimationComplete] = useState(false) // New state for step 13
+  const [step13AnimationComplete, setStep13AnimationComplete] = useState(false)
 
   const currentStep = quizSteps[step - 1]
   const progress = (step / 13) * 100
 
-  // ✅ useEffect otimizado
-  useEffect(() => {
-    const saved = localStorage.getItem("quizData")
-    const savedBonuses = localStorage.getItem("unlockedBonuses")
-    const savedValue = localStorage.getItem("totalValue")
-    const savedGender = localStorage.getItem("userGender")
-    const savedAnswers = localStorage.getItem("quizAnswers")
-
-    if (saved) setQuizData(JSON.parse(saved))
-    if (savedBonuses) setUnlockedBonuses(JSON.parse(savedBonuses))
-    if (savedValue) setTotalValue(Number.parseInt(savedValue))
-    if (savedGender) setUserGender(savedGender)
-    if (savedAnswers) {
-      window.quizAnswers = JSON.parse(savedAnswers)
+  // ✅ CORREÇÃO 1: proceedToNextStep - SÓ DEPENDÊNCIAS ESSENCIAIS
+  const proceedToNextStep = useCallback(() => {
+    const currentUrl = new URL(window.location.href);
+    let utmString = '';
+    
+    const utmParams = new URLSearchParams();
+    for (const [key, value] of currentUrl.searchParams.entries()) {
+      if (key.startsWith('utm_')) {
+        utmParams.append(key, value);
+      }
+    }
+    
+    if (utmParams.toString() !== '') {
+      utmString = '?' + utmParams.toString();
     }
 
-    const loadTimer = setTimeout(() => setIsLoaded(true), 100)
+    // Acesso direto aos valores atuais via state
+    const currentStepData = quizSteps[step - 1];
+    if (currentStepData?.bonusUnlock && !unlockedBonuses.includes(currentStepData.bonusUnlock.id)) {
+      enviarEvento('desbloqueou_bonus', {
+        numero_etapa: step,
+        bonus_id: currentStepData.bonusUnlock.id,
+        bonus_titulo: currentStepData.bonusUnlock.title
+      });
 
-    enviarEvento('visualizou_etapa_quiz', {
+      const newUnlockedBonuses = [...unlockedBonuses, currentStepData.bonusUnlock.id]
+      const newTotalValue = totalValue + currentStepData.bonusUnlock.value
+
+      setUnlockedBonuses(newUnlockedBonuses)
+      setTotalValue(newTotalValue)
+
+      const personalizedBonus = {
+        ...currentStepData.bonusUnlock,
+        title: currentStepData.bonusUnlock?.title || 'Bonus desbloqueado',
+        description: currentStepData.bonusUnlock?.description || 'Descripción del bonus',
+      }
+      setNewBonus(personalizedBonus)
+
+      localStorage.setItem("unlockedBonuses", JSON.stringify(newUnlockedBonuses))
+      localStorage.setItem("totalValue", newTotalValue.toString())
+
+      setShowBonusUnlock(true)
+      return
+    }
+
+    if (step < 13) {
+      router.push(`/quiz/${step + 1}${utmString}`)
+    } else {
+      enviarEvento('concluiu_quiz', {
+        total_etapas_completadas: 13,
+        total_bonus_desbloqueados: unlockedBonuses.length
+      });
+      
+      router.push(`/resultado${utmString}`)
+    }
+  }, [step, router]); // ✅ SÓ ESSENCIAIS
+
+  // ✅ CORREÇÃO 2: handleNext - REMOVEU DEPENDÊNCIAS CIRCULARES
+  const handleNext = useCallback(() => {
+    enviarEvento('avancou_etapa', {
       numero_etapa: step,
-      pergunta: currentStep?.question || `Etapa ${step}`
+      pergunta: quizSteps[step - 1]?.question || `Etapa ${step}`,
+      resposta_selecionada: selectedAnswer
     });
 
-    let autoAdvanceTimer
-    if (currentStep?.autoAdvance) {
-      autoAdvanceTimer = setTimeout(() => {
+    const newQuizData = { ...quizData, [step]: selectedAnswer }
+    setQuizData(newQuizData)
+    localStorage.setItem("quizData", JSON.stringify(newQuizData))
+
+    const answers = window.quizAnswers || {}
+    answers[`question${step}`] = selectedAnswer
+    window.quizAnswers = answers
+    localStorage.setItem("quizAnswers", JSON.stringify(answers))
+
+    const currentStepData = quizSteps[step - 1];
+    if (currentStepData?.elements?.analysisText || currentStepData?.elements?.profileAnalysis) {
+      setShowAnalysis(true)
+      setTimeout(() => {
+        setShowAnalysis(false)
         proceedToNextStep()
-      }, 2000)
+      }, 1000)
+      return
     }
 
-    // Removed aggressive social proof interval
-    // const interval = setInterval(() => {
-    //   setPeopleCount((prev) => prev + Math.floor(Math.random() * 3))
-    // }, 45000)
+    proceedToNextStep()
+  }, [step, selectedAnswer, quizData]); // ✅ REMOVEU currentStep, proceedToNextStep
 
-    return () => {
-      clearTimeout(loadTimer)
-      if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer)
-      // clearInterval(interval) // Clear the removed interval
-    }
-  }, [step, currentStep, proceedToNextStep]) // Adicionado currentStep e proceedToNextStep para dependências
-
-  // ✅ Handler otimizado
+  // ✅ CORREÇÃO 3: handleAnswerSelect - REMOVEU DEPENDÊNCIAS CIRCULARES
   const handleAnswerSelect = useCallback((answer: string) => {
     setSelectedAnswer(answer)
 
@@ -563,106 +601,54 @@ export default function QuizStep() {
 
     enviarEvento('selecionou_resposta', {
       numero_etapa: step,
-      pergunta: currentStep?.question || `Etapa ${step}`,
+      pergunta: quizSteps[step - 1]?.question || `Etapa ${step}`,
       resposta: answer
     });
-  }, [step, currentStep, handleNext]) // Adicionado handleNext para dependências
+  }, [step]); // ✅ REMOVEU currentStep, handleNext
 
-  // ✅ proceedToNextStep otimizado
-  const proceedToNextStep = useCallback(() => {
-    const currentUrl = new URL(window.location.href);
-    let utmString = '';
-    
-    const utmParams = new URLSearchParams();
-    for (const [key, value] of currentUrl.searchParams.entries()) {
-      if (key.startsWith('utm_')) {
-        utmParams.append(key, value);
-      }
-    }
-    
-    if (utmParams.toString() !== '') {
-      utmString = '?' + utmParams.toString();
-    }
+  // ✅ CORREÇÃO 4: useEffect - SÓ DEPENDE DE STEP
+  useEffect(() => {
+    const saved = localStorage.getItem("quizData")
+    const savedBonuses = localStorage.getItem("unlockedBonuses")
+    const savedValue = localStorage.getItem("totalValue")
+    const savedGender = localStorage.getItem("userGender")
+    const savedAnswers = localStorage.getItem("quizAnswers")
 
-    if (currentStep?.bonusUnlock && !unlockedBonuses.includes(currentStep.bonusUnlock.id)) {
-      enviarEvento('desbloqueou_bonus', {
-        numero_etapa: step,
-        bonus_id: currentStep.bonusUnlock.id,
-        bonus_titulo: currentStep.bonusUnlock.title
-      });
-
-      const newUnlockedBonuses = [...unlockedBonuses, currentStep.bonusUnlock.id]
-      const newTotalValue = totalValue + currentStep.bonusUnlock.value
-
-      setUnlockedBonuses(newUnlockedBonuses)
-      setTotalValue(newTotalValue)
-
-      const personalizedBonus = {
-        ...currentStep.bonusUnlock,
-        title: currentStep.bonusUnlock?.title || 'Bonus desbloqueado',
-        description: currentStep.bonusUnlock?.description || 'Descripción del bonus',
-      }
-      setNewBonus(personalizedBonus)
-
-      localStorage.setItem("unlockedBonuses", JSON.stringify(newUnlockedBonuses))
-      localStorage.setItem("totalValue", newTotalValue.toString())
-
-      setShowBonusUnlock(true)
-      return
+    if (saved) setQuizData(JSON.parse(saved))
+    if (savedBonuses) setUnlockedBonuses(JSON.parse(savedBonuses))
+    if (savedValue) setTotalValue(Number.parseInt(savedValue))
+    if (savedGender) setUserGender(savedGender)
+    if (savedAnswers) {
+      window.quizAnswers = JSON.parse(savedAnswers)
     }
 
-    if (step < 13) {
-      router.push(`/quiz/${step + 1}${utmString}`)
-    } else {
-      enviarEvento('concluiu_quiz', {
-        total_etapas_completadas: 13,
-        total_bonus_desbloqueados: unlockedBonuses.length
-      });
-      
-      router.push(`/resultado${utmString}`)
-    }
-  }, [currentStep, unlockedBonuses, totalValue, step, router]);
+    const loadTimer = setTimeout(() => setIsLoaded(true), 100)
 
-  // ✅ handleNext otimizado
-  const handleNext = useCallback(() => {
-    enviarEvento('avancou_etapa', {
+    const currentStepData = quizSteps[step - 1];
+    enviarEvento('visualizou_etapa_quiz', {
       numero_etapa: step,
-      pergunta: currentStep?.question || `Etapa ${step}`,
-      resposta_selecionada: selectedAnswer
+      pergunta: currentStepData?.question || `Etapa ${step}`
     });
 
-    const newQuizData = { ...quizData, [step]: selectedAnswer }
-    setQuizData(newQuizData)
-    localStorage.setItem("quizData", JSON.stringify(newQuizData))
-
-    const answers = window.quizAnswers || {}
-    answers[`question${step}`] = selectedAnswer
-    window.quizAnswers = answers
-    localStorage.setItem("quizAnswers", JSON.stringify(answers))
-
-    if (currentStep?.elements?.analysisText || currentStep?.elements?.profileAnalysis) {
-      setShowAnalysis(true)
-      setTimeout(() => {
-        setShowAnalysis(false)
+    let autoAdvanceTimer
+    if (currentStepData?.autoAdvance) {
+      autoAdvanceTimer = setTimeout(() => {
         proceedToNextStep()
-      }, 1000)
-      return
+      }, 2000)
     }
 
-    proceedToNextStep()
-  }, [step, selectedAnswer, quizData, currentStep, proceedToNextStep])
+    return () => {
+      clearTimeout(loadTimer)
+      if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer)
+    }
+  }, [step]); // ✅ SÓ step
 
-  // ✅ Handler para step 12
   const handleStep12Complete = useCallback(() => {
     setStep12Completed(true)
-    // Não há auto-advance aqui, o botão aparecerá
   }, [])
 
-  // ✅ Handler para step 13
   const handleStep13Complete = useCallback(() => {
     setStep13AnimationComplete(true)
-    // Este handler é chamado pelo CodeUnlockReveal quando sua animação termina
-    // O botão final do CodeUnlockReveal chamará handleNext
   }, [])
 
   const handleBonusUnlockComplete = useCallback(() => {
@@ -705,7 +691,7 @@ export default function QuizStep() {
       }
     }
     
-    if (utmParams.toString() !== '') {
+    if (utmString.toString() !== '') {
       utmString = '?' + utmParams.toString();
     }
     
@@ -958,7 +944,7 @@ export default function QuizStep() {
             transition={{ duration: 0.4 }}
           >
             <Card className="bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-lg border-green-500/30 shadow-2xl border-2">
-              <CardContent className="p-0"> {/* No padding here, CodeUnlockReveal handles it */}
+              <CardContent className="p-0">
                 <CodeUnlockReveal onComplete={handleNext} userGender={userGender} />
               </CardContent>
             </Card>
@@ -1418,9 +1404,6 @@ export default function QuizStep() {
             transition={{ delay: 0.4 }}
             className="text-center space-y-2 mt-6"
           >
-            {/* Removido: "199 personas completaron esto en las últimas 24h" */}
-            {/* Removido: "Tasa de éxito promedio: 89.4%" */}
-            
             <div className="bg-red-900/20 border border-red-400 rounded-lg p-2">
               <p className="text-red-300 text-xs font-semibold">
                 ⚠️ IMPORTANTE: Solo {Math.floor(Math.random() * 15) + 5} espacios disponibles hoy
