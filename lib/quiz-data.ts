@@ -1,10 +1,9 @@
 // quiz-data.js
 
-// Global access to quiz answers (expected to be set by quiz-setp.tsx)
-// This is a common pattern when sharing state between components/files in a non-global state management setup.
-// For a more robust solution in a Next.js app, context API or a state management library would be preferred.
-if (typeof window !== 'undefined' && !window.quizAnswers) {
-    window.quizAnswers = {};
+// ✅ INICIALIZAÇÃO GLOBAL MELHORADA
+if (typeof window !== 'undefined') {
+    // Inicialização mais segura
+    window.quizAnswers = window.quizAnswers || {};
 }
 
 // 1. Funções de personalização
@@ -528,21 +527,16 @@ export const quizSteps = [
             personalizedChat: true,
             cinematicReveal: true,
             profileComplete: "100%",
-            badge: "ANÁLISIS PREDICTIVO PERSONALIZADO",
-            customComponent: "PhoneSimulationStep"
+            badge: "ANÁLISIS PREDICTIVO PERSONALIZADO"
+            // ✅ REMOVIDO: customComponent: "PhoneSimulationStep"
         },
         note: "Esta demostración usa IA para predecir las respuestas más probables basándose en tu situación específica."
     },
     {
         id: 13,
         question: "🎯 TU PLAN A PERSONALIZADO ESTÁ LISTO",
-        description: () => `Después de crear tu demostración específica, he confirmado que tu situación tiene **89% de probabilidad de éxito** usando el Plan A.
-
-${getPersonalizedFirstInsight()}
-
-Esta es solo la PRIMERA de las 21 técnicas específicas para tu caso:
-
-${getPersonalizedTechnique()}`,
+        // ✅ CORRIGIDO: description agora é string, não função
+        description: "Después de crear tu demostración específica, he confirmado que tu situación tiene **89% de probabilidad de éxito** usando el Plan A. Esta es la evaluación completa de tu caso específico basada en las 9 variables críticas analizadas.",
         subtext: "Plan completo personalizado + 21 técnicas específicas para tu situación",
         options: ["🚀 QUIERO ACCEDER AL PLAN A COMPLETO AHORA"],
         elements: {
