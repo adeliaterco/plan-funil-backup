@@ -35,8 +35,8 @@ export function getUserGender() {
  */
 export function getExName() {
     const gender = getUserGender();
-    const femaleNames = ['María', 'Ana', 'Carmen', 'Isabel', 'Sofía', 'Elena', 'Laura'];
-    const maleNames = ['Carlos', 'José', 'Antonio', 'Manuel', 'Luis', 'Miguel', 'Alejandro'];
+    const femaleNames = ['María'];
+    const maleNames = ['Carlos'];
 
     const names = gender === "SOY HOMBRE" ? femaleNames : maleNames;
     return names[Math.floor(Math.random() * names.length)];
