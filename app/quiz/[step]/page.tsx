@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -31,11 +31,10 @@ import { BonusUnlock } from "@/components/bonus-unlock"
 import { ValueCounter } from "@/components/value-counter"
 import { LoadingAnalysis } from "@/components/loading-analysis"
 
-// Função para enviar eventos a Google Analytics
+// ✅ OTIMIZAÇÃO: Função de eventos com menos overhead
 function enviarEvento(nombre_evento, propriedades = {}) {
   if (typeof window !== 'undefined' && window.gtag) {
     window.gtag('event', nombre_evento, propriedades);
-    console.log('Evento enviado:', nombre_evento, propriedades);
   }
 }
 
@@ -52,20 +51,22 @@ const WhatsAppMockup = ({ userGender }) => {
   ])
   const [successPercentage, setSuccessPercentage] = useState(0)
 
-  // ✅ CORREÇÃO: Nome fixo para header
-  const getExName = () => {
-    return "José Plan"
-  }
+  // ✅ OTIMIZAÇÃO: Cachear nomes com useMemo
+  const exName = useMemo(() => "José Plan", [])
+  const exAvatar = useMemo(() => "https://i.ibb.co/5hbjyZFJ/CASAL-JOSE.webp", [])
 
-  // ✅ CORREÇÃO: Usar sempre sua imagem
-  const getExAvatar = () => {
-    return "https://i.ibb.co/5hbjyZFJ/CASAL-JOSE.webp";
-  }
+  // ✅ OTIMIZAÇÃO: Memoizar dados do localStorage
+  const quizAnswers = useMemo(() => {
+    if (typeof window === "undefined") return {}
+    try {
+      return JSON.parse(localStorage.getItem("quizAnswers") || "{}")
+    } catch {
+      return {}
+    }
+  }, [])
 
-  // ✅ CORREÇÃO DEFINITIVA: Sem nomes nas mensagens
-  const getPersonalizedFirstMessage = () => {
-    const answers = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem("quizAnswers") || "{}") : {}
-    const currentSituation = answers.question7 || ""
+  const getPersonalizedFirstMessage = useCallback(() => {
+    const currentSituation = quizAnswers.question7 || ""
     
     if (currentSituation.includes("contacto cero")) {
       return `Hola, encontré algo que es tuyo. ¿Cuándo puedes pasar a recogerlo?`
@@ -83,11 +84,10 @@ const WhatsAppMockup = ({ userGender }) => {
       return `Hola, tengo que contarte algo curioso que me pasó que te va a hacer reír. ¿Tienes 5 minutos para una llamada?`
     }
     return `Hola, vi algo que me recordé a cuando fuimos al parque. Me alegró el día. Espero que estés bien.`
-  }
+  }, [quizAnswers])
 
-  const getPersonalizedExResponse = () => {
-    const answers = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem("quizAnswers") || "{}") : {}
-    const currentSituation = answers.question7 || ""
+  const getPersonalizedExResponse = useCallback(() => {
+    const currentSituation = quizAnswers.question7 || ""
     
     if (currentSituation.includes("contacto cero")) {
       return "¿Qué cosa? No recuerdo haber dejado nada..."
@@ -105,9 +105,9 @@ const WhatsAppMockup = ({ userGender }) => {
       return "Jajaja ya me tienes intrigada. Cuéntame por aquí primero"
     }
     return "Gracias por acordarte de mí. ¿Cómo has estado?"
-  }
+  }, [quizAnswers])
 
-  const conversation = [
+  const conversation = useMemo(() => [
     {
       type: 'sent',
       message: getPersonalizedFirstMessage(),
@@ -130,18 +130,19 @@ const WhatsAppMockup = ({ userGender }) => {
       delay: 1000,
       timestamp: '19:52'
     }
-  ]
+  ], [getPersonalizedFirstMessage, getPersonalizedExResponse])
 
-  const updateAnalysisPoint = (pointIndex, status) => {
+  const updateAnalysisPoint = useCallback((pointIndex, status) => {
     setAnalysisPoints(prev => prev.map((point, index) => 
       index === pointIndex ? { ...point, status } : point
     ))
-  }
+  }, [])
 
-  const animateSuccessPercentage = () => {
+  // ✅ OTIMIZAÇÃO: Animar percentual mais rápido
+  const animateSuccessPercentage = useCallback(() => {
     let current = 0
     const target = 89
-    const increment = target / 30 // Reduzido para animação mais rápida
+    const increment = target / 20 // ✅ Reduzido de 30 para 20 (mais rápido)
     
     const interval = setInterval(() => {
       current += increment
@@ -150,30 +151,34 @@ const WhatsAppMockup = ({ userGender }) => {
         clearInterval(interval)
       }
       setSuccessPercentage(Math.round(current))
-    }, 30) // Intervalo reduzido para 30ms
-  }
+    }, 20) // ✅ Reduzido de 30ms para 20ms
+  }, [])
 
-  // ✅ ANIMAÇÃO ACELERADA
+  // ✅ ANIMAÇÃO ACELERADA - PASSO CRÍTICO
   useEffect(() => {
     let stepIndex = 0
+    
+    // ✅ NOVO TIMING OTIMIZADO - Total: 2.2 segundos
     const steps = [
-      { delay: 500, action: 'showUserMessage' },    // Era 1000ms
-      { delay: 1500, action: 'showTyping' },        // Era 3000ms
-      { delay: 2500, action: 'hideTyping' },        // Era 5000ms
-      { delay: 3000, action: 'showExResponse' },    // Era 5500ms
-      { delay: 4000, action: 'showUserFollowup' },  // Era 7000ms
-      { delay: 4500, action: 'showSuccess' }        // Era 8000ms
+      { delay: 300, action: 'showUserMessage' },     // ✅ -200ms
+      { delay: 700, action: 'showTyping' },          // ✅ -800ms (era 1500)
+      { delay: 1200, action: 'hideTyping' },         // ✅ -1300ms (era 2500)
+      { delay: 1500, action: 'showExResponse' },     // ✅ -1500ms (era 3000)
+      { delay: 1900, action: 'showUserFollowup' },   // ✅ -2100ms (era 4000)
+      { delay: 2200, action: 'showSuccess' }         // ✅ -2300ms (era 4500)
     ]
 
     const runAnimation = () => {
       if (stepIndex >= steps.length) return
       
       const step = steps[stepIndex]
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         executeStep(step.action)
         stepIndex++
         runAnimation()
       }, step.delay)
+
+      return () => clearTimeout(timeout)
     }
 
     const executeStep = (action) => {
@@ -208,9 +213,8 @@ const WhatsAppMockup = ({ userGender }) => {
       }
     }
 
-    // ✅ INICIA MAIS RÁPIDO
-    setTimeout(runAnimation, 300) // Era sem setTimeout
-  }, [])
+    runAnimation()
+  }, [updateAnalysisPoint, animateSuccessPercentage])
 
   return (
     <div className="flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-8 mb-8">
@@ -222,9 +226,9 @@ const WhatsAppMockup = ({ userGender }) => {
             {/* WhatsApp Header */}
             <div className="whatsapp-header">
               <div className="back-arrow">←</div>
-              <img src={getExAvatar()} className="contact-avatar" alt="Avatar" />
+              <img src={exAvatar} className="contact-avatar" alt="Avatar" loading="lazy" />
               <div className="contact-info">
-                <div className="contact-name">{getExName()}</div>
+                <div className="contact-name">{exName}</div>
                 <div className="last-seen">
                   {isTyping ? 'escribiendo...' : 'En línea'}
                 </div>
@@ -248,7 +252,7 @@ const WhatsAppMockup = ({ userGender }) => {
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }} // ✅ Mais rápido
+                    transition={{ duration: 0.15 }}
                     className="message-bubble sent"
                   >
                     <div className="message-content">{conversation[0].message}</div>
@@ -262,7 +266,7 @@ const WhatsAppMockup = ({ userGender }) => {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.2 }} // ✅ Mais rápido
+                  transition={{ duration: 0.1 }}
                   className="message-bubble received typing-indicator"
                 >
                   <div className="typing-dots">
@@ -279,7 +283,7 @@ const WhatsAppMockup = ({ userGender }) => {
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }} // ✅ Mais rápido
+                    transition={{ duration: 0.15 }}
                     className="message-bubble received"
                   >
                     <div className="message-content">{conversation[2].message}</div>
@@ -294,7 +298,7 @@ const WhatsAppMockup = ({ userGender }) => {
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }} // ✅ Mais rápido
+                    transition={{ duration: 0.15 }}
                     className="message-bubble sent"
                   >
                     <div className="message-content">{conversation[3].message}</div>
@@ -328,12 +332,11 @@ const WhatsAppMockup = ({ userGender }) => {
             <motion.div 
               key={index} 
               className="analysis-point"
-              // ✅ ANIMAÇÃO MAIS RÁPIDA dos pontos
               animate={{
                 scale: point.status === 'active' ? [1, 1.05, 1] : 1,
               }}
               transition={{
-                duration: 0.5, // Era mais lento
+                duration: 0.3, // ✅ Reduzido de 0.5s
                 repeat: point.status === 'active' ? Infinity : 0,
               }}
             >
@@ -505,12 +508,12 @@ const WhatsAppMockup = ({ userGender }) => {
           height: 6px;
           background: #999;
           border-radius: 50%;
-          animation: typingDots 1s infinite; /* ✅ Mais rápido */
+          animation: typingDots 0.6s infinite; // ✅ Reduzido de 1s
         }
 
         .typing-dots span:nth-child(1) { animation-delay: 0s; }
-        .typing-dots span:nth-child(2) { animation-delay: 0.15s; } /* ✅ Delay reduzido */
-        .typing-dots span:nth-child(3) { animation-delay: 0.3s; }  /* ✅ Delay reduzido */
+        .typing-dots span:nth-child(2) { animation-delay: 0.1s; } // ✅ Reduzido de 0.15s
+        .typing-dots span:nth-child(3) { animation-delay: 0.2s; } // ✅ Reduzido de 0.3s
 
         @keyframes typingDots {
           0%, 60%, 100% { transform: scale(0.8); opacity: 0.5; }
@@ -554,7 +557,7 @@ const WhatsAppMockup = ({ userGender }) => {
           padding: 8px;
           background: rgba(255,255,255,0.1);
           border-radius: 8px;
-          transition: all 0.3s ease; /* ✅ Mais rápido */
+          transition: all 0.2s ease; // ✅ Reduzido de 0.3s
         }
 
         .point-status {
@@ -576,7 +579,7 @@ const WhatsAppMockup = ({ userGender }) => {
         .point-status.active {
           background: #4CAF50;
           color: white;
-          animation: pulse 0.8s infinite; /* ✅ Mais rápido */
+          animation: pulse 0.5s infinite; // ✅ Reduzido de 0.8s
         }
 
         .point-status.completed {
@@ -610,7 +613,7 @@ const WhatsAppMockup = ({ userGender }) => {
           align-items: center;
           justify-content: center;
           margin: 0 auto;
-          animation: rotate 1.5s linear infinite; /* ✅ Mais rápido */
+          animation: rotate 1s linear infinite; // ✅ Reduzido de 1.5s
         }
 
         @keyframes rotate {
@@ -664,26 +667,40 @@ export default function QuizStep() {
   const currentStep = quizSteps[step - 1]
   const progress = (step / 13) * 100
 
-  useEffect(() => {
-    // Cargar datos guardados
+  // ✅ OTIMIZAÇÃO: Cachear localStorage data em useMemo
+  const cachedStorageData = useMemo(() => {
+    if (typeof window === "undefined") return {}
+    
     const saved = localStorage.getItem("quizData")
     const savedBonuses = localStorage.getItem("unlockedBonuses")
     const savedValue = localStorage.getItem("totalValue")
     const savedGender = localStorage.getItem("userGender")
     const savedAnswers = localStorage.getItem("quizAnswers")
 
-    if (saved) setQuizData(JSON.parse(saved))
-    if (savedBonuses) setUnlockedBonuses(JSON.parse(savedBonuses))
-    if (savedValue) setTotalValue(Number.parseInt(savedValue))
-    if (savedGender) setUserGender(savedGender)
-    if (savedAnswers) {
-      window.quizAnswers = JSON.parse(savedAnswers)
+    return {
+      quizData: saved ? JSON.parse(saved) : {},
+      bonuses: savedBonuses ? JSON.parse(savedBonuses) : [],
+      value: savedValue ? Number.parseInt(savedValue) : 0,
+      gender: savedGender || "",
+      answers: savedAnswers ? JSON.parse(savedAnswers) : {}
+    }
+  }, [])
+
+  useEffect(() => {
+    setQuizData(cachedStorageData.quizData)
+    setUnlockedBonuses(cachedStorageData.bonuses)
+    setTotalValue(cachedStorageData.value)
+    setUserGender(cachedStorageData.gender)
+    if (cachedStorageData.answers) {
+      window.quizAnswers = cachedStorageData.answers
     }
 
     setTimeout(() => {
       setIsLoaded(true)
-    }, 300)
+    }, 200) // ✅ Reduzido de 300ms para 200ms
+  }, [cachedStorageData])
 
+  useEffect(() => {
     enviarEvento('visualizou_etapa_quiz', {
       numero_etapa: step,
       pergunta: currentStep?.question || `Etapa ${step}`
@@ -692,7 +709,7 @@ export default function QuizStep() {
     if (currentStep?.autoAdvance) {
       const timer = setTimeout(() => {
         proceedToNextStep()
-      }, 3000)
+      }, 2000) // ✅ Reduzido de 3000ms para 2000ms (mais rápido)
 
       return () => clearTimeout(timer)
     }
@@ -704,7 +721,7 @@ export default function QuizStep() {
     return () => clearInterval(interval)
   }, [step])
 
-  const handleAnswerSelect = (answer: string) => {
+  const handleAnswerSelect = useCallback((answer: string) => {
     setSelectedAnswer(answer)
 
     enviarEvento('selecionou_resposta', {
@@ -721,11 +738,11 @@ export default function QuizStep() {
     const button = document.querySelector(`button[data-option="${answer}"]`)
     if (button) {
       button.classList.add("scale-105")
-      setTimeout(() => button.classList.remove("scale-105"), 200)
+      setTimeout(() => button.classList.remove("scale-105"), 150) // ✅ Reduzido de 200ms
     }
-  }
+  }, [step, currentStep])
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     enviarEvento('avancou_etapa', {
       numero_etapa: step,
       pergunta: currentStep?.question || `Etapa ${step}`,
@@ -746,14 +763,14 @@ export default function QuizStep() {
       setTimeout(() => {
         setShowAnalysis(false)
         proceedToNextStep()
-      }, 1500) // ✅ Reduzido de 2000ms para 1500ms
+      }, 1000) // ✅ Reduzido de 1500ms para 1000ms
       return
     }
 
     proceedToNextStep()
-  }
+  }, [quizData, step, currentStep, selectedAnswer])
 
-  const proceedToNextStep = () => {
+  const proceedToNextStep = useCallback(() => {
     const currentUrl = new URL(window.location.href);
     let utmString = '';
     
@@ -764,7 +781,6 @@ export default function QuizStep() {
       }
     }
     
-    // ✅ CORREÇÃO CRÍTICA: utmParams.toString() ao invés de utmString.toString()
     if (utmParams.toString() !== '') {
       utmString = '?' + utmParams.toString();
     }
@@ -806,9 +822,9 @@ export default function QuizStep() {
       
       router.push(`/resultado${utmString}`)
     }
-  }
+  }, [step, currentStep, unlockedBonuses, totalValue, router])
 
-  const handleBonusUnlockComplete = () => {
+  const handleBonusUnlockComplete = useCallback(() => {
     setShowBonusUnlock(false)
     
     const currentUrl = new URL(window.location.href);
@@ -830,9 +846,9 @@ export default function QuizStep() {
     } else {
       router.push(`/resultado${utmString}`)
     }
-  }
+  }, [step, router])
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     enviarEvento('retornou_etapa', {
       de_etapa: step,
       para_etapa: step > 1 ? step - 1 : 'inicio'
@@ -857,9 +873,9 @@ export default function QuizStep() {
     } else {
       router.push(`/${utmString}`)
     }
-  }
+  }, [step, router])
 
-  const getStepIcon = (stepNumber: number, index: number) => {
+  const getStepIcon = useCallback((stepNumber: number, index: number) => {
     const iconMaps = {
       1: [User, Users],
       2: [Calendar, TrendingUp, Target, Zap],
@@ -875,13 +891,13 @@ export default function QuizStep() {
     const icons = iconMaps[stepNumber] || [Heart]
     const Icon = icons[index] || Heart
     return <Icon className="w-6 h-6" />
-  }
+  }, [])
 
-  const getPersonalizedQuestion = () => {
+  const getPersonalizedQuestion = useCallback(() => {
     return getPersonalizedContent(currentStep.question, userGender)
-  }
+  }, [currentStep, userGender])
 
-  const getPersonalizedDescription = () => {
+  const getPersonalizedDescription = useCallback(() => {
     const desc = currentStep.description
     if (typeof desc === 'function') {
       try {
@@ -892,9 +908,9 @@ export default function QuizStep() {
       }
     }
     return getPersonalizedContent(desc, userGender)
-  }
+  }, [currentStep, userGender])
 
-  const getPersonalizedSubtext = () => {
+  const getPersonalizedSubtext = useCallback(() => {
     const subtext = currentStep.subtext
     if (typeof subtext === 'function') {
       try {
@@ -905,12 +921,12 @@ export default function QuizStep() {
       }
     }
     return getPersonalizedContent(subtext, userGender)
-  }
+  }, [currentStep, userGender])
 
-  const getPersonalizedOptions = () => {
+  const getPersonalizedOptions = useCallback(() => {
     const options = getPersonalizedContent(currentStep.options, userGender)
     return Array.isArray(options) ? options : currentStep.options
-  }
+  }, [currentStep, userGender])
 
   if (!currentStep) {
     return (
@@ -962,7 +978,7 @@ export default function QuizStep() {
           <motion.div 
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }} 
-            transition={{ duration: 0.6, delay: 0.2 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
             className="mb-6"
           >
             <Card className="bg-gradient-to-br from-gray-800/90 to-gray-900/90 border border-yellow-500/40 shadow-lg">
@@ -979,10 +995,11 @@ export default function QuizStep() {
                           scale: [1, 1.01, 1],
                         }}
                         transition={{
-                          duration: 3,
+                          duration: 2, // ✅ Reduzido de 3s
                           repeat: Number.POSITIVE_INFINITY,
                           ease: "easeInOut",
                         }}
+                        loading="lazy"
                       />
                     ) : (
                       <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-full flex items-center justify-center">
@@ -1003,7 +1020,7 @@ export default function QuizStep() {
                             key={i}
                             initial={{ opacity: 0, scale: 0 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: i * 0.05 + 0.3 }}
+                            transition={{ delay: i * 0.03 }} // ✅ Reduzido de 0.05s
                           >
                             <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400 fill-current" />
                           </motion.div>
@@ -1016,7 +1033,7 @@ export default function QuizStep() {
                     className="bg-gray-700/30 rounded-lg p-3 sm:p-4"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5 }}
+                    transition={{ delay: 0.2 }} // ✅ Reduzido de 0.5s
                   >
                     <p className="text-white text-sm sm:text-base leading-relaxed italic">
                       "{currentStep.elements.testimonialText || (currentStep.elements.testimonialData && currentStep.elements.testimonialData().text)}"
@@ -1027,7 +1044,7 @@ export default function QuizStep() {
                     className="flex items-center justify-center gap-1 text-green-400 text-xs font-semibold bg-green-900/20 rounded-full py-1 px-3 self-center"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.7 }}
+                    transition={{ delay: 0.3 }} // ✅ Reduzido de 0.7s
                   >
                     <CheckCircle className="w-3 h-3" />
                     <span>VERIFICADO</span>
@@ -1042,7 +1059,7 @@ export default function QuizStep() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: isLoaded ? 1 : 0, y: isLoaded ? 0 : 20 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.4 }} // ✅ Reduzido de 0.6s
         >
           <Card className="bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-lg border-orange-500/30 shadow-2xl border-2">
             <CardContent className="p-6 sm:p-8">
@@ -1097,10 +1114,11 @@ export default function QuizStep() {
                         scale: [1, 1.02, 1],
                       }}
                       transition={{
-                        duration: 4,
+                        duration: 3, // ✅ Reduzido de 4s
                         repeat: Number.POSITIVE_INFINITY,
                         ease: "easeInOut",
                       }}
+                      loading="lazy"
                     />
                   ) : (
                     <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-blue-600 to-purple-700 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -1111,7 +1129,7 @@ export default function QuizStep() {
                   <motion.div
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.5 }}
+                    transition={{ delay: 0.3 }} // ✅ Reduzido de 0.5s
                     className="mb-6"
                   >
                     <p className="text-blue-400 font-semibold text-base sm:text-lg mb-4">{currentStep.elements?.autoMessage}</p>
@@ -1127,9 +1145,9 @@ export default function QuizStep() {
                             opacity: [0.3, 1, 0.3],
                           }}
                           transition={{
-                            duration: 1,  // ✅ Reduzido de 1.5s
+                            duration: 0.8, // ✅ Reduzido de 1s
                             repeat: Number.POSITIVE_INFINITY,
-                            delay: i * 0.15, // ✅ Reduzido de 0.2s
+                            delay: i * 0.1, // ✅ Reduzido de 0.15s
                           }}
                         />
                       ))}
@@ -1143,13 +1161,13 @@ export default function QuizStep() {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.8 }}
+                  transition={{ duration: 0.6 }} // ✅ Reduzido de 0.8s
                   className="text-center mb-8"
                 >
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ type: "spring", duration: 1, delay: 0.3 }}
+                    transition={{ type: "spring", duration: 0.8, delay: 0.2 }} // ✅ Reduzido de 1s delay
                     className="mb-6"
                   >
                     <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto">
@@ -1160,7 +1178,7 @@ export default function QuizStep() {
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: "100%" }}
-                    transition={{ duration: 1.5, delay: 0.5 }} // ✅ Reduzido de 2s
+                    transition={{ duration: 1, delay: 0.3 }} // ✅ Reduzido de 1.5s e 0.5s
                     className="mb-6"
                   >
                     <div className="bg-green-900/50 border border-green-500 rounded-lg p-4 text-center">
@@ -1177,7 +1195,7 @@ export default function QuizStep() {
                   <motion.div
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.8 }} // ✅ Reduzido de 1s
+                    transition={{ delay: 0.5 }} // ✅ Reduzido de 0.8s
                     className="bg-blue-900/50 border border-blue-500 rounded-lg p-4 mb-6"
                   >
                     <div className="flex items-center justify-center gap-2">
@@ -1201,10 +1219,11 @@ export default function QuizStep() {
                         rotate: [0, 2, -2, 0],
                       }}
                       transition={{
-                        duration: 4, // ✅ Reduzido de 5s
+                        duration: 3, // ✅ Reduzido de 5s
                         repeat: Number.POSITIVE_INFINITY,
                         ease: "easeInOut",
                       }}
+                      loading="lazy"
                     />
                   ) : (
                     <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-600 to-purple-700 rounded-full flex items-center justify-center">
@@ -1219,7 +1238,7 @@ export default function QuizStep() {
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: "91%" }}
-                  transition={{ duration: 1.5, delay: 0.5 }} // ✅ Reduzido de 2s
+                  transition={{ duration: 1, delay: 0.3 }} // ✅ Reduzido de 1.5s e 0.5s
                   className="mb-6"
                 >
                   <div className="bg-green-900/50 border border-green-500 rounded-lg p-4 text-center">
@@ -1266,20 +1285,21 @@ export default function QuizStep() {
                     <motion.div 
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.6, delay: 0.3 }} // ✅ Reduzido delays
+                      transition={{ duration: 0.4, delay: 0.2 }} // ✅ Delays reduzidos
                       className="mb-8 space-y-6"
                     >
                       {currentStep.elements.reportageImage && (
                         <motion.div
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.4, delay: 0.4 }} // ✅ Reduzido
+                          transition={{ duration: 0.3, delay: 0.2 }} // ✅ Reduzido
                           className="relative"
                         >
                           <img
                             src={currentStep.elements.reportageImage}
                             alt="Reportagem BBC sobre neurociência"
                             className="w-full rounded-lg shadow-xl border border-gray-600 hover:shadow-2xl transition-shadow duration-300"
+                            loading="lazy"
                           />
                         </motion.div>
                       )}
@@ -1288,13 +1308,14 @@ export default function QuizStep() {
                         <motion.div
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.4, delay: 0.6 }} // ✅ Reduzido
+                          transition={{ duration: 0.3, delay: 0.4 }} // ✅ Reduzido
                           className="relative"
                         >
                           <img
                             src={currentStep.elements.curiousImage}
                             alt="Evidência científica curiosa"
                             className="w-full rounded-lg shadow-xl border border-gray-600 hover:shadow-2xl transition-shadow duration-300"
+                            loading="lazy"
                           />
                           <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold">
                             NEUROCIÊNCIA
@@ -1305,7 +1326,7 @@ export default function QuizStep() {
                       <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ delay: 0.8 }} // ✅ Reduzido de 1.1s
+                        transition={{ delay: 0.5 }} // ✅ Reduzido de 0.8s
                         className="bg-blue-900/30 border border-blue-500/50 rounded-lg p-4 text-center"
                       >
                         <p className="text-blue-200 text-sm sm:text-base font-medium">
@@ -1327,7 +1348,7 @@ export default function QuizStep() {
                           className="bg-gradient-to-r from-orange-500 to-red-600 h-full rounded-full"
                           initial={{ width: "0%" }}
                           animate={{ width: selectedAnswer ? "100%" : "0%" }}
-                          transition={{ duration: 0.3 }} // ✅ Reduzido de 0.5s
+                          transition={{ duration: 0.2 }} // ✅ Reduzido de 0.3s
                         />
                       </div>
                     </div>
@@ -1340,7 +1361,7 @@ export default function QuizStep() {
                           key={index}
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.08, duration: 0.3 }} // ✅ Delays reduzidos
+                          transition={{ delay: index * 0.05, duration: 0.2 }} // ✅ Delays e duration reduzidos
                           className="relative"
                         >
                           <button
@@ -1376,9 +1397,9 @@ export default function QuizStep() {
                                 scale: [1, 1.02, 1],
                               }}
                               transition={{
-                                duration: 1.5, // ✅ Reduzido de 2s
+                                duration: 1, // ✅ Reduzido de 1.5s
                                 repeat: Number.POSITIVE_INFINITY,
-                                delay: index * 0.3, // ✅ Reduzido de 0.5s
+                                delay: index * 0.2, // ✅ Reduzido de 0.3s
                               }}
                             />
                           )}
@@ -1391,7 +1412,7 @@ export default function QuizStep() {
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ delay: 0.6 }} // ✅ Reduzido de 0.8s
+                      transition={{ delay: 0.4 }} // ✅ Reduzido de 0.6s
                       className="mt-6 text-center text-amber-300 bg-amber-900/30 p-4 rounded-lg border border-amber-600"
                     >
                       <p className="font-medium text-sm sm:text-base">{currentStep.note}</p>
@@ -1402,7 +1423,7 @@ export default function QuizStep() {
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ delay: 0.7 }} // ✅ Reduzido de 0.9s
+                      transition={{ delay: 0.5 }} // ✅ Reduzido de 0.7s
                       className="mt-6 text-center text-green-300 bg-green-900/30 p-4 rounded-lg border border-green-600"
                     >
                       <p className="font-medium text-sm sm:text-base">{currentStep.guarantee}</p>
@@ -1413,7 +1434,7 @@ export default function QuizStep() {
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ delay: 0.6 }} // ✅ Reduzido de 0.8s
+                      transition={{ delay: 0.4 }} // ✅ Reduzido de 0.6s
                       className="mt-6 text-center text-red-300 bg-red-900/30 p-4 rounded-lg border border-red-600 flex items-center justify-center gap-2"
                     >
                       <AlertTriangle className="w-4 h-4" />
@@ -1425,6 +1446,7 @@ export default function QuizStep() {
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }} // ✅ Reduzido
                       className="mt-8 text-center"
                     >
                       <Button
@@ -1448,7 +1470,7 @@ export default function QuizStep() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }} // ✅ Reduzido de 1s
+            transition={{ delay: 0.5 }} // ✅ Reduzido de 0.8s
             className="text-center space-y-2 mt-6"
           >
             {currentStep?.elements?.counter && (
