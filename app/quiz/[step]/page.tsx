@@ -1390,7 +1390,7 @@ export default function QuizStep() {
           </>
         )}
 
-        {/* ✅ PROVA SOCIAL PROGRESSIVA OTIMIZADA */}
+        {/* Prueba Social - OTIMIZADA (sem números agressivos) */}
         {step > 2 && !currentStep?.autoAdvance && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -1398,14 +1398,12 @@ export default function QuizStep() {
             transition={{ delay: 0.4 }}
             className="text-center space-y-2 mt-6"
           >
-            {/* Mensagem progressiva principal */}
-            <div className={getProgressiveUrgencyStyle(step)}>
-              <p className="text-sm font-semibold">
-                {getProgressiveUrgencyMessage(step)}
+            <div className="bg-red-900/20 border border-red-400 rounded-lg p-2">
+              <p className="text-red-300 text-xs font-semibold">
+                ⚠️ IMPORTANTE: Solo {Math.floor(Math.random() * 15) + 5} espacios disponibles hoy
               </p>
             </div>
 
-            {/* Elementos existentes que funcionam bem */}
             {currentStep?.elements?.counter && (
               <p className="text-white text-xs sm:text-sm bg-white/10 px-3 py-1 rounded-full inline-block">
                 👥 {peopleCount} {currentStep.elements.counter}
@@ -1418,7 +1416,6 @@ export default function QuizStep() {
               </p>
             )}
 
-            {/* Prova social progressiva (só nos steps finais) */}
             {step > 5 && (
               <p className="text-blue-300 text-xs sm:text-sm bg-blue-900/20 px-3 py-1 rounded-full inline-block">
                 {socialProofMessages[Math.min(step - 6, socialProofMessages.length - 1)]}
