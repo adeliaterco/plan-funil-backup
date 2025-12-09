@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import dynamic from 'next/dynamic'
 import {
   Shield,
   ArrowRight,
@@ -35,10 +34,11 @@ export default function ResultPageFixed() {
   const [isDecrypting, setIsDecrypting] = useState(true)
   const [activeBuyers, setActiveBuyers] = useState(Math.floor(Math.random() * 5) + 8)
   
-  // ✅ CORREÇÃO CRÍTICA: Estados seguros para o vídeo
+  // ✅ CORREÇÃO CRÍTICA: Estados simplificados para o vídeo
   const [isVideoReady, setIsVideoReady] = useState(false)
   const [videoError, setVideoError] = useState<string | null>(null)
   const [isBrowser, setIsBrowser] = useState(false)
+  const [forceReload, setForceReload] = useState(0) // Para forçar recarregamento
 
   const contentRef = useRef<HTMLDivElement>(null)
   const startTimeRef = useRef(Date.now())
@@ -47,7 +47,7 @@ export default function ResultPageFixed() {
   const decryptIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const videoContainerRef = useRef<HTMLDivElement>(null)
   const scriptLoadedRef = useRef(false)
-  const cleanupRef = useRef<(() => void) | null>(null)
+  const playerInstanceRef = useRef<any>(null)
 
   // ===== VERIFICAÇÃO DE AMBIENTE BROWSER =====
   useEffect(() => {
@@ -152,85 +152,96 @@ export default function ResultPageFixed() {
     }
   }, [])
 
-  // ✅ CORREÇÃO CRÍTICA DO VÍDEO: useEffect SEGURO com tratamento de erros
+  // ✅ CORREÇÃO CRÍTICA DO VÍDEO: Abordagem mais direta e simples
   useEffect(() => {
-    if (!showVSL || !isBrowser || scriptLoadedRef.current) return
+    if (!showVSL || !isBrowser) return
 
-    const loadVideoScript = async () => {
+    const initializeVideo = () => {
       try {
-        scriptLoadedRef.current = true
         setVideoError(null)
-
-        // Verifica se o script já existe
-        const existingScript = document.querySelector('script[src*="converteai.net"]')
-        if (existingScript) {
-          existingScript.remove()
+        
+        // ✅ LIMPA COMPLETAMENTE QUALQUER RESÍDUO ANTERIOR
+        const existingScripts = document.querySelectorAll('script[src*="converteai.net"]')
+        existingScripts.forEach(script => script.remove())
+        
+        // Limpa window.smartplayer se existir
+        if (typeof window !== 'undefined') {
+          // @ts-ignore
+          delete window.smartplayer
+          // @ts-ignore  
+          delete window.vturb
         }
 
-        // Aguarda o container estar disponível
-        await new Promise(resolve => setTimeout(resolve, 300))
+        if (!videoContainerRef.current) return
 
-        if (!videoContainerRef.current) {
-          throw new Error('Container do vídeo não encontrado')
-        }
-
-        // Limpa o container
+        // ✅ FORÇA LIMPEZA TOTAL DO CONTAINER
         videoContainerRef.current.innerHTML = ''
+        
+        // ✅ AGUARDA UM POUCO PARA GARANTIR LIMPEZA
+        setTimeout(() => {
+          if (!videoContainerRef.current) return
 
-        // ✅ ABORDAGEM MAIS SEGURA: Usa innerHTML ao invés de createElement
-        videoContainerRef.current.innerHTML = `
-          <vturb-smartplayer 
-            id="vid-692ef1c85df8a7aaec7c6000" 
-            data-setup="{}"
-            style="width: 100%; max-width: 100%; height: auto; display: block; margin: 0 auto; position: relative; z-index: 1;"
-          ></vturb-smartplayer>
-        `
+          // ✅ CRIA O ELEMENTO VTURB DE FORMA MAIS SIMPLES
+          const playerId = `vid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+          
+          videoContainerRef.current.innerHTML = `
+            <div style="width: 100%; position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+              <vturb-smartplayer 
+                id="vid-692ef1c85df8a7aaec7c6000" 
+                data-setup='{"autoplay":false,"controls":true}'
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+              ></vturb-smartplayer>
+            </div>
+          `
 
-        // Carrega o script
-        const script = document.createElement("script")
-        script.src = "https://scripts.converteai.net/15be01a4-4462-4736-aeb9-b95eda21b8b8/players/692ef1c85df8a7aaec7c6000/v4/player.js"
-        script.async = true
-
-        script.onload = () => {
+          // ✅ CARREGA O SCRIPT COM DELAY MAIOR
           setTimeout(() => {
-            setIsVideoReady(true)
-          }, 1500) // Aumentado para 1.5s para maior estabilidade
-        }
-
-        script.onerror = (error) => {
-          console.error("Erro ao carregar script do VSL:", error)
-          setVideoError("Erro ao carregar o vídeo. Tente recarregar a página.")
-          setIsVideoReady(false)
-        }
-
-        document.head.appendChild(script)
-
-        // Função de limpeza
-        cleanupRef.current = () => {
-          if (document.head.contains(script)) {
-            document.head.removeChild(script)
-          }
-          if (videoContainerRef.current) {
-            videoContainerRef.current.innerHTML = ''
-          }
-        }
-
+            const script = document.createElement("script")
+            script.src = "https://scripts.converteai.net/15be01a4-4462-4736-aeb9-b95eda21b8b8/players/692ef1c85df8a7aaec7c6000/v4/player.js"
+            script.async = true
+            
+            script.onload = () => {
+              console.log("Script VSL carregado com sucesso")
+              
+              // ✅ AGUARDA MAIS TEMPO PARA INICIALIZAÇÃO COMPLETA
+              setTimeout(() => {
+                setIsVideoReady(true)
+                
+                // ✅ FORÇA REFRESH DO PLAYER SE NECESSÁRIO
+                setTimeout(() => {
+                  const vturbElement = document.getElementById('vid-692ef1c85df8a7aaec7c6000')
+                  if (vturbElement && !vturbElement.querySelector('iframe, video')) {
+                    console.log("Forçando reload do player...")
+                    setForceReload(prev => prev + 1)
+                  }
+                }, 3000)
+              }, 2000) // 2 segundos para garantir inicialização
+            }
+            
+            script.onerror = (error) => {
+              console.error("Erro ao carregar script VSL:", error)
+              setVideoError("Erro ao carregar o vídeo. Tentando novamente...")
+              
+              // ✅ RETRY AUTOMÁTICO EM CASO DE ERRO
+              setTimeout(() => {
+                setForceReload(prev => prev + 1)
+              }, 2000)
+            }
+            
+            document.head.appendChild(script)
+          }, 500) // Delay antes de carregar o script
+          
+        }, 200) // Delay após limpeza
+        
       } catch (error) {
-        console.error("Erro no carregamento do vídeo:", error)
-        setVideoError("Erro inesperado ao carregar o vídeo.")
-        setIsVideoReady(false)
-        scriptLoadedRef.current = false
+        console.error("Erro na inicialização do vídeo:", error)
+        setVideoError("Erro inesperado. Tentando novamente...")
+        setTimeout(() => setForceReload(prev => prev + 1), 1000)
       }
     }
 
-    loadVideoScript()
-
-    return () => {
-      if (cleanupRef.current) {
-        cleanupRef.current()
-      }
-    }
-  }, [showVSL, isBrowser])
+    initializeVideo()
+  }, [showVSL, isBrowser, forceReload])
 
   // ===== FUNÇÕES DE PERSONALIZAÇÃO =====
   const getPronoun = useCallback(() => userGender === "SOY MUJER" ? "él" : "ella", [userGender])
@@ -288,7 +299,14 @@ export default function ResultPageFixed() {
     }
   }, [isBrowser])
 
-  // ===== COMPONENTE DE VÍDEO SEGURO =====
+  // ===== FUNÇÃO PARA RETRY MANUAL =====
+  const handleRetryVideo = () => {
+    setVideoError(null)
+    setIsVideoReady(false)
+    setForceReload(prev => prev + 1)
+  }
+
+  // ===== COMPONENTE DE VÍDEO OTIMIZADO =====
   const VideoPlayer = () => {
     if (!isBrowser || !showVSL) {
       return null
@@ -298,16 +316,12 @@ export default function ResultPageFixed() {
       return (
         <div className="flex items-center justify-center h-64 bg-red-900/30 rounded-lg text-white border border-red-500">
           <div className="text-center p-4">
-            <p className="text-red-300 mb-2">⚠️ {videoError}</p>
+            <p className="text-red-300 mb-3">⚠️ {videoError}</p>
             <button 
-              onClick={() => {
-                setVideoError(null)
-                scriptLoadedRef.current = false
-                setIsVideoReady(false)
-              }}
-              className="text-blue-300 underline hover:text-blue-200"
+              onClick={handleRetryVideo}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
             >
-              Tentar novamente
+              🔄 Tentar Novamente
             </button>
           </div>
         </div>
@@ -315,30 +329,38 @@ export default function ResultPageFixed() {
     }
 
     return (
-      <div 
-        ref={videoContainerRef}
-        className="relative w-full min-h-[300px] bg-gray-900 rounded-lg flex items-center justify-center overflow-hidden"
-        style={{
-          position: 'relative',
-          width: '100%',
-          maxWidth: '100%',
-          aspectRatio: '16/9'
-        }}
-      >
-        {!isVideoReady && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-800 rounded-lg text-white z-20">
-            <div className="text-center">
-              <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
-              <p>Cargando video...</p>
+      <div className="relative w-full bg-gray-900 rounded-lg overflow-hidden">
+        <div 
+          ref={videoContainerRef}
+          className="w-full min-h-[300px] flex items-center justify-center"
+        >
+          {!isVideoReady && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-800 rounded-lg text-white z-20">
+              <div className="text-center">
+                <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-3"></div>
+                <p className="mb-2">Cargando video...</p>
+                <p className="text-sm text-gray-400">Esto puede tomar unos segundos</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+        
+        {/* ✅ BOTÃO DE RETRY SEMPRE VISÍVEL */}
+        <div className="absolute bottom-2 right-2 z-30">
+          <button 
+            onClick={handleRetryVideo}
+            className="bg-black/50 hover:bg-black/70 text-white px-2 py-1 rounded text-xs transition-colors"
+            title="Recargar video"
+          >
+            🔄
+          </button>
+        </div>
       </div>
     )
   }
 
   if (!isBrowser) {
-    return <div>Cargando...</div>
+    return <div className="min-h-screen bg-black flex items-center justify-center text-white">Cargando...</div>
   }
 
   return (
@@ -462,7 +484,7 @@ export default function ResultPageFixed() {
               )}
             </AnimatePresence>
 
-            {/* ===== REVELACIÓN 2: VSL ESTRATÉGICO (VÍDEO TOTALMENTE SEGURO) ===== */}
+            {/* ===== REVELACIÓN 2: VSL ESTRATÉGICO (VÍDEO SUPER OTIMIZADO) ===== */}
             <AnimatePresence>
               {showVSL && (
                 <motion.div
@@ -481,9 +503,9 @@ export default function ResultPageFixed() {
                       </p>
                     </div>
 
-                    {/* ✅ CORREÇÃO CRÍTICA DO VÍDEO: Container seguro com tratamento de erro */}
+                    {/* ✅ CORREÇÃO CRÍTICA DO VÍDEO: Container super otimizado */}
                     <div className="max-w-3xl mx-auto mb-6">
-                      <div className="relative bg-black rounded-xl p-4 border-2 border-blue-500 shadow-2xl overflow-hidden">
+                      <div className="relative bg-black rounded-xl p-4 border-2 border-blue-500 shadow-2xl">
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-green-600/20 rounded-xl animate-pulse"></div>
                         
                         <div className="relative z-10">
@@ -503,6 +525,7 @@ export default function ResultPageFixed() {
               )}
             </AnimatePresence>
 
+            {/* ===== RESTO DO CÓDIGO IGUAL... ===== */}
             {/* ===== REVELACIÓN 3: OFERTA IRRESISTÍVEL ===== */}
             <AnimatePresence>
               {showOffer && (
@@ -797,7 +820,6 @@ export default function ResultPageFixed() {
             margin: 0 auto !important;
             position: relative !important;
             z-index: 1 !important;
-            aspect-ratio: 16/9 !important;
             border-radius: 8px !important;
             overflow: hidden !important;
             contain: layout style paint !important;
