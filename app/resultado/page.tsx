@@ -106,7 +106,7 @@ export default function ResultPageFixed() {
             decryptIntervalRef.current = null;
           }
           setIsDecrypting(false);
-          setDecryptedText("CÓDIGO COMPLETO LIBERADO");
+          setDecryptedText("PLAN COMPLETO LIBERADO");
           setCurrentRevelation(1);
         }, 3000),
         
@@ -260,7 +260,7 @@ export default function ResultPageFixed() {
               className="text-center mb-12"
             >
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-green-400 mb-6">
-                <span className="text-white">CÓDIGO</span> <span className="text-green-500">RESULTADO</span>
+                <span className="text-white">PLAN</span> <span className="text-green-500">RESULTADO</span>
               </h1>
               
               <div className="bg-gray-900/90 border-2 border-green-500 rounded-lg p-6 mb-8 font-mono">
@@ -291,7 +291,7 @@ export default function ResultPageFixed() {
                   >
                     <div>→ SITUACIÓN: <span className="text-orange-400">{getPersonalizedSituation()}</span></div>
                     <div>→ PROBABILIDAD: <span className="text-green-400">89%</span></div>
-                    <div>→ ESTADO: <span className="text-red-400">CÓDIGO INCOMPLETO</span></div>
+                    <div>→ ESTADO: <span className="text-red-400">PLAN INCOMPLETO</span></div>
                     <div>→ PROGRESO: <span className="text-yellow-400">14% del método total</span></div>
                   </motion.div>
                 )}
@@ -313,7 +313,7 @@ export default function ResultPageFixed() {
                         🚨 ACCESO DENEGADO
                       </h2>
                       <p className="text-white text-xl mb-6">
-                        El código que viste era solo el <strong className="text-red-300">14%</strong> del método completo
+                        El plan que viste era solo el <strong className="text-red-300">14%</strong> del método completo
                       </p>
                     </div>
                     
@@ -327,12 +327,12 @@ export default function ResultPageFixed() {
                           <li>→ Análisis inicial</li>
                         </ul>
                         <div className="bg-green-800/30 rounded p-2 mt-3">
-                          <p className="text-green-300 text-xs font-bold">Solo 14% del código</p>
+                          <p className="text-green-300 text-xs font-bold">Solo 14% del plan</p>
                         </div>
                       </div>
                       
                       <div className="bg-red-900/30 rounded-lg p-4 border border-red-500">
-                        <h4 className="text-red-400 font-bold mb-3">❌ CÓDIGO FALTANTE:</h4>
+                        <h4 className="text-red-400 font-bold mb-3">❌ PLAN FALTANTE:</h4>
                         <ul className="text-white space-y-2 text-sm">
                           <li>→ Días 2-21 del método</li>
                           <li>→ Protocolo anti-rechazo</li>
@@ -340,7 +340,7 @@ export default function ResultPageFixed() {
                           <li>→ Scripts para cada situación</li>
                         </ul>
                         <div className="bg-red-800/30 rounded p-2 mt-3">
-                          <p className="text-red-300 text-xs font-bold">86% del código bloqueado</p>
+                          <p className="text-red-300 text-xs font-bold">86% del plan bloqueado</p>
                         </div>
                       </div>
                     </div>
@@ -348,7 +348,7 @@ export default function ResultPageFixed() {
                     <div className="text-center bg-yellow-900/30 rounded-lg p-4 border border-yellow-500">
                       <p className="text-yellow-300 font-bold">
                         <Zap className="inline w-5 h-5 mr-2" />
-                        Sin el código completo, fallarás en la semana 2
+                        Sin el plan completo, fallarás en la semana 2
                       </p>
                     </div>
                   </div>
@@ -368,7 +368,7 @@ export default function ResultPageFixed() {
                     <div className="text-center mb-6">
                       <Unlock className="w-16 h-16 text-blue-400 mx-auto mb-4" />
                       <h2 className="text-3xl sm:text-4xl font-bold text-blue-400 mb-4">
-                        🔓 DESBLOQUEANDO CÓDIGO COMPLETO
+                        🔓 DESBLOQUEANDO PLAN COMPLETO
                       </h2>
                       <p className="text-white text-xl mb-6">
                         Vea los <strong className="text-blue-300">86% restantes</strong> del método que no viste
@@ -388,7 +388,7 @@ export default function ResultPageFixed() {
                     <div className="text-center bg-green-900/30 rounded-lg p-4 border border-green-500">
                       <p className="text-green-300 font-bold">
                         <Check className="inline w-5 h-5 mr-2" />
-                        Este video revela el código completo para reconquistar a {getPronoun()}
+                        Este video revela el plan completo para reconquistar a {getPronoun()}
                       </p>
                     </div>
                   </div>
@@ -408,7 +408,7 @@ export default function ResultPageFixed() {
                     <CardContent className="p-6 sm:p-8 text-center">
                       
                       <div className="bg-yellow-400 text-black font-bold text-sm sm:text-base px-4 py-2 rounded-full inline-block mb-6">
-                        📱 PLAN A COMPLETO: DEL CÓDIGO DEMO A LA RECONQUISTA REAL
+                        📱 PLAN A COMPLETO: DEL PLAN DEMO A LA RECONQUISTA REAL
                       </div>
 
                       <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mb-6 text-white">
@@ -426,7 +426,7 @@ export default function ResultPageFixed() {
                               <MessageCircle className="inline w-4 h-4 mr-2" />
                               MÓDULO 1: CONVERSACIONES (Días 1-7)
                             </h4>
-                            <p className="text-white text-sm mb-2">→ El código que viste + 6 escenarios adicionales</p>
+                            <p className="text-white text-sm mb-2">→ El plan que viste + 6 escenarios adicionales</p>
                             <p className="text-white text-sm mb-2">→ ¿Qué hacer si no responde? ¿Si responde seco? ¿Si te deja en visto?</p>
                             <p className="text-gray-400 text-xs">Valor: $97</p>
                           </div>
@@ -489,7 +489,7 @@ export default function ResultPageFixed() {
                           <MessageCircle className="mobile-icon-size mr-2 flex-shrink-0" />
                           <div className="text-center">
                             <div className="mobile-cta-offer-text leading-tight font-black">
-                              📱 QUIERO EL CÓDIGO COMPLETO
+                              📱 QUIERO EL PLAN COMPLETO
                             </div>
                             <div className="mobile-small-text mt-1 opacity-90">
                               Los 21 días completos, no solo los primeros 3
@@ -537,7 +537,7 @@ export default function ResultPageFixed() {
                   <div className="bg-black/80 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border-2 border-yellow-400">
                     
                     <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white mb-4">
-                      ⚡ ÚLTIMO AVISO - COMPLETA EL CÓDIGO EN LA VIDA REAL
+                      ⚡ ÚLTIMO AVISO - COMPLETA EL PLAN EN LA VIDA REAL
                     </h2>
                     
                     <p className="text-white text-base sm:text-lg mb-6 font-bold">
@@ -546,7 +546,7 @@ export default function ResultPageFixed() {
                     
                     <div className="bg-yellow-600/20 border border-yellow-400 rounded-lg p-4 mb-6">
                       <p className="text-yellow-300 text-base font-bold mb-2">
-                        🎬 EL CÓDIGO DEMOSTRÓ LOS DÍAS 1-3:
+                        🎬 EL PLAN DEMOSTRÓ LOS DÍAS 1-3:
                       </p>
                       <p className="text-white text-sm sm:text-base">
                         Ahora necesitas los días 4-21 para completar la reconquista real. 
