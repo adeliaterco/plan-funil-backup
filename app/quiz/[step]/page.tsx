@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -30,17 +30,13 @@ import {
   quizSteps, 
   socialProofMessages, 
   getPersonalizedContent,
-  getUserAnswer, // Importar do quiz-data
-  getUserGender, // Importar do quiz-data
-  getExName, // Importar do quiz-data
-  getExAvatar, // Importar do quiz-data
-  getHeaderName, // Importar do quiz-data
-  getPersonalizedFirstMessage, // Importar do quiz-data
-  getPersonalizedExResponse, // Importar do quiz-data
-  getPersonalizedFollowUp, // Importar do quiz-data
-  getPersonalizedFirstInsight, // Importar do quiz-data
-  getPersonalizedTechnique // Importar do quiz-data
-} from "@/lib/quiz-data" // Assumindo que quiz-data está em @/lib/quiz-data
+  getExName, // Importar estas funções do quiz-data
+  getExAvatar,
+  getPersonalizedFirstMessage,
+  getPersonalizedExResponse,
+  getPersonalizedFollowUp,
+  getHeaderName,
+} from "@/lib/quiz-data" // ✅ Ajuste o path se necessário
 import { BonusUnlock } from "@/components/bonus-unlock"
 import { ValueCounter } from "@/components/value-counter"
 import { LoadingAnalysis } from "@/components/loading-analysis"
@@ -53,11 +49,10 @@ function enviarEvento(nombre_evento, propriedades = {}) {
   }
 }
 
-// === COMPONENTE MOCKUP WHATSAPP ===
-const WhatsAppMockup = () => {
+// === COMPONENTE MOCKUP WHATSAPP (AGORA INTEGRADO E ESTILIZADO COM TAILWIND) ===
+const WhatsAppMockup = ({ userGender, onComplete }) => {
   const [currentMessage, setCurrentMessage] = useState(0)
   const [isTyping, setIsTyping] = useState(false)
-  const [showSuccess, setShowSuccess] = useState(false)
   const [analysisPoints, setAnalysisPoints] = useState([
     { status: 'pending', text: 'Enviando mensaje optimizado...' },
     { status: 'pending', text: 'Generando curiosidad e interés...' },
@@ -65,31 +60,6 @@ const WhatsAppMockup = () => {
     { status: 'pending', text: 'Respuesta emocional detectada...' }
   ])
   const [successPercentage, setSuccessPercentage] = useState(0)
-
-  const conversation = [
-    {
-      type: 'sent',
-      message: getPersonalizedFirstMessage(),
-      delay: 1000,
-      timestamp: 'Día 1 - 19:30'
-    },
-    {
-      type: 'typing',
-      duration: 1500
-    },
-    {
-      type: 'received', 
-      message: getPersonalizedExResponse(),
-      delay: 500,
-      timestamp: '19:47'
-    },
-    {
-      type: 'sent',
-      message: getPersonalizedFollowUp(),
-      delay: 1000,
-      timestamp: '19:52'
-    }
-  ]
 
   const updateAnalysisPoint = (pointIndex, status) => {
     setAnalysisPoints(prev => prev.map((point, index) => 
@@ -112,6 +82,13 @@ const WhatsAppMockup = () => {
     }, 30)
   }
 
+  const conversation = [
+    { type: 'sent', message: getPersonalizedFirstMessage(), delay: 0, timestamp: 'Día 1 - 19:30' },
+    { type: 'typing', duration: 0 }, // Placeholder, handled by isTyping state
+    { type: 'received', message: getPersonalizedExResponse(), delay: 0, timestamp: '19:47' },
+    { type: 'sent', message: getPersonalizedFollowUp(), delay: 0, timestamp: '19:52' }
+  ];
+
   // ✅ ANIMAÇÃO ULTRA-ACELERADA
   useEffect(() => {
     let stepIndex = 0
@@ -123,17 +100,6 @@ const WhatsAppMockup = () => {
       { delay: 2000, action: 'showUserFollowup' },
       { delay: 2300, action: 'showSuccess' }
     ]
-
-    const runAnimation = () => {
-      if (stepIndex >= steps.length) return
-      
-      const step = steps[stepIndex]
-      setTimeout(() => {
-        executeStep(step.action)
-        stepIndex++
-        runAnimation()
-      }, step.delay)
-    }
 
     const executeStep = (action) => {
       switch(action) {
@@ -162,121 +128,132 @@ const WhatsAppMockup = () => {
         case 'showSuccess':
           updateAnalysisPoint(3, 'completed')
           animateSuccessPercentage()
+          // Sinaliza a conclusão para o pai para auto-advance
+          setTimeout(() => onComplete(), 500); // Pequeno delay após o início da porcentagem de sucesso
           break
       }
     }
 
-    setTimeout(runAnimation, 100)
-  }, [])
+    const runAnimationSequence = () => {
+      if (stepIndex >= steps.length) return
+      
+      const step = steps[stepIndex]
+      setTimeout(() => {
+        executeStep(step.action)
+        stepIndex++
+        runAnimationSequence()
+      }, step.delay)
+    }
+
+    setTimeout(runAnimationSequence, 100)
+  }, [onComplete]) // Adiciona onComplete ao array de dependências
 
   return (
     <div className="flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-8 mb-8">
       {/* iPhone Mockup */}
-      <div className="phone-mockup">
-        <div className="iphone-frame">
-          <div className="notch"></div>
-          <div className="screen">
-            {/* WhatsApp Header */}
-            <div className="whatsapp-header">
-              <div className="back-arrow">←</div>
-              <img src={getExAvatar()} className="contact-avatar" alt="Avatar" />
-              <div className="contact-info">
-                <div className="contact-name">{getHeaderName()}</div>
-                <div className="last-seen">
-                  {isTyping ? 'escribiendo...' : 'En línea'}
-                </div>
-              </div>
-              <div className="header-icons">
-                <span>📹</span>
-                <span>📞</span>
-                <span>⋮</span>
+      <div className="w-[300px] h-[600px] lg:w-[300px] lg:h-[600px] relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-[35px] p-2 shadow-2xl">
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[150px] h-[25px] bg-black rounded-b-[15px] z-10"></div>
+        <div className="bg-black h-full rounded-[28px] overflow-hidden flex flex-col">
+          {/* WhatsApp Header */}
+          <div className="bg-[#075e54] pt-9 pb-4 px-4 flex items-center text-white text-sm">
+            <div className="mr-2 text-lg">←</div>
+            <img src={getExAvatar()} className="w-10 h-10 rounded-full mr-2 object-cover" alt="Avatar" />
+            <div className="flex-1">
+              <div className="font-bold mb-0.5">{getExName()}</div>
+              <div className="text-xs text-[#b3d4d1]">
+                {isTyping ? 'escribiendo...' : 'En línea'}
               </div>
             </div>
+            <div className="flex gap-4">
+              <span>📹</span>
+              <span>📞</span>
+              <span>⋮</span>
+            </div>
+          </div>
+          
+          {/* Chat Messages */}
+          <div className="flex-1 bg-[#ece5dd] p-4 overflow-y-auto relative" style={{backgroundImage: `url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'><rect width='20' height='20' fill='%23ece5dd'/><rect x='0' y='0' width='10' height='10' fill='%23e8ddd4'/><rect x='10' y='10' width='10' height='10' fill='%23e8ddd4'/></svg>")`}}>
+            <div className="text-center my-2">
+              <span className="bg-black/10 text-gray-600 px-3 py-1 rounded-full text-xs">Hoy</span>
+            </div>
             
-            {/* Chat Messages */}
-            <div className="chat-messages">
-              <div className="date-separator">
-                <span>Hoy</span>
-              </div>
-              
-              {/* Mensaje del usuario */}
-              <AnimatePresence>
-                {currentMessage >= 1 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="message-bubble sent"
-                  >
-                    <div className="message-content">{conversation[0].message}</div>
-                    <div className="message-time">19:30 ✓✓</div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              
-              {/* Typing indicator */}
-              {isTyping && (
+            {/* Mensaje del usuario */}
+            <AnimatePresence>
+              {currentMessage >= 1 && (
                 <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.1 }}
-                  className="message-bubble received typing-indicator"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="ml-auto bg-[#dcf8c6] rounded-xl rounded-br-sm max-w-[80%] my-2 p-2 pb-1 text-sm leading-tight text-right"
                 >
-                  <div className="typing-dots">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </div>
+                  {conversation[0].message}
+                  <div className="px-1 pt-1 text-xs text-gray-600">19:30 ✓✓</div>
                 </motion.div>
               )}
-              
-              {/* Respuesta de la ex */}
-              <AnimatePresence>
-                {currentMessage >= 2 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="message-bubble received"
-                  >
-                    <div className="message-content">{conversation[2].message}</div>
-                    <div className="message-time">19:47</div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              
-              {/* Segundo mensaje del usuario */}
-              <AnimatePresence>
-                {currentMessage >= 3 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="message-bubble sent"
-                  >
-                    <div className="message-content">{conversation[3].message}</div>
-                    <div className="message-time">19:52 ✓✓</div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+            </AnimatePresence>
             
-            {/* WhatsApp Input */}
-            <div className="whatsapp-input">
-              <div className="input-container">
-                <span>😊</span>
-                <div className="input-field">Escribe un mensaje</div>
-                <span>📎</span>
-                <span>🎤</span>
-              </div>
+            {/* Typing indicator */}
+            {isTyping && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.1 }}
+                className="mr-auto bg-white rounded-xl rounded-bl-sm max-w-[60px] my-2 p-3 animate-pulse"
+              >
+                <div className="flex gap-1">
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0s'}}></span>
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></span>
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></span>
+                </div>
+              </motion.div>
+            )}
+            
+            {/* Respuesta de la ex */}
+            <AnimatePresence>
+              {currentMessage >= 2 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="mr-auto bg-white rounded-xl rounded-bl-sm max-w-[80%] my-2 p-2 pb-1 text-sm leading-tight text-left"
+                >
+                  {conversation[2].message}
+                  <div className="px-1 pt-1 text-xs text-gray-600">19:47</div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
+            {/* Segundo mensaje del usuario */}
+            <AnimatePresence>
+              {currentMessage >= 3 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="ml-auto bg-[#dcf8c6] rounded-xl rounded-br-sm max-w-[80%] my-2 p-2 pb-1 text-sm leading-tight text-right"
+                >
+                  {conversation[3].message}
+                  <div className="px-1 pt-1 text-xs text-gray-600">19:52 ✓✓</div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          
+          {/* WhatsApp Input */}
+          <div className="bg-gray-100 p-2">
+            <div className="bg-white rounded-full flex items-center px-4 py-2 gap-2">
+              <span className="text-lg">😊</span>
+              <div className="flex-1 text-gray-500 text-sm">Escribe un mensaje</div>
+              <span className="text-lg">📎</span>
+              <span className="text-lg">🎤</span>
             </div>
           </div>
         </div>
       </div>
       
-      {/* Análisis en tiempo real */}
-      <div className="real-time-analysis">
-        <h3 className="text-lg font-bold text-white mb-4 text-center">
+      {/* Análise em tempo real */}
+      <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl p-6 text-white max-w-sm w-full">
+        <h3 className="text-lg font-bold text-center mb-4">
           📊 ANÁLISIS PSICOLÓGICO EN TIEMPO REAL
         </h3>
         
@@ -284,7 +261,7 @@ const WhatsAppMockup = () => {
           {analysisPoints.map((point, index) => (
             <motion.div 
               key={index} 
-              className="analysis-point"
+              className="flex items-center gap-3 p-2 bg-white/10 rounded-lg"
               animate={{
                 scale: point.status === 'active' ? [1, 1.05, 1] : 1,
               }}
@@ -293,311 +270,26 @@ const WhatsAppMockup = () => {
                 repeat: point.status === 'active' ? Infinity : 0,
               }}
             >
-              <div className={`point-status ${point.status}`}>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs flex-shrink-0 ${
+                point.status === 'pending' ? 'bg-white/20 text-yellow-300' :
+                point.status === 'active' ? 'bg-green-500 text-white animate-pulse' :
+                'bg-green-500 text-white'
+              }`}>
                 {point.status === 'completed' ? '✓' : 
                  point.status === 'active' ? '⚡' : '⏳'}
               </div>
-              <div className="point-text">{point.text}</div>
+              <div className="text-sm flex-1">{point.text}</div>
             </motion.div>
           ))}
         </div>
         
-        <div className="success-probability">
-          <div className="probability-circle">
-            <div className="percentage">{successPercentage}%</div>
-            <div className="label">Probabilidad de éxito</div>
+        <div className="text-center">
+          <div className="w-24 h-24 border-4 border-white/20 border-t-green-500 rounded-full flex flex-col items-center justify-center mx-auto animate-spin-slow">
+            <div className="text-2xl font-bold text-green-400">{successPercentage}%</div>
+            <div className="text-xs text-gray-300 mt-0.5">Probabilidad de éxito</div>
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        .phone-mockup {
-          width: 300px;
-          height: 600px;
-        }
-
-        .iphone-frame {
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(145deg, #1a1a1a, #2d2d2d);
-          border-radius: 35px;
-          padding: 8px;
-          box-shadow: 
-            0 25px 50px rgba(0,0,0,0.5),
-            0 0 0 1px rgba(255,255,255,0.1);
-          position: relative;
-        }
-
-        .notch {
-          position: absolute;
-          top: 8px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 150px;
-          height: 25px;
-          background: #000;
-          border-radius: 0 0 15px 15px;
-          z-index: 10;
-        }
-
-        .screen {
-          background: #000;
-          height: 100%;
-          border-radius: 28px;
-          overflow: hidden;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .whatsapp-header {
-          background: #075e54;
-          padding: 35px 15px 15px 15px;
-          display: flex;
-          align-items: center;
-          color: white;
-          font-size: 14px;
-        }
-
-        .back-arrow {
-          margin-right: 10px;
-          font-size: 18px;
-        }
-
-        .contact-avatar {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          margin-right: 10px;
-          object-fit: cover;
-        }
-
-        .contact-info {
-          flex: 1;
-        }
-
-        .contact-name {
-          font-weight: bold;
-          margin-bottom: 2px;
-        }
-
-        .last-seen {
-          font-size: 12px;
-          color: #b3d4d1;
-        }
-
-        .header-icons {
-          display: flex;
-          gap: 15px;
-        }
-
-        .chat-messages {
-          flex: 1;
-          background: #ece5dd;
-          padding: 20px 15px;
-          overflow-y: auto;
-        }
-
-        .date-separator {
-          text-align: center;
-          margin: 10px 0 20px 0;
-        }
-
-        .date-separator span {
-          background: rgba(0,0,0,0.1);
-          color: #667781;
-          padding: 5px 12px;
-          border-radius: 20px;
-          font-size: 12px;
-        }
-
-        .message-bubble {
-          margin: 8px 0;
-          max-width: 80%;
-          position: relative;
-        }
-
-        .message-bubble.sent {
-          margin-left: auto;
-          background: #dcf8c6;
-          border-radius: 18px 18px 4px 18px;
-        }
-
-        .message-bubble.received {
-          margin-right: auto;
-          background: white;
-          border-radius: 18px 18px 18px 4px;
-        }
-
-        .message-content {
-          padding: 8px 12px 4px 12px;
-          font-size: 14px;
-          line-height: 1.4;
-        }
-
-        .message-time {
-          padding: 0 12px 8px 12px;
-          font-size: 11px;
-          color: #667781;
-          text-align: right;
-        }
-
-        .message-bubble.received .message-time {
-          text-align: left;
-        }
-
-        .typing-indicator {
-          background: white !important;
-          padding: 12px !important;
-          width: 60px !important;
-        }
-
-        .typing-dots {
-          display: flex;
-          gap: 4px;
-        }
-
-        .typing-dots span {
-          width: 6px;
-          height: 6px;
-          background: #999;
-          border-radius: 50%;
-          animation: typingDots 0.8s infinite;
-        }
-
-        .typing-dots span:nth-child(1) { animation-delay: 0s; }
-        .typing-dots span:nth-child(2) { animation-delay: 0.1s; }
-        .typing-dots span:nth-child(3) { animation-delay: 0.2s; }
-
-        @keyframes typingDots {
-          0%, 60%, 100% { transform: scale(0.8); opacity: 0.5; }
-          30% { transform: scale(1.2); opacity: 1; }
-        }
-
-        .whatsapp-input {
-          background: #f0f0f0;
-          padding: 8px;
-        }
-
-        .input-container {
-          background: white;
-          border-radius: 25px;
-          display: flex;
-          align-items: center;
-          padding: 8px 15px;
-          gap: 10px;
-        }
-
-        .input-field {
-          flex: 1;
-          color: #999;
-          font-size: 14px;
-        }
-
-        .real-time-analysis {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          border-radius: 20px;
-          padding: 25px;
-          color: white;
-          max-width: 350px;
-          width: 100%;
-        }
-
-        .analysis-point {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin: 12px 0;
-          padding: 8px;
-          background: rgba(255,255,255,0.1);
-          border-radius: 8px;
-          transition: all 0.2s ease;
-        }
-
-        .point-status {
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 12px;
-          flex-shrink: 0;
-        }
-
-        .point-status.pending {
-          background: rgba(255,255,255,0.2);
-          color: #ffd700;
-        }
-
-        .point-status.active {
-          background: #4CAF50;
-          color: white;
-          animation: pulse 0.6s infinite;
-        }
-
-        .point-status.completed {
-          background: #4CAF50;
-          color: white;
-        }
-
-        @keyframes pulse {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.1); }
-          100% { transform: scale(1); }
-        }
-
-        .point-text {
-          font-size: 14px;
-          flex: 1;
-        }
-
-        .success-probability {
-          text-align: center;
-        }
-
-        .probability-circle {
-          width: 100px;
-          height: 100px;
-          border: 4px solid rgba(255,255,255,0.2);
-          border-top: 4px solid #4CAF50;
-          border-radius: 50%;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto;
-          animation: rotate 1s linear infinite;
-        }
-
-        @keyframes rotate {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        .percentage {
-          font-size: 24px;
-          font-weight: bold;
-          color: #4CAF50;
-        }
-
-        .label {
-          font-size: 10px;
-          color: #ccc;
-          margin-top: 2px;
-        }
-
-        @media (max-width: 767px) {
-          .phone-mockup {
-            width: 280px;
-            height: 560px;
-          }
-          
-          .real-time-analysis {
-            max-width: 100%;
-            margin-top: 20px;
-          }
-        }
-      `}</style>
     </div>
   )
 }
@@ -621,7 +313,7 @@ export default function QuizStep() {
   const progress = (step / 13) * 100
 
   useEffect(() => {
-    // Cargar datos guardados
+    // Carregar dados guardados
     const saved = localStorage.getItem("quizData")
     const savedBonuses = localStorage.getItem("unlockedBonuses")
     const savedValue = localStorage.getItem("totalValue")
@@ -663,7 +355,6 @@ export default function QuizStep() {
   const handleAnswerSelect = (answer: string) => {
     setSelectedAnswer(answer)
 
-    // ✅ STEP 1 ULTRA-SIMPLES COM AUTO-ADVANCE
     if (step === 1) {
       enviarEvento('quiz_start', {
         perfil_selecionado: answer,
@@ -674,7 +365,6 @@ export default function QuizStep() {
       setUserGender(answer)
       localStorage.setItem("userGender", answer)
       
-      // Auto-advance após 500ms - DOPAMINA IMEDIATA!
       setTimeout(() => {
         handleNext()
       }, 500)
@@ -694,35 +384,7 @@ export default function QuizStep() {
     }
   }
 
-  const handleNext = () => {
-    enviarEvento('avancou_etapa', {
-      numero_etapa: step,
-      pergunta: currentStep?.question || `Etapa ${step}`,
-      resposta_selecionada: selectedAnswer
-    });
-
-    const newQuizData = { ...quizData, [step]: selectedAnswer }
-    setQuizData(newQuizData)
-    localStorage.setItem("quizData", JSON.stringify(newQuizData))
-
-    const answers = window.quizAnswers || {}
-    answers[`question${step}`] = selectedAnswer
-    window.quizAnswers = answers
-    localStorage.setItem("quizAnswers", JSON.stringify(answers))
-
-    if (currentStep?.elements?.analysisText || currentStep?.elements?.profileAnalysis) {
-      setShowAnalysis(true)
-      setTimeout(() => {
-        setShowAnalysis(false)
-        proceedToNextStep()
-      }, 1000)
-      return
-    }
-
-    proceedToNextStep()
-  }
-
-  const proceedToNextStep = () => {
+  const proceedToNextStep = useCallback(() => {
     const currentUrl = new URL(window.location.href);
     let utmString = '';
     
@@ -764,7 +426,7 @@ export default function QuizStep() {
       return
     }
 
-    if (step < 13) { // CORRIGIDO: Usando < diretamente
+    if (step < 13) {
       router.push(`/quiz/${step + 1}${utmString}`)
     } else {
       enviarEvento('concluiu_quiz', {
@@ -774,6 +436,34 @@ export default function QuizStep() {
       
       router.push(`/resultado${utmString}`)
     }
+  }, [currentStep, unlockedBonuses, totalValue, step, router]);
+
+  const handleNext = () => {
+    enviarEvento('avancou_etapa', {
+      numero_etapa: step,
+      pergunta: currentStep?.question || `Etapa ${step}`,
+      resposta_selecionada: selectedAnswer
+    });
+
+    const newQuizData = { ...quizData, [step]: selectedAnswer }
+    setQuizData(newQuizData)
+    localStorage.setItem("quizData", JSON.stringify(newQuizData))
+
+    const answers = window.quizAnswers || {}
+    answers[`question${step}`] = selectedAnswer
+    window.quizAnswers = answers
+    localStorage.setItem("quizAnswers", JSON.stringify(answers))
+
+    if (currentStep?.elements?.analysisText || currentStep?.elements?.profileAnalysis) {
+      setShowAnalysis(true)
+      setTimeout(() => {
+        setShowAnalysis(false)
+        proceedToNextStep()
+      }, 1000)
+      return
+    }
+
+    proceedToNextStep()
   }
 
   const handleBonusUnlockComplete = () => {
@@ -793,7 +483,7 @@ export default function QuizStep() {
       utmString = '?' + utmParams.toString();
     }
     
-    if (step < 13) { // CORRIGIDO: Usando < diretamente
+    if (step < 13) {
       router.push(`/quiz/${step + 1}${utmString}`)
     } else {
       router.push(`/resultado${utmString}`)
@@ -935,7 +625,6 @@ export default function QuizStep() {
             <Card className="bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-lg border-orange-500/30 shadow-2xl border-2">
               <CardContent className="p-6 sm:p-8 text-center">
                 
-                {/* HOOK SIMPLES E DIRETO */}
                 <motion.h1 
                   initial={{ scale: 0.8 }}
                   animate={{ scale: 1 }}
@@ -954,10 +643,9 @@ export default function QuizStep() {
                   Solo para calibrar tu plan perfecto...
                 </motion.p>
 
-                {/* BOTÕES SIMPLES COM DOPAMINA */}
                 <div className="space-y-4 max-w-md mx-auto">
                   <motion.button
-                    onClick={() => handleAnswerSelect("SOY HOMBRE")} // Usar o valor exato do quiz-data
+                    onClick={() => handleAnswerSelect("masculino")}
                     className="w-full p-6 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white rounded-xl text-xl sm:text-2xl font-bold transform transition-all duration-200 hover:scale-105 shadow-lg border-2 border-blue-400"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -970,7 +658,7 @@ export default function QuizStep() {
                   </motion.button>
 
                   <motion.button
-                    onClick={() => handleAnswerSelect("SOY MUJER")} // Usar o valor exato do quiz-data
+                    onClick={() => handleAnswerSelect("feminino")}
                     className="w-full p-6 bg-gradient-to-r from-pink-600 to-purple-800 hover:from-pink-500 hover:to-purple-700 text-white rounded-xl text-xl sm:text-2xl font-bold transform transition-all duration-200 hover:scale-105 shadow-lg border-2 border-pink-400"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -983,7 +671,6 @@ export default function QuizStep() {
                   </motion.button>
                 </div>
 
-                {/* FEEDBACK IMEDIATO */}
                 {selectedAnswer && (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -995,7 +682,6 @@ export default function QuizStep() {
                   </motion.div>
                 )}
 
-                {/* SÓ UM TOQUE DE PROVA SOCIAL - SIMPLES */}
                 <motion.p 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -1009,11 +695,46 @@ export default function QuizStep() {
           </motion.div>
         )}
 
+        {/* ✅ STEP 12 - WHATSAPP MOCKUP INTEGRADO */}
+        {step === 12 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: isLoaded ? 1 : 0, y: isLoaded ? 0 : 20 }}
+            transition={{ duration: 0.4 }}
+          >
+            <Card className="bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-lg border-orange-500/30 shadow-2xl border-2">
+              <CardContent className="p-6 sm:p-8">
+                <div className="text-center">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-6 leading-tight">
+                    🔥 <span className="text-red-500">ATENCIÓN:</span> Esto Es Exactamente Lo Que Ella Te Respondería Si Le Escribes HOY
+                  </h2>
+                  
+                  <p className="text-orange-200 text-center mb-4 text-base sm:text-lg font-medium">
+                    ⚠️ <strong>ADVERTENCIA:</strong> Lo que verás puede ser impactante. Basado en 12,847 casos reales de tu situación exacta.
+                  </p>
+                  
+                  <div className="bg-red-900/30 border border-red-500 rounded-lg p-4 mb-6 text-center">
+                    <p className="text-red-200 text-sm font-bold">
+                      🚨 SOLO 127 PERSONAS HAN VISTO ESTO HOY - Tu situación es crítica
+                    </p>
+                  </div>
+                  
+                  <WhatsAppMockup userGender={userGender} onComplete={handleNext} /> {/* Pass handleNext as onComplete */}
+                  
+                  <p className="text-gray-400 text-xs mt-3">
+                    ⏰ Disponible solo por las próximas 4 horas
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         {/* RESTO DOS STEPS (MANTIDOS IGUAIS COM ANIMAÇÕES OTIMIZADAS) */}
-        {step !== 1 && (
+        {step !== 1 && step !== 12 && (
           <>
             {/* Testimonial Display */}
-            {currentStep?.elements?.testimonialDisplay && (currentStep?.elements?.testimonialText || (currentStep?.elements?.testimonialData && currentStep.elements.testimonialData())) && (
+            {currentStep?.elements?.testimonialDisplay && (currentStep?.elements?.testimonialText || currentStep?.elements?.testimonialData) && (
               <motion.div 
                 initial={{ opacity: 0, y: 20 }} 
                 animate={{ opacity: 1, y: 0 }} 
@@ -1035,7 +756,7 @@ export default function QuizStep() {
                             }}
                             transition={{
                               duration: 2,
-                              repeat: Infinity,
+                              repeat: Number.POSITIVE_INFINITY,
                               ease: "easeInOut",
                             }}
                           />
@@ -1102,55 +823,8 @@ export default function QuizStep() {
               <Card className="bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-lg border-orange-500/30 shadow-2xl border-2">
                 <CardContent className="p-6 sm:p-8">
                   
-                  {/* === RENDERIZAÇÃO ESPECIAL PARA STEP 12 - COM MELHORIAS APLICADAS === */}
-                  {step === 12 && (
-                    <div className="text-center">
-                      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-6 leading-tight">
-                        🔥 <span className="text-red-500">ATENCIÓN:</span> Esto Es Exactamente Lo Que Ella Te Respondería Si Le Escribes HOY
-                      </h2>
-                      
-                      <p className="text-orange-200 text-center mb-4 text-base sm:text-lg font-medium">
-                        ⚠️ <strong>ADVERTENCIA:</strong> Lo que verás puede ser impactante. Basado en 12,847 casos reales de tu situación exacta.
-                      </p>
-
-                      <div className="bg-red-900/30 border border-red-500 rounded-lg p-4 mb-6 text-center">
-                        <p className="text-red-200 text-sm font-bold">
-                          🚨 SOLO 127 PERSONAS HAN VISTO ESTO HOY - Tu situación es crítica
-                        </p>
-                      </div>
-                      
-                      <WhatsAppMockup /> {/* Usando o componente WhatsAppMockup */}
-                      
-                      <p className="text-gray-400 text-sm mb-8">
-                        Lo que verás en los próximos segundos es lo más probable que suceda en la vida real:
-                      </p>
-                      
-                      <motion.div className="text-center">
-                        <Button
-                          onClick={() => {
-                            enviarEvento('clicou_ver_resposta_ex', {
-                              etapa: 12,
-                              momento: 'critico',
-                              urgencia: 'alta'
-                            });
-                            setSelectedAnswer("VER_PLAN_COMPLETO")
-                            handleNext()
-                          }}
-                          size="lg"
-                          className="bg-gradient-to-r from-red-600 to-red-800 hover:from-red-700 hover:to-red-900 text-white font-bold py-4 px-8 rounded-full shadow-lg w-full sm:w-auto text-base border-2 border-red-500 animate-pulse"
-                        >
-                          🎯 REVELAR LA RESPUESTA REAL DE ELLA
-                          <ArrowRight className="w-5 h-5 ml-2" />
-                        </Button>
-                        <p className="text-gray-400 text-xs mt-3">
-                          ⏰ Disponible solo por las próximas 4 horas
-                        </p>
-                      </motion.div>
-                    </div>
-                  )}
-
                   {/* Auto advance step */}
-                  {currentStep?.autoAdvance && step !== 12 && (
+                  {currentStep?.autoAdvance && (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -1168,7 +842,7 @@ export default function QuizStep() {
                           }}
                           transition={{
                             duration: 3,
-                            repeat: Infinity,
+                            repeat: Number.POSITIVE_INFINITY,
                             ease: "easeInOut",
                           }}
                         />
@@ -1198,7 +872,7 @@ export default function QuizStep() {
                               }}
                               transition={{
                                 duration: 0.8,
-                                repeat: Infinity,
+                                repeat: Number.POSITIVE_INFINITY,
                                 delay: i * 0.1,
                               }}
                             />
@@ -1209,7 +883,7 @@ export default function QuizStep() {
                   )}
 
                   {/* Final reveal para step 13 */}
-                  {step === 13 && currentStep?.elements?.finalReveal && (
+                  {currentStep?.elements?.finalReveal && (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -1259,7 +933,7 @@ export default function QuizStep() {
                   )}
 
                   {/* Foto de experto para el paso 11 y 13 */}
-                  {currentStep?.elements?.expertPhoto && !currentStep?.autoAdvance && step !== 12 && (
+                  {currentStep?.elements?.expertPhoto && !currentStep?.autoAdvance && (
                     <div className="flex justify-center mb-6">
                       {currentStep?.elements?.expertImage ? (
                         <motion.img
@@ -1272,7 +946,7 @@ export default function QuizStep() {
                           }}
                           transition={{
                             duration: 3,
-                            repeat: Infinity,
+                            repeat: Number.POSITIVE_INFINITY,
                             ease: "easeInOut",
                           }}
                         />
@@ -1300,7 +974,7 @@ export default function QuizStep() {
                     </motion.div>
                   )}
 
-                  {!currentStep?.autoAdvance && step !== 12 && (
+                  {!currentStep?.autoAdvance && (
                     <>
                       <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-6 text-center leading-tight">
                         {getPersonalizedQuestion()}
@@ -1447,7 +1121,7 @@ export default function QuizStep() {
                                   }}
                                   transition={{
                                     duration: 1,
-                                    repeat: Infinity,
+                                    repeat: Number.POSITIVE_INFINITY,
                                     delay: index * 0.2,
                                   }}
                                 />
@@ -1524,7 +1198,6 @@ export default function QuizStep() {
             transition={{ delay: 0.4 }}
             className="text-center space-y-2 mt-6"
           >
-            {/* PROVA SOCIAL MAIS FORTE */}
             <div className="bg-green-900/30 border border-green-500 rounded-lg p-3 mb-4">
               <p className="text-green-400 text-sm font-bold">
                 ✅ {Math.floor(Math.random() * 50) + 150} personas completaron esto en las últimas 24h
@@ -1561,7 +1234,7 @@ export default function QuizStep() {
         )}
       </div>
 
-      {/* Modal de Análisis de Carga */}
+      {/* Modal de Análise de Carga */}
       <AnimatePresence>
         {showAnalysis && (
           <LoadingAnalysis
@@ -1575,7 +1248,7 @@ export default function QuizStep() {
         )}
       </AnimatePresence>
 
-      {/* Modal de Desbloqueo de Bonificación */}
+      {/* Modal de Desbloqueio de Bonificação */}
       <AnimatePresence>
         {showBonusUnlock && newBonus && <BonusUnlock bonus={newBonus} onComplete={handleBonusUnlockComplete} />}
       </AnimatePresence>
