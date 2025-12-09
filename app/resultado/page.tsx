@@ -22,7 +22,7 @@ import { CountdownTimer } from "@/components/countdown-timer"
 import { enviarEvento } from "../../lib/analytics"
 
 export default function ResultPageFixed() {
-  // ===== ESTADOS (REMOVIDOS OS ESTADOS DO VÍDEO) =====
+  // ===== ESTADOS =====
   const [isLoaded, setIsLoaded] = useState(false)
   const [userGender, setUserGender] = useState<string>("")
   const [userAnswers, setUserAnswers] = useState<object>({})
@@ -38,6 +38,7 @@ export default function ResultPageFixed() {
   const contentRef = useRef<HTMLDivElement>(null)
   const startTimeRef = useRef(Date.now())
   const decryptIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const videoContainerRef = useRef<HTMLDivElement>(null)
 
   // ===== VERIFICAÇÃO DE AMBIENTE BROWSER =====
   useEffect(() => {
@@ -65,7 +66,6 @@ export default function ResultPageFixed() {
 
       startTimeRef.current = Date.now()
 
-      // Simular compradores em tempo real
       const interval = setInterval(() => {
         setActiveBuyers(prev => prev + Math.floor(Math.random() * 2) + 1)
       }, 45000)
@@ -93,14 +93,12 @@ export default function ResultPageFixed() {
         clearInterval(decryptIntervalRef.current)
       }
 
-      // Animação de descriptografia inicial CONTROLADA
       decryptIntervalRef.current = setInterval(() => {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
         const randomText = Array.from({length: 30}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
         setDecryptedText(randomText);
       }, 100);
 
-      // Sequência de revelações
       const timers = [
         setTimeout(() => {
           if (decryptIntervalRef.current) {
@@ -138,6 +136,47 @@ export default function ResultPageFixed() {
       console.error("Erro na progressão de revelações:", error)
     }
   }, [])
+
+  // ✅ CORREÇÃO DEFINITIVA DO VÍDEO - USANDO dangerouslySetInnerHTML
+  useEffect(() => {
+    if (!showVSL || !isBrowser || !videoContainerRef.current) return
+
+    // Aguardar um pouco para o DOM estar pronto
+    const timer = setTimeout(() => {
+      if (videoContainerRef.current) {
+        // ✅ INSERIR O HTML DIRETO NO DOM
+        videoContainerRef.current.innerHTML = `
+          <div style="position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: 8px; overflow: hidden;">
+            <vturb-smartplayer 
+              id="vid-692ef1c85df8a7aaec7c6000" 
+              style="display: block; margin: 0 auto; width: 100%; height: 100%; position: absolute; top: 0; left: 0;"
+            ></vturb-smartplayer>
+          </div>
+        `
+
+        // ✅ CARREGAR O SCRIPT APÓS INSERIR O HTML
+        const existingScript = document.querySelector('script[src="https://scripts.converteai.net/15be01a4-4462-4736-aeb9-b95eda21b8b8/players/692ef1c85df8a7aaec7c6000/v4/player.js"]')
+        
+        if (!existingScript) {
+          const s = document.createElement("script")
+          s.src = "https://scripts.converteai.net/15be01a4-4462-4736-aeb9-b95eda21b8b8/players/692ef1c85df8a7aaec7c6000/v4/player.js"
+          s.async = true
+          
+          s.onload = () => {
+            console.log("Script VTurb carregado com sucesso!")
+          }
+          
+          s.onerror = () => {
+            console.error("Erro ao carregar script VTurb")
+          }
+          
+          document.head.appendChild(s)
+        }
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [showVSL, isBrowser])
 
   // ===== FUNÇÕES DE PERSONALIZAÇÃO =====
   const getPronoun = useCallback(() => userGender === "SOY MUJER" ? "él" : "ella", [userGender])
@@ -195,38 +234,6 @@ export default function ResultPageFixed() {
     }
   }, [isBrowser])
 
-  // ✅ COMPONENTE DE VÍDEO SUPER SIMPLES E LIMPO
-  const VideoPlayer = () => {
-    useEffect(() => {
-      // Verificar se o script já existe
-      const existingScript = document.querySelector('script[src="https://scripts.converteai.net/15be01a4-4462-4736-aeb9-b95eda21b8b8/players/692ef1c85df8a7aaec7c6000/v4/player.js"]');
-      
-      if (!existingScript) {
-        const s = document.createElement("script");
-        s.src = "https://scripts.converteai.net/15be01a4-4462-4736-aeb9-b95eda21b8b8/players/692ef1c85df8a7aaec7c6000/v4/player.js";
-        s.async = true;
-        document.head.appendChild(s);
-      }
-    }, []);
-
-    return (
-      <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', backgroundColor: '#000', borderRadius: '8px', overflow: 'hidden' }}>
-        <vturb-smartplayer 
-          id="vid-692ef1c85df8a7aaec7c6000" 
-          style={{ 
-            display: 'block', 
-            margin: '0 auto', 
-            width: '100%', 
-            height: '100%', 
-            position: 'absolute', 
-            top: 0, 
-            left: 0 
-          }}
-        ></vturb-smartplayer>
-      </div>
-    );
-  };
-
   if (!isBrowser) {
     return <div className="min-h-screen bg-black flex items-center justify-center text-white">Cargando...</div>
   }
@@ -240,10 +247,8 @@ export default function ResultPageFixed() {
 
       <div className="min-h-screen bg-black overflow-x-hidden w-full max-w-[100vw]">
         
-        {/* ===== TRANSIÇÃO MATRIX DO QUIZ ===== */}
         <div className="matrix-background w-full min-h-screen relative">
           
-          {/* Background Matrix Effect */}
           <div className="matrix-bg-animation"></div>
           
           <div className="relative z-10 max-w-4xl mx-auto px-4 py-8">
@@ -258,7 +263,6 @@ export default function ResultPageFixed() {
                 <span className="text-white">CÓDIGO</span> <span className="text-green-500">RESULTADO</span>
               </h1>
               
-              {/* Terminal de Código */}
               <div className="bg-gray-900/90 border-2 border-green-500 rounded-lg p-6 mb-8 font-mono">
                 <div className="text-green-400 text-left mb-4">
                   <span className="text-gray-500">$</span> analizando_resultado_quiz.exe
@@ -352,7 +356,7 @@ export default function ResultPageFixed() {
               )}
             </AnimatePresence>
 
-            {/* ===== REVELACIÓN 2: VSL ESTRATÉGICO (VÍDEO LIMPO) ===== */}
+            {/* ===== REVELACIÓN 2: VSL COM VÍDEO CORRIGIDO ===== */}
             <AnimatePresence>
               {showVSL && (
                 <motion.div
@@ -371,9 +375,14 @@ export default function ResultPageFixed() {
                       </p>
                     </div>
 
-                    {/* ✅ CONTAINER DO VÍDEO SUPER LIMPO */}
+                    {/* ✅ CONTAINER DO VÍDEO COM dangerouslySetInnerHTML */}
                     <div className="max-w-3xl mx-auto mb-6">
-                      <VideoPlayer />
+                      <div 
+                        ref={videoContainerRef}
+                        className="w-full min-h-[300px] bg-black rounded-lg"
+                      >
+                        {/* O vídeo será inserido aqui via innerHTML */}
+                      </div>
                     </div>
                     
                     <div className="text-center bg-green-900/30 rounded-lg p-4 border border-green-500">
@@ -387,7 +396,7 @@ export default function ResultPageFixed() {
               )}
             </AnimatePresence>
 
-            {/* ===== REVELACIÓN 3: OFERTA IRRESISTÍVEL ===== */}
+            {/* ===== RESTO DO CÓDIGO CONTINUA IGUAL... ===== */}
             <AnimatePresence>
               {showOffer && (
                 <motion.div
@@ -670,6 +679,7 @@ export default function ResultPageFixed() {
             z-index: 0;
           }
 
+          /* Resto do CSS igual ao anterior... */
           .mobile-padding {
             padding: clamp(1rem, 4vw, 2rem) clamp(0.75rem, 3vw, 1rem);
           }
