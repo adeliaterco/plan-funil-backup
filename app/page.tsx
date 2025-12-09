@@ -1,13 +1,11 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
-import { ArrowRight, Shield, X } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
+import { ArrowRight, Shield } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 
-// 
-// GA OTIMIZADO - Batch de eventos para melhor performance
-// 
+// GA otimizado - só envia quando necessário
 const enviarEvento = (() => {
   let queue = []
   let timeout
@@ -19,10 +17,7 @@ const enviarEvento = (() => {
     timeout = setTimeout(() => {
       if (typeof window !== "undefined" && window.gtag && queue.length) {
         queue.forEach(({ evento, props }) => {
-          window.gtag("event", evento, {
-            timestamp: new Date().toISOString(),
-            ...props
-          })
+          window.gtag("event", evento, props)
         })
         queue = []
       }
@@ -30,50 +25,19 @@ const enviarEvento = (() => {
   }
 })()
 
-// 
-// CONSTANTES DE CONFIGURAÇÃO
-// 
-const CONFIG = {
-  MODAL_DELAY: 8000, // 8 segundos para modal
-  SPOTS_TOTAL: 100,
-  SPOTS_PER_DAY: 100,
-  HEADLINE_VERSION: "psychological_2am_v2", // Para A/B testing
-  QUIZ_DURATION_MINUTES: 2
-}
-
-// Função para gerar spots restantes de forma consistente
-const getConsistentSpots = () => {
-  if (typeof window === "undefined") return 23
-  
-  // Usar data + hash para gerar número consistente por dia
-  const today = new Date().toDateString()
-  const seed = today.split("").reduce((a, b) => a + b.charCodeAt(0), 0)
-  return Math.max(10, (seed % 40) + 10) // Entre 10 e 50 spots
-}
-
-// 
-// COMPONENT PRINCIPAL
-// 
 export default function HomePage() {
   const router = useRouter()
-  const spotsRestantes = getConsistentSpots()
-  
-  // State Management
   const [isLoading, setIsLoading] = useState(false)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [errorMessage, setErrorMessage] = useState("")
   const [isOnline, setIsOnline] = useState(true)
-  const [showPsychologicalModal, setShowPsychologicalModal] = useState(false)
-  const [modalHasBeenShown, setModalHasBeenShown] = useState(false)
-  const modalTimerRef = useRef(null)
 
-  // ==================== EFFECTS ====================
-
-  // Detecção de conexão
+  // Detecção de conexão minimalista
   useEffect(() => {
     if (typeof window === "undefined") return
 
     const updateOnlineStatus = () => setIsOnline(navigator.onLine)
+
     window.addEventListener("online", updateOnlineStatus, { passive: true })
     window.addEventListener("offline", updateOnlineStatus, { passive: true })
 
@@ -83,69 +47,40 @@ export default function HomePage() {
     }
   }, [])
 
-  // Page view tracking
+  // Tracking minimalista - só o essencial
   useEffect(() => {
     if (typeof window === "undefined") return
 
     const timer = setTimeout(() => {
       enviarEvento("page_view", {
-        device: window.innerWidth &lt; 768 ? "mobile" : "desktop",
-        headline_version: CONFIG.HEADLINE_VERSION,
-        page: "homepage"
+        device: window.innerWidth < 768 ? "mobile" : "desktop",
+        headline_version: "psychological_discovery_2am"
       })
     }, 1000)
 
     return () => clearTimeout(timer)
   }, [])
 
-  // Modal cinematográfico após 8 segundos
-  useEffect(() => {
-    if (typeof window === "undefined" || modalHasBeenShown) return
-
-    modalTimerRef.current = setTimeout(() => {
-      setShowPsychologicalModal(true)
-      setModalHasBeenShown(true)
-
-      enviarEvento("psychological_modal_view", {
-        time_on_page_ms: 8000,
-        device: window.innerWidth &lt; 768 ? "mobile" : "desktop",
-        headline_version: CONFIG.HEADLINE_VERSION
-      })
-    }, CONFIG.MODAL_DELAY)
-
-    return () => {
-      if (modalTimerRef.current) clearTimeout(modalTimerRef.current)
-    }
-  }, [modalHasBeenShown])
-
-  // ==================== HANDLERS ====================
-
+  // Função de início ultra-otimizada
   const handleStart = useCallback(() => {
     if (isLoading || !isOnline) return
 
     setIsLoading(true)
     setLoadingProgress(20)
 
-    // Close modal se estiver aberto
-    if (showPsychologicalModal) {
-      setShowPsychologicalModal(false)
-    }
-
     enviarEvento("quiz_start", {
-      headline_version: CONFIG.HEADLINE_VERSION,
-      modal_shown: modalHasBeenShown,
-      source: "cta_main"
+      headline_version: "psychological_discovery_2am"
     })
 
     let progress = 20
     const interval = setInterval(() => {
-      progress += Math.random() * 20 + 10
-      setLoadingProgress(Math.min(progress, 95))
+      progress += 15
+      setLoadingProgress(progress)
 
-      if (progress >= 95) {
+      if (progress >= 100) {
         clearInterval(interval)
 
-        // Preservar UTMs e adicionar session data
+        // Preservar UTMs
         let url = "/quiz/1"
         if (typeof window !== "undefined" && window.location.search) {
           const params = new URLSearchParams(window.location.search)
@@ -158,36 +93,17 @@ export default function HomePage() {
           if (utms.toString()) url += `?${utms.toString()}`
         }
 
-        // Pequeno delay para dar naturalidade
-        setTimeout(() => {
-          setLoadingProgress(100)
-          router.push(url)
-        }, 300)
+        router.push(url)
       }
     }, 200)
-  }, [isLoading, isOnline, router, showPsychologicalModal, modalHasBeenShown])
-
-  const handleCloseModal = useCallback(() => {
-    setShowPsychologicalModal(false)
-    enviarEvento("psychological_modal_close", {
-      time_shown_ms: 0
-    })
-  }, [])
-
-  // ==================== RENDER ====================
+  }, [isLoading, isOnline, router])
 
   return (
-    &lt;>
+    <>
       <head>
-        <title>Descubre si ella piensa en ti - Test Psicológico</title>
-        <meta name="description" content="Responde 7 preguntas y descubre si tu ex sigue pensando en ti. 87% ignora estas señales psicológicas." />
-        <meta property="og:title" content="Descubre si ella piensa en ti" />
-        <meta property="og:description" content="Test psicológico que revela qué piensa de ti basado en señales que el 87% ignora" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="preconnect" href="https://comprarplanseguro.shop" />
         <link rel="dns-prefetch" href="https://comprarplanseguro.shop" />
       </head>
-
       <div
         style={{
           backgroundColor: "#000000",
@@ -307,11 +223,6 @@ export default function HomePage() {
           .btn-iniciar-quiz:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(220, 38, 38, 0.4);
-            background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
-          }
-
-          .btn-iniciar-quiz:active {
-            transform: translateY(0px);
           }
 
           .btn-iniciar-quiz:disabled {
@@ -382,154 +293,6 @@ export default function HomePage() {
             border-radius: 3px;
           }
 
-          /* Modal Styles */
-          .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.85);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 999;
-            animation: fadeIn 0.3s ease;
-          }
-
-          @keyframes fadeIn {
-            from {
-              opacity: 0;
-            }
-            to {
-              opacity: 1;
-            }
-          }
-
-          .modal-content {
-            background: linear-gradient(135deg, #1f1f23 0%, #2d1b1b 100%);
-            border: 2px solid #dc2626;
-            border-radius: 15px;
-            padding: 30px;
-            max-width: 450px;
-            width: 90%;
-            position: relative;
-            animation: slideUp 0.4s ease;
-            box-shadow: 0 20px 60px rgba(220, 38, 38, 0.3);
-          }
-
-          @keyframes slideUp {
-            from {
-              transform: translateY(30px);
-              opacity: 0;
-            }
-            to {
-              transform: translateY(0);
-              opacity: 1;
-            }
-          }
-
-          .modal-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 20px;
-          }
-
-          .modal-header h3 {
-            color: #dc2626;
-            font-size: 16px;
-            font-weight: 700;
-            margin: 0;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-          }
-
-          .modal-body {
-            color: #fff;
-            font-size: 14px;
-            line-height: 1.6;
-          }
-
-          .modal-body p {
-            margin: 12px 0;
-            text-align: left;
-          }
-
-          .modal-body ul {
-            list-style: none;
-            padding: 0;
-            margin: 15px 0;
-            text-align: left;
-          }
-
-          .modal-body li {
-            margin: 8px 0;
-            color: #e5e5e5;
-          }
-
-          .revelation-box {
-            background: rgba(220, 38, 38, 0.15);
-            border: 1px solid rgba(220, 38, 38, 0.3);
-            border-radius: 10px;
-            padding: 15px;
-            margin: 15px 0;
-            text-align: left;
-          }
-
-          .revelation-box p {
-            margin: 8px 0;
-            font-size: 13px;
-            color: #e5e5e5;
-          }
-
-          .modal-cta {
-            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-            color: white;
-            border: none;
-            padding: 14px 24px;
-            font-size: 14px;
-            font-weight: 700;
-            border-radius: 20px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 20px;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-          }
-
-          .modal-cta:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(220, 38, 38, 0.4);
-          }
-
-          .modal-close {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: none;
-            border: none;
-            color: #dc2626;
-            font-size: 28px;
-            cursor: pointer;
-            transition: color 0.2s ease;
-            padding: 0;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-
-          .modal-close:hover {
-            color: #f87171;
-          }
-
           @media (max-width: 768px) {
             .container-quiz {
               padding: 30px 20px;
@@ -557,11 +320,6 @@ export default function HomePage() {
               font-size: 14px;
               padding: 16px 28px;
               max-width: 100%;
-            }
-
-            .modal-content {
-              max-width: 90%;
-              padding: 20px;
             }
 
             .copyright {
@@ -592,23 +350,186 @@ export default function HomePage() {
             .emoji-alerta {
               font-size: 24px;
             }
-
-            .modal-content {
-              max-width: 95%;
-            }
           }
         `}</style>
 
         {/* Loading overlay */}
         {isLoading && (
-          <div className="loading-overlay" role="status" aria-label="Carregando análise">
+          <div className="loading-overlay">
             <div className="loading-content">
               <div style={{ fontSize: "18px", fontWeight: "600" }}>
                 Preparando tu análisis personalizado...
                 <div style={{fontSize: "14px", marginTop: "8px", color: "#dc2626"}}>
-                  ⚠️ Spot #{Math.floor(Math.random() * (spotsRestantes - 5) + 5)} de {CONFIG.SPOTS_TOTAL} reservado
+                  ⚠️ Spot #{Math.floor(Math.random() * 23 + 77)} de 100 reservado
                 </div>
               </div>
               <div className="progress-bar">
                 <div className="progress-fill" style={{ width: `${loadingProgress}%` }} />
-              </div
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error message */}
+        {errorMessage && (
+          <div
+            style={{
+              position: "fixed",
+              top: "20px",
+              left: "20px",
+              right: "20px",
+              background: "#dc2626",
+              color: "white",
+              padding: "15px",
+              borderRadius: "10px",
+              zIndex: 1000,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <span>{errorMessage}</span>
+            <button
+              onClick={() => setErrorMessage("")}
+              style={{
+                background: "none",
+                border: "none",
+                color: "white",
+                fontSize: "20px",
+                cursor: "pointer",
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        {/* Offline indicator */}
+        {!isOnline && (
+          <div
+            style={{
+              position: "fixed",
+              top: "0",
+              left: "0",
+              right: "0",
+              background: "#f59e0b",
+              color: "white",
+              textAlign: "center",
+              padding: "10px",
+              zIndex: 1000,
+            }}
+          >
+            ⚠️ Sem conexão com a internet
+          </div>
+        )}
+
+        {/* CONTEÚDO PRINCIPAL COM NOVA COPY */}
+        <div className="main-content">
+          <div className="container-quiz">
+            
+            {/* LOGO CENTRALIZADA */}
+            <div className="logo-container">
+              <Image
+                src="https://comprarplanseguro.shop/wp-content/uploads/2025/10/c2b0ddda-8a7c-4554-a6c9-d57887b06149.webp"
+                alt="Logo Plan A"
+                width={120}
+                height={75}
+                className="logo-pequena"
+                priority
+                quality={70}
+                onError={(e) => {
+                  e.target.style.display = "none"
+                }}
+              />
+            </div>
+
+            {/* 1. NOVA HEADLINE IMPACTANTE */}
+            <h1 className="titulo-quiz">
+              <span className="emoji-alerta">🚨</span>
+              ELLA SIGUE PENSANDO EN TI
+              <br />
+              <span style={{fontSize: '20px', opacity: 0.9, color: '#dc2626'}}>
+                (El Test Que Lo Revela)
+              </span>
+            </h1>
+
+            {/* 2. NOVO SUBTÍTULO COM GANCHO PSICOLÓGICO */}
+            <p className="subtitulo-quiz">
+              Responde <span className="destaque-palavra">7 PREGUNTAS ESPECÍFICAS</span> y descubre si aún sientes algo por ti basándome en señales psicológicas que el 87% ignora...
+              <br />
+              <span className="prova-social">3,847 hombres ya conocen la verdad sobre su ex.</span>
+            </p>
+
+            {/* 5. INFORMAÇÕES DO QUIZ MELHORADAS */}
+            <div className="quiz-info">
+              <div>⏱️ 2 min</div>
+              <div>🎯 Resultado inmediato</div>
+              <div>🔥 Análisis personalizado</div>
+            </div>
+
+            {/* 4. NOVO: Escassez Real */}
+            <div style={{
+              background: 'rgba(220, 38, 38, 0.1)',
+              border: '1px solid rgba(220, 38, 38, 0.4)',
+              borderRadius: '10px',
+              padding: '12px',
+              margin: '15px 0',
+              textAlign: 'center'
+            }}>
+              <div style={{color: '#dc2626', fontSize: '13px', fontWeight: '600'}}>
+                ⚠️ ACCESO LIMITADO HOY
+              </div>
+              <div style={{color: '#fff', fontSize: '12px', marginTop: '4px'}}>
+                Solo 100 personas por día pueden acceder al test completo
+              </div>
+              <div style={{color: '#dc2626', fontSize: '12px', fontWeight: '600', marginTop: '2px'}}>
+                Spots restantes: 23
+              </div>
+            </div>
+
+            {/* 3. CTA OTIMIZADO */}
+            <button 
+              onClick={handleStart} 
+              disabled={isLoading || !isOnline} 
+              className="btn-iniciar-quiz"
+            >
+              {isLoading ? (
+                "PREPARANDO..."
+              ) : (
+                <>
+                  HACER LA PRUEBA AHORA
+                  <ArrowRight size={18} />
+                </>
+              )}
+            </button>
+
+            {/* 6. NOVO: Prova Social Específica */}
+            <div style={{
+              background: 'rgba(0, 0, 0, 0.3)',
+              borderRadius: '10px',
+              padding: '12px',
+              margin: '20px 0 15px 0',
+              border: '1px solid rgba(34, 197, 94, 0.3)'
+            }}>
+              <div style={{color: '#22c55e', fontSize: '12px', fontWeight: '600', textAlign: 'center', marginBottom: '6px'}}>
+                RESULTADO RECIENTE:
+              </div>
+              <div style={{color: '#fff', fontSize: '11px', textAlign: 'center', fontStyle: 'italic'}}>
+                "Hice el test y descubrí que ella SÍ pensaba en mí. 
+                En 12 días volvimos." - Carlos A.
+              </div>
+            </div>
+
+            {/* GARANTIA MÍNIMA */}
+            <div className="garantia-simples">
+              <Shield size={14} />
+              Completamente confidencial
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </>
+  )
+}
