@@ -300,7 +300,7 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
   )
 }
 
-// === COMPONENTE CODE UNLOCK REVEAL PARA ETAPA 13 ===
+// === COMPONENTE CODE UNLOCK REVEAL CORRIGIDO - ETAPA 13 ===
 const CodeUnlockReveal = ({ onComplete, userGender }) => {
   const [decryptedText, setDecryptedText] = useState("")
   const [isDecrypting, setIsDecrypting] = useState(true)
@@ -318,13 +318,13 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
   useEffect(() => {
     let intervalId;
     let revealTimeout;
-    let buttonTimeout;
 
     if (isDecrypting) {
       const targetText = fullContent();
       let currentDecrypted = Array(targetText.length).fill(generateRandomChar());
       let revealIndex = 0;
 
+      // ✅ CORREÇÃO 1: Animação 2x mais rápida (10ms em vez de 20ms)
       intervalId = setInterval(() => {
         if (revealIndex < targetText.length) {
           currentDecrypted[revealIndex] = targetText[revealIndex];
@@ -333,12 +333,14 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
         } else {
           clearInterval(intervalId);
           setIsDecrypting(false);
+          
+          // ✅ CORREÇÃO 2: Removido delay duplo - botão aparece imediatamente
           revealTimeout = setTimeout(() => {
             setContentRevealed(true);
-            buttonTimeout = setTimeout(() => setShowButton(true), 1000);
-          }, 500);
+            setShowButton(true); // ✅ IMEDIATO, sem 1000ms extra
+          }, 300); // ✅ Reduzido de 500ms para 300ms
         }
-      }, 20);
+      }, 10); // ✅ Mais rápido: 10ms por caractere
 
       setDecryptedText(currentDecrypted.join(''));
     }
@@ -346,7 +348,6 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
     return () => {
       clearInterval(intervalId);
       clearTimeout(revealTimeout);
-      clearTimeout(buttonTimeout);
     };
   }, [isDecrypting, fullContent]);
 
@@ -447,26 +448,46 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           )}
         </AnimatePresence>
 
+        {/* ✅ CORREÇÃO 3: Botão com animação melhorada */}
         <AnimatePresence>
           {showButton && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
+              initial={{ opacity: 0, y: 20, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.8 }}
+              transition={{ duration: 0.5, type: "spring" }} // ✅ Animação mais suave
               className="mt-8"
             >
               <Button
                 onClick={onComplete}
                 size="lg"
-                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-3 px-6 rounded-full shadow-lg w-full sm:w-auto text-lg"
+                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 px-8 rounded-full shadow-lg w-full sm:w-auto text-lg transform hover:scale-105 transition-all duration-200"
               >
-                ACCEDER AL PLAN A COMPLETO
+                🚀 ACCEDER AL PLAN A COMPLETO
                 <ArrowRight className="w-6 h-6 ml-3" />
               </Button>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* ✅ CORREÇÃO 4: Botão de emergência caso a animação falhe */}
+        {!showButton && !isDecrypting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 5 }} // Aparece após 5s se algo der errado
+            className="mt-8"
+          >
+            <Button
+              onClick={onComplete}
+              size="lg"
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-4 px-8 rounded-full shadow-lg w-full sm:w-auto text-lg"
+            >
+              ⚠️ CONTINUAR AL RESULTADO
+              <ArrowRight className="w-6 h-6 ml-3" />
+            </Button>
+          </motion.div>
+        )}
       </motion.div>
     </div>
   );
@@ -492,7 +513,7 @@ export default function QuizStep() {
   const currentStep = quizSteps[step - 1]
   const progress = (step / 13) * 100
 
-  // ✅ CORREÇÃO 1: proceedToNextStep - SÓ DEPENDÊNCIAS ESSENCIAIS
+  // ✅ CORREÇÃO: proceedToNextStep - SÓ DEPENDÊNCIAS ESSENCIAIS
   const proceedToNextStep = useCallback(() => {
     const currentUrl = new URL(window.location.href);
     let utmString = '';
@@ -508,7 +529,6 @@ export default function QuizStep() {
       utmString = '?' + utmParams.toString();
     }
 
-    // Acesso direto aos valores atuais via state
     const currentStepData = quizSteps[step - 1];
     if (currentStepData?.bonusUnlock && !unlockedBonuses.includes(currentStepData.bonusUnlock.id)) {
       enviarEvento('desbloqueou_bonus', {
@@ -547,9 +567,9 @@ export default function QuizStep() {
       
       router.push(`/resultado${utmString}`)
     }
-  }, [step, router]); // ✅ SÓ ESSENCIAIS
+  }, [step, router]);
 
-  // ✅ CORREÇÃO 2: handleNext - REMOVEU DEPENDÊNCIAS CIRCULARES
+  // ✅ CORREÇÃO: handleNext - REMOVEU DEPENDÊNCIAS CIRCULARES
   const handleNext = useCallback(() => {
     enviarEvento('avancou_etapa', {
       numero_etapa: step,
@@ -577,9 +597,9 @@ export default function QuizStep() {
     }
 
     proceedToNextStep()
-  }, [step, selectedAnswer, quizData]); // ✅ REMOVEU currentStep, proceedToNextStep
+  }, [step, selectedAnswer, quizData]);
 
-  // ✅ CORREÇÃO 3: handleAnswerSelect - REMOVEU DEPENDÊNCIAS CIRCULARES
+  // ✅ CORREÇÃO: handleAnswerSelect - REMOVEU DEPENDÊNCIAS CIRCULARES
   const handleAnswerSelect = useCallback((answer: string) => {
     setSelectedAnswer(answer)
 
@@ -604,9 +624,9 @@ export default function QuizStep() {
       pergunta: quizSteps[step - 1]?.question || `Etapa ${step}`,
       resposta: answer
     });
-  }, [step]); // ✅ REMOVEU currentStep, handleNext
+  }, [step]);
 
-  // ✅ CORREÇÃO 4: useEffect - SÓ DEPENDE DE STEP
+  // ✅ CORREÇÃO: useEffect - SÓ DEPENDE DE STEP
   useEffect(() => {
     const saved = localStorage.getItem("quizData")
     const savedBonuses = localStorage.getItem("unlockedBonuses")
@@ -641,7 +661,7 @@ export default function QuizStep() {
       clearTimeout(loadTimer)
       if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer)
     }
-  }, [step]); // ✅ SÓ step
+  }, [step]);
 
   const handleStep12Complete = useCallback(() => {
     setStep12Completed(true)
@@ -691,7 +711,7 @@ export default function QuizStep() {
       }
     }
     
-    if (utmString.toString() !== '') {
+    if (utmParams.toString() !== '') {
       utmString = '?' + utmParams.toString();
     }
     
@@ -906,7 +926,6 @@ export default function QuizStep() {
                   
                   <WhatsAppMockup userGender={userGender} onComplete={handleStep12Complete} />
                   
-                  {/* ✅ Botão de emergência - aparece após animação */}
                   <AnimatePresence>
                     {step12Completed && (
                       <motion.div
@@ -936,7 +955,7 @@ export default function QuizStep() {
           </motion.div>
         )}
 
-        {/* ✅ STEP 13 - CÓDIGO DESBLOQUEADO */}
+        {/* ✅ STEP 13 - CÓDIGO DESBLOQUEADO COM CORREÇÃO FINAL */}
         {step === 13 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
