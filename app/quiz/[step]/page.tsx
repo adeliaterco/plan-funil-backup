@@ -886,7 +886,7 @@ export default function QuizStep() {
               <CardContent className="p-6 sm:p-8">
                 <div className="text-center">
                   <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-6 leading-tight">
-                    🔥 <span className="text-red-500">ESTO ES LO QUE ELLA REALMENTE TE</span>RESPONDERÍA
+                    🔥 <span className="text-red-500">ESTO ES LO QUE ELLA REALMENTE TE</span> RESPONDERÍA
                   </h2>
                   
                   <p className="text-orange-200 text-center mb-4 text-base sm:text-lg font-medium">
