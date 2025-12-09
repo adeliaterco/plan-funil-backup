@@ -17,12 +17,13 @@ const SITUATION_PATTERNS = {
   FRIENDS: "amigos"
 } as const
 
-// ✅ CACHE PARA NOMES - Evitar re-render desnecessários
+// ✅ CACHE SEM JSON.stringify() - Usa chaves simples
 const exNameCache = new Map<string, string>()
+let lastCachedGender = ''
 
 // === FUNÇÕES DE PERSONALIZAÇÃO OTIMIZADAS ===
 
-// ✅ OTIMIZAÇÃO 1: Cache localStorage com useMemo pattern
+// ✅ OTIMIZAÇÃO 1: Cache localStorage com padrão seguro
 class QuizDataCache {
   private static instance: QuizDataCache
   private cache: Map<string, any> = new Map()
@@ -41,7 +42,7 @@ class QuizDataCache {
     
     // ✅ Usar cache se atualizado há menos de 1s
     if (this.cache.has('quizAnswers') && now - this.lastUpdate < this.updateInterval) {
-      return this.cache.get('quizAnswers')
+      return this.cache.get('quizAnswers') || {}
     }
 
     if (typeof window === 'undefined') return {}
@@ -73,23 +74,33 @@ class QuizDataCache {
 
 // ✅ OTIMIZAÇÃO 2: getUserAnswer com cache
 function getUserAnswer(questionId: string): string {
-  const cache = QuizDataCache.getInstance()
-  const answers = cache.getQuizAnswers()
-  return answers[questionId] || ''
+  try {
+    const cache = QuizDataCache.getInstance()
+    const answers = cache.getQuizAnswers()
+    return answers[questionId] || ''
+  } catch (e) {
+    console.error('Erro ao obter resposta:', e)
+    return ''
+  }
 }
 
 function getUserGender(): string {
-  const cache = QuizDataCache.getInstance()
-  return cache.getUserGender()
+  try {
+    const cache = QuizDataCache.getInstance()
+    return cache.getUserGender()
+  } catch (e) {
+    console.error('Erro ao obter gênero:', e)
+    return GENDER_VALUES.MALE
+  }
 }
 
 // ✅ OTIMIZAÇÃO 3: Mapa de situações para evitar múltiplos .includes()
-function getSituationKey(situation: string): keyof typeof SITUATION_PATTERNS | null {
+function getSituationKey(situation: string): string | null {
   if (!situation) return null
 
   for (const [key, pattern] of Object.entries(SITUATION_PATTERNS)) {
-    if (situation.includes(pattern)) {
-      return key as keyof typeof SITUATION_PATTERNS
+    if (situation.toLowerCase().includes(pattern.toLowerCase())) {
+      return key
     }
   }
 
@@ -98,23 +109,23 @@ function getSituationKey(situation: string): keyof typeof SITUATION_PATTERNS | n
 
 // ✅ OTIMIZAÇÃO 4: Mapear respostas por situação (sem if/else chain)
 const messageMapBySituation = {
-  [SITUATION_PATTERNS.ZERO_CONTACT]: {
+  ZERO_CONTACT: {
     first: `Hola, encontré algo que es tuyo. ¿Cuándo puedes pasar a recogerlo?`,
     response: "¿Qué cosa? No recuerdo haber dejado nada..."
   },
-  [SITUATION_PATTERNS.IGNORING]: {
+  IGNORING: {
     first: `Hola, no voy a molestarte más. Solo quería agradecerte por algo que me enseñaste.`,
     response: "¿Qué me enseñé? Me tienes curiosa..."
   },
-  [SITUATION_PATTERNS.BLOCKED]: {
+  BLOCKED: {
     first: `Hola, María me pidió preguntarte sobre el evento del viernes.`,
     response: "Ah sí, dile que sí voy. Gracias por preguntar."
   },
-  [SITUATION_PATTERNS.NECESSARY_ONLY]: {
+  NECESSARY_ONLY: {
     first: `Hola, vi esta foto nuestra del viaje a la playa y me hizo sonreír. Espero que estés bien.`,
     response: "😊 Qué bonito recuerdo. Yo también estoy bien, gracias."
   },
-  [SITUATION_PATTERNS.CHATTING]: {
+  CHATTING: {
     first: `Hola, tengo que contarte algo curioso que me pasó que te va a hacer reír. ¿Tienes 5 minutos para una llamada?`,
     response: "Jajaja ya me tienes intrigada. Cuéntame por aquí primero"
   }
@@ -125,25 +136,28 @@ const defaultMessages = {
   response: "Gracias por acordarte de mí. ¿Cómo has estado?"
 }
 
-// ✅ OTIMIZAÇÃO 5: Funções memoizadas com cache pattern
-let exNameCachedResult: string | null = null
-let exNameCacheGender: string | null = null
-
+// ✅ OTIMIZAÇÃO 5: Funções memoizadas SEM JSON.stringify()
 function getExName(): string {
-  const gender = getUserGender()
-  
-  // ✅ Cache o resultado
-  if (exNameCachedResult && exNameCacheGender === gender) {
-    return exNameCachedResult
-  }
+  try {
+    const gender = getUserGender()
+    
+    // ✅ Cache com chave simples (não JSON)
+    if (lastCachedGender === gender && exNameCache.has(gender)) {
+      return exNameCache.get(gender) || 'José Plan'
+    }
 
-  const names = gender === GENDER_VALUES.MALE ? FEMALE_NAMES : MALE_NAMES
-  const result = names[Math.floor(Math.random() * names.length)]
-  
-  exNameCachedResult = result
-  exNameCacheGender = gender
-  
-  return result
+    const names = gender === GENDER_VALUES.MALE ? FEMALE_NAMES : MALE_NAMES
+    const result = names[Math.floor(Math.random() * names.length)]
+    
+    // ✅ Cachea resultado com chave simples
+    exNameCache.set(gender, result)
+    lastCachedGender = gender
+    
+    return result
+  } catch (e) {
+    console.error('Erro ao gerar nome:', e)
+    return 'José Plan'
+  }
 }
 
 function getExAvatar(): string {
@@ -157,25 +171,35 @@ function getHeaderName(): string {
 
 // ✅ OTIMIZAÇÃO 6: Funções de mensagem simplificadas com map lookup
 function getPersonalizedFirstMessage(): string {
-  const currentSituation = getUserAnswer('question7')
-  const situationKey = getSituationKey(currentSituation)
-  
-  if (situationKey && messageMapBySituation[SITUATION_PATTERNS[situationKey]]) {
-    return messageMapBySituation[SITUATION_PATTERNS[situationKey]].first
+  try {
+    const currentSituation = getUserAnswer('question7')
+    const situationKey = getSituationKey(currentSituation)
+    
+    if (situationKey && messageMapBySituation[situationKey as keyof typeof messageMapBySituation]) {
+      return messageMapBySituation[situationKey as keyof typeof messageMapBySituation].first
+    }
+    
+    return defaultMessages.first
+  } catch (e) {
+    console.error('Erro ao gerar primeira mensagem:', e)
+    return defaultMessages.first
   }
-  
-  return defaultMessages.first
 }
 
 function getPersonalizedExResponse(): string {
-  const currentSituation = getUserAnswer('question7')
-  const situationKey = getSituationKey(currentSituation)
-  
-  if (situationKey && messageMapBySituation[SITUATION_PATTERNS[situationKey]]) {
-    return messageMapBySituation[SITUATION_PATTERNS[situationKey]].response
+  try {
+    const currentSituation = getUserAnswer('question7')
+    const situationKey = getSituationKey(currentSituation)
+    
+    if (situationKey && messageMapBySituation[situationKey as keyof typeof messageMapBySituation]) {
+      return messageMapBySituation[situationKey as keyof typeof messageMapBySituation].response
+    }
+    
+    return defaultMessages.response
+  } catch (e) {
+    console.error('Erro ao gerar resposta:', e)
+    return defaultMessages.response
   }
-  
-  return defaultMessages.response
 }
 
 function getPersonalizedFollowUp(): string {
@@ -184,17 +208,17 @@ function getPersonalizedFollowUp(): string {
 
 // ✅ OTIMIZAÇÃO 7: Insights com map pattern
 const insightMapBySituation = {
-  [SITUATION_PATTERNS.ZERO_CONTACT]: 
+  ZERO_CONTACT: 
     "❌ ERROR DETECTADO: Estás aplicando contacto cero de forma INCORRECTA. El 73% de los hombres cometen este error que los aleja definitivamente de su ex.",
-  [SITUATION_PATTERNS.IGNORING]: 
+  IGNORING: 
     "❌ ERROR DETECTADO: Estás siendo IGNORADO porque usas las palabras EQUIVOCADAS. Hay 3 tipos de mensajes que rompen el muro del silencio.",
-  [SITUATION_PATTERNS.BLOCKED]: 
+  BLOCKED: 
     "❌ ERROR DETECTADO: Fuiste BLOQUEADO porque ella siente PRESIÓN. Existe una técnica específica para casos de bloqueo que funciona en 9 de cada 10 veces.",
-  [SITUATION_PATTERNS.NECESSARY_ONLY]: 
+  NECESSARY_ONLY: 
     "❌ ERROR DETECTADO: El contacto 'solo por necesidad' está MATANDO tu atractivo. Cada mensaje aburrido te aleja más de la reconquista.",
-  [SITUATION_PATTERNS.CHATTING]: 
+  CHATTING: 
     "❌ ERROR DETECTADO: Charlar 'como amigos' es la TRAMPA más peligrosa. Estás en la zona de confort que te mantiene lejos de su corazón.",
-  [SITUATION_PATTERNS.FRIENDS]: 
+  FRIENDS: 
     "❌ ERROR DETECTADO: Ser 'solo amigos' es el LIMBO emocional. El 87% que se queda aquí nunca sale de esta zona."
 }
 
@@ -202,26 +226,31 @@ const defaultInsight =
   "❌ ERROR DETECTADO: Tu estrategia actual está generando el EFECTO CONTRARIO al que buscas. Hay un patrón específico que debes romper."
 
 export function getPersonalizedFirstInsight(): string {
-  const currentSituation = getUserAnswer('question7')
-  const whoEnded = getUserAnswer('question4')
-  const situationKey = getSituationKey(currentSituation)
+  try {
+    const currentSituation = getUserAnswer('question7')
+    const whoEnded = getUserAnswer('question4')
+    const situationKey = getSituationKey(currentSituation)
 
-  // ✅ Buscar por situação primeiro
-  if (situationKey && insightMapBySituation[SITUATION_PATTERNS[situationKey]]) {
-    return insightMapBySituation[SITUATION_PATTERNS[situationKey]]
+    // ✅ Buscar por situação primeiro
+    if (situationKey && insightMapBySituation[situationKey as keyof typeof insightMapBySituation]) {
+      return insightMapBySituation[situationKey as keyof typeof insightMapBySituation]
+    }
+
+    // ✅ Depois verificar quem terminou
+    if (whoEnded && whoEnded.toLowerCase().includes("terminó conmigo")) {
+      return "❌ ERROR DETECTADO: Después de que TE DEJARAN, tu estrategia actual está creando más RESISTENCIA. El 84% cometen este error psicológico."
+    }
+
+    return defaultInsight
+  } catch (e) {
+    console.error('Erro ao gerar insight:', e)
+    return defaultInsight
   }
-
-  // ✅ Depois verificar quem terminou
-  if (whoEnded && whoEnded.includes("terminó conmigo")) {
-    return "❌ ERROR DETECTADO: Después de que TE DEJARAN, tu estrategia actual está creando más RESISTENCIA. El 84% cometen este error psicológico."
-  }
-
-  return defaultInsight
 }
 
-// ✅ OTIMIZAÇÃO 8: Técnicas com map pattern
+// ✅ OTIMIZACIÓN 8: Técnicas com factory functions
 const techniqueMapBySituation = {
-  [SITUATION_PATTERNS.ZERO_CONTACT]: (timeApart: string, pronoun: string) => 
+  ZERO_CONTACT: (timeApart: string, pronoun: string) => 
     `🎯 TU TÉCNICA: "RUPTURA DEL SILENCIO MAGNÉTICO"
     
 Tu situación: Contacto cero + ${timeApart}
@@ -234,7 +263,7 @@ PASO 2: Cuando responda (lo hará en 67% de los casos):
 
 ¿Por qué funciona? Crea CURIOSIDAD sin presión. El cerebro femenino no puede resistir el misterio.`,
 
-  [SITUATION_PATTERNS.IGNORING]: (timeApart: string, pronoun: string) => 
+  IGNORING: (timeApart: string, pronoun: string) => 
     `🎯 TU TÉCNICA: "MENSAJE DE CURIOSIDAD IRRESISTIBLE"
     
 Tu situación: Te ignora + ${timeApart} separados
@@ -260,59 +289,60 @@ Envía solo esto. No esperes respuesta inmediata.
 ¿Por qué funciona? Reactiva conexión emocional sin presión ni demandas.`
 
 export function getPersonalizedTechnique(): string {
-  const currentSituation = getUserAnswer('question7')
-  const timeApart = getUserAnswer('question3')
-  const gender = getUserGender()
-  const pronoun = gender === GENDER_VALUES.MALE ? "ella" : "él"
-  
-  const situationKey = getSituationKey(currentSituation)
-
-  // ✅ Buscar na mapa de técnicas
-  if (situationKey && techniqueMapBySituation[SITUATION_PATTERNS[situationKey]]) {
-    return techniqueMapBySituation[SITUATION_PATTERNS[situationKey]](timeApart, pronoun)
-  }
-
-  return defaultTechnique(currentSituation)
-}
-
-// ✅ OTIMIZAÇÃO 9: getPersonalizedContent com cache
-let personalizedContentCache: Record<string, any> = {}
-let personalizedContentCacheGender: string = ''
-
-export function getPersonalizedContent(content: any, gender: string): any {
-  const cacheKey = `${JSON.stringify(content)}_${gender}`
-  
-  // ✅ Usar cache se gênero for o mesmo
-  if (personalizedContentCacheGender === gender && personalizedContentCache[cacheKey]) {
-    return personalizedContentCache[cacheKey]
-  }
-
-  if (typeof content === "string") {
-    return content
-  }
-
-  if (typeof content === "object" && content !== null) {
-    let result: any
+  try {
+    const currentSituation = getUserAnswer('question7')
+    const timeApart = getUserAnswer('question3')
+    const gender = getUserGender()
+    const pronoun = gender === GENDER_VALUES.MALE ? "ella" : "él"
     
-    if (content.SOY_HOMBRE && content.SOY_MUJER) {
-      result = gender === GENDER_VALUES.MALE ? content.SOY_HOMBRE : content.SOY_MUJER
-    } else if (content.masculino && content.feminino) {
-      result = gender === GENDER_VALUES.MALE ? content.masculino : content.feminino
-    } else {
-      result = content
+    const situationKey = getSituationKey(currentSituation)
+
+    // ✅ Buscar na mapa de técnicas
+    if (situationKey && techniqueMapBySituation[situationKey as keyof typeof techniqueMapBySituation]) {
+      return techniqueMapBySituation[situationKey as keyof typeof techniqueMapBySituation](timeApart, pronoun)
     }
 
-    // ✅ Cachear resultado
-    personalizedContentCache[cacheKey] = result
-    personalizedContentCacheGender = gender
-    
-    return result
+    return defaultTechnique(currentSituation)
+  } catch (e) {
+    console.error('Erro ao gerar técnica:', e)
+    return defaultTechnique('')
   }
-
-  return content
 }
 
-// === QUIZ STEPS OTIMIZADOS ===
+// ✅ OTIMIZAÇÃO 9: getPersonalizedContent SEM JSON.stringify()
+export function getPersonalizedContent(content: any, gender: string): any {
+  try {
+    // ✅ Não tentar serializar com JSON.stringify!
+    if (typeof content === "string") {
+      return content
+    }
+
+    if (typeof content === "object" && content !== null && !Array.isArray(content)) {
+      // ✅ Verificar se é um objeto simples (não função ou circular)
+      if (content.SOY_HOMBRE && content.SOY_MUJER) {
+        return gender === GENDER_VALUES.MALE ? content.SOY_HOMBRE : content.SOY_MUJER
+      }
+      
+      // ✅ Fallback para compatibilidade
+      if (content.masculino && content.feminino) {
+        return gender === GENDER_VALUES.MALE ? content.masculino : content.feminino
+      }
+      
+      return content
+    }
+
+    if (Array.isArray(content)) {
+      return content
+    }
+
+    return content
+  } catch (e) {
+    console.error('Erro ao personalizar conteúdo:', e)
+    return content
+  }
+}
+
+// === QUIZ STEPS ATUALIZADOS ===
 
 export const quizSteps = [
     {
@@ -562,15 +592,20 @@ export const quizSteps = [
         id: 13,
         question: "🎯 TU PLAN A PERSONALIZADO ESTÁ LISTO",
         description: () => {
-          const insight = getPersonalizedFirstInsight()
-          const technique = getPersonalizedTechnique()
-          return `Después de crear tu demostración específica, he confirmado que tu situación tiene **89% de probabilidad de éxito** usando el Plan A.
+          try {
+            const insight = getPersonalizedFirstInsight()
+            const technique = getPersonalizedTechnique()
+            return `Después de crear tu demostración específica, he confirmado que tu situación tiene **89% de probabilidad de éxito** usando el Plan A.
 
 ${insight}
 
 **Esta es solo la PRIMERA de las 21 técnicas específicas para tu caso:**
 
 ${technique}`
+          } catch (e) {
+            console.error('Erro ao gerar descrição:', e)
+            return "Tu plan personalizado está listo."
+          }
         },
         subtext: "Plan completo personalizado + 21 técnicas específicas para tu situación",
         options: ["🚀 QUIERO ACCEDER AL PLAN A COMPLETO AHORA"],
@@ -628,7 +663,7 @@ export const socialProofMessages = [
     "4,129 personas recuperaron sus relaciones este año"
 ]
 
-// Expor funções globalmente
+// ✅ EXPORT sin JSON.stringify!
 if (typeof window !== 'undefined') {
     (window as any).getPersonalizedFirstInsight = getPersonalizedFirstInsight
     (window as any).getPersonalizedTechnique = getPersonalizedTechnique
