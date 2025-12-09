@@ -5,11 +5,7 @@ import { ArrowRight, Shield, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 
-// 
-// GA OTIMIZADO - Batch de eventos para melhor performance
-// 
-// Esta função otimiza o envio de eventos para o Google Analytics,
-// agrupando múltiplos eventos em um curto período para reduzir chamadas de rede.
+// GA OTIMIZADO
 const enviarEvento = (() => {
   let queue: { evento: string; props: Record<string, any> }[] = []
   let timeout: NodeJS.Timeout | null = null
@@ -28,59 +24,52 @@ const enviarEvento = (() => {
         })
         queue = []
       }
-    }, 500) // Envia eventos a cada 500ms
+    }, 500)
   }
 })()
 
-// 
-// CONSTANTES DE CONFIGURAÇÃO
-// 
-// Centraliza configurações importantes para fácil ajuste e manutenção.
+// ✅ CONFIGURAÇÃO AJUSTADA
 const CONFIG = {
-  MODAL_DELAY: 8000, // Tempo em ms para o modal psicológico aparecer (8 segundos)
-  SPOTS_TOTAL: 100, // Número total de "spots" disponíveis para o quiz
-  QUIZ_DURATION_MINUTES: 2, // Duração estimada do quiz
-  HEADLINE_VERSION: "psychological_2am_v2", // Identificador para A/B testing da headline
+  MODAL_DELAY_MIN: 15000, // ✅ AUMENTADO: 15 segundos mínimo (era 8)
+  MODAL_SCROLL_TRIGGER: 300, // ✅ NOVO: Modal também aparece após scroll de 300px
+  SPOTS_TOTAL: 100,
+  QUIZ_DURATION_MINUTES: 2,
+  HEADLINE_VERSION: "psychological_2am_v2",
   LOGO_URL: "https://comprarplanseguro.shop/wp-content/uploads/2025/10/c2b0ddda-8a7c-4554-a6c9-d57887b06149.webp",
   SITE_DOMAIN: "https://comprarplanseguro.shop"
 }
 
-// Função para gerar spots restantes de forma consistente por dia
-// Isso evita que o número de spots "restantes" pareça artificialmente fixo ou aleatório demais.
 const getConsistentSpots = (): number => {
-  if (typeof window === "undefined") return 23 // Valor padrão para SSR
-
-  const today = new Date().toDateString() // Ex: "Mon Jan 01 2024"
-  // Gera um "seed" numérico a partir da data atual para consistência diária
+  if (typeof window === "undefined") return 23
+  const today = new Date().toDateString()
   const seed = today.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)
-  // Calcula um número de spots entre 10 e 50, baseado no seed
   return Math.max(10, (seed % 40) + 10)
 }
 
-// 
-// COMPONENT PRINCIPAL: HomePage
-// 
 export default function HomePage() {
   const router = useRouter()
-  const spotsRestantes = getConsistentSpots() // Spots restantes calculados de forma consistente
+  const spotsRestantes = getConsistentSpots()
   
-  // ==================== ESTADO DO COMPONENTE ====================
+  // ==================== ESTADO ====================
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [loadingProgress, setLoadingProgress] = useState<number>(0)
   const [errorMessage, setErrorMessage] = useState<string>("")
   const [isOnline, setIsOnline] = useState<boolean>(true)
   const [showPsychologicalModal, setShowPsychologicalModal] = useState<boolean>(false)
   const [modalHasBeenShown, setModalHasBeenShown] = useState<boolean>(false)
-  const modalTimerRef = useRef<NodeJS.Timeout | null>(null) // Ref para o timer do modal
+  
+  // ✅ NOVAS REFS para controlar o timing
+  const modalTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const scrollTriggerRef = useRef<boolean>(false) // Rastreia se houve scroll suficiente
+  const timeTriggerRef = useRef<boolean>(false) // Rastreia se tempo mínimo passou
 
-  // ==================== EFEITOS (useEffect) ====================
+  // ==================== EFEITOS ====================
 
-  // Efeito para detectar o status da conexão online/offline
+  // Detectar status online/offline
   useEffect(() => {
     if (typeof window === "undefined") return
 
     const updateOnlineStatus = () => setIsOnline(navigator.onLine)
-
     window.addEventListener("online", updateOnlineStatus, { passive: true })
     window.addEventListener("offline", updateOnlineStatus, { passive: true })
 
@@ -88,9 +77,9 @@ export default function HomePage() {
       window.removeEventListener("online", updateOnlineStatus)
       window.removeEventListener("offline", updateOnlineStatus)
     }
-  }, []) // Executa apenas uma vez na montagem
+  }, [])
 
-  // Efeito para rastreamento de visualização de página (Google Analytics)
+  // GA4: Page view
   useEffect(() => {
     if (typeof window === "undefined") return
 
@@ -100,41 +89,73 @@ export default function HomePage() {
         headline_version: CONFIG.HEADLINE_VERSION,
         page: "homepage"
       })
-    }, 1000) // Envia o evento após 1 segundo
+    }, 1000)
 
     return () => clearTimeout(timer)
-  }, []) // Executa apenas uma vez na montagem
+  }, [])
 
-  // Efeito para exibir o modal psicológico após um atraso definido
+  // ✅ NOVA LÓGICA: Mostrar modal quando AMBAS as condições forem atendidas
+  // Condição 1: Usuário scrollou 300px para baixo (leu a copy)
+  // Condição 2: Passou 15 segundos na página
   useEffect(() => {
-    if (typeof window === "undefined" || modalHasBeenShown) return // Não exibe se já foi mostrado
+    if (typeof window === "undefined" || modalHasBeenShown) return
 
+    // ✅ EVENTO 1: Detectar scroll
+    const handleScroll = () => {
+      if (window.scrollY >= CONFIG.MODAL_SCROLL_TRIGGER) {
+        scrollTriggerRef.current = true
+        
+        // Se tempo também passou, mostra modal
+        if (timeTriggerRef.current) {
+          showModal()
+        }
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true })
+
+    // ✅ EVENTO 2: Timer de 15 segundos
     modalTimerRef.current = setTimeout(() => {
-      setShowPsychologicalModal(true)
-      setModalHasBeenShown(true) // Marca que o modal já foi exibido
+      timeTriggerRef.current = true
+      
+      // Se usuário scrollou, mostra modal
+      if (scrollTriggerRef.current) {
+        showModal()
+      } else {
+        // Se não scrollou ainda, mostra de qualquer forma após 15s
+        // (para não deixar usuário esperando demais)
+        showModal()
+      }
+    }, CONFIG.MODAL_DELAY_MIN)
 
-      enviarEvento("psychological_modal_view", {
-        time_on_page_ms: CONFIG.MODAL_DELAY,
-        device: window.innerWidth < 768 ? "mobile" : "desktop",
-        headline_version: CONFIG.HEADLINE_VERSION
-      })
-    }, CONFIG.MODAL_DELAY)
+    const showModal = () => {
+      if (!modalHasBeenShown) {
+        setShowPsychologicalModal(true)
+        setModalHasBeenShown(true)
+
+        enviarEvento("psychological_modal_view", {
+          trigger: scrollTriggerRef.current ? "scroll_triggered" : "time_triggered",
+          time_on_page_ms: CONFIG.MODAL_DELAY_MIN,
+          scroll_distance: window.scrollY,
+          device: window.innerWidth < 768 ? "mobile" : "desktop"
+        })
+      }
+    }
 
     return () => {
+      window.removeEventListener("scroll", handleScroll)
       if (modalTimerRef.current) clearTimeout(modalTimerRef.current)
     }
-  }, [modalHasBeenShown]) // Depende de modalHasBeenShown para não re-executar
+  }, [modalHasBeenShown])
 
-  // ==================== FUNÇÕES DE MANIPULAÇÃO (useCallback) ====================
+  // ==================== FUNÇÕES ====================
 
-  // Função para iniciar o quiz, otimizada com useCallback
   const handleStart = useCallback(() => {
-    if (isLoading || !isOnline) return // Impede múltiplos cliques ou início offline
+    if (isLoading || !isOnline) return
 
     setIsLoading(true)
-    setLoadingProgress(20) // Inicia a barra de progresso
+    setLoadingProgress(20)
 
-    // Fecha o modal psicológico se estiver aberto ao iniciar o quiz
     if (showPsychologicalModal) {
       setShowPsychologicalModal(false)
     }
@@ -142,18 +163,17 @@ export default function HomePage() {
     enviarEvento("quiz_start", {
       headline_version: CONFIG.HEADLINE_VERSION,
       modal_shown: modalHasBeenShown,
-      source: "cta_main" // Indica que o quiz foi iniciado pelo CTA principal
+      source: "cta_main"
     })
 
     let progress = 20
     const interval = setInterval(() => {
-      progress += Math.random() * 20 + 10 // Incremento de progresso mais dinâmico
-      setLoadingProgress(Math.min(progress, 95)) // Garante que não passe de 95% antes do redirecionamento
+      progress += Math.random() * 20 + 10
+      setLoadingProgress(Math.min(progress, 95))
 
       if (progress >= 95) {
         clearInterval(interval)
 
-        // Preserva parâmetros UTMs na URL para rastreamento contínuo
         let url = "/quiz/1"
         if (typeof window !== "undefined" && window.location.search) {
           const params = new URLSearchParams(window.location.search)
@@ -166,46 +186,32 @@ export default function HomePage() {
           if (utms.toString()) url += `?${utms.toString()}`
         }
 
-        // Pequeno atraso para a barra de progresso atingir 100% e dar naturalidade
         setTimeout(() => {
           setLoadingProgress(100)
-          router.push(url) // Redireciona para a página do quiz
+          router.push(url)
         }, 300)
       }
-    }, 200) // Atualiza a cada 200ms
+    }, 200)
   }, [isLoading, isOnline, router, showPsychologicalModal, modalHasBeenShown])
 
-  // Função para fechar o modal psicológico
   const handleCloseModal = useCallback(() => {
     setShowPsychologicalModal(false)
     enviarEvento("psychological_modal_close", {
-      time_shown_ms: 0 // Poderia ser calculado o tempo real que o modal ficou aberto
+      time_shown_ms: 0
     })
   }, [])
 
-  // ==================== RENDERIZAÇÃO DO COMPONENTE ====================
+  // ==================== RENDERIZAÇÃO ====================
 
   return (
     <>
-      {/* HEAD: Meta tags para SEO e compartilhamento */}
       <head>
         <title>SÍ, ELLA PIENSA EN TI A LAS 2AM - Test Psicológico</title>
-        <meta name="description" content="Descubre si tu ex sigue pensando en ti a las 2AM con este test psicológico. Revela exactamente lo que piensa basado en señales que el 87% ignora." />
-        <meta property="og:title" content="SÍ, ELLA PIENSA EN TI A LAS 2AM" />
-        <meta property="og:description" content="Test psicológico que revela qué piensa de ti basado en señales que el 87% ignora." />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${CONFIG.SITE_DOMAIN}`} />
-        <meta property="og:image" content={`${CONFIG.SITE_DOMAIN}/og-image.jpg`} /> {/* Substituir por imagem real */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="SÍ, ELLA PIENSA EN TI A LAS 2AM" />
-        <meta name="twitter:description" content="Descubre si tu ex sigue pensando en ti a las 2AM con este test psicológico." />
-        <meta name="twitter:image" content={`${CONFIG.SITE_DOMAIN}/twitter-image.jpg`} /> {/* Substituir por imagem real */}
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="Descubre si tu ex sigue pensando en ti a las 2AM con este test psicológico." />
         <link rel="preconnect" href={CONFIG.SITE_DOMAIN} />
         <link rel="dns-prefetch" href={CONFIG.SITE_DOMAIN} />
       </head>
 
-      {/* Container principal com fundo escuro */}
       <div
         style={{
           backgroundColor: "#000000",
@@ -218,7 +224,6 @@ export default function HomePage() {
           justifyContent: "center",
         }}
       >
-        {/* Estilos CSS-in-JS para o componente */}
         <style jsx>{`
           .container-quiz {
             background: linear-gradient(145deg, #000 0%, #111 100%);
@@ -319,7 +324,7 @@ export default function HomePage() {
             width: 100%;
             max-width: 320px;
             transition: all 0.3s ease;
-            text-transform: none; /* Alterado para 'none' conforme a nova copy */
+            text-transform: none;
             letter-spacing: 0.5px;
             display: flex;
             align-items: center;
@@ -332,10 +337,6 @@ export default function HomePage() {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(220, 38, 38, 0.4);
             background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
-          }
-
-          .btn-iniciar-quiz:active {
-            transform: translateY(0px);
           }
 
           .btn-iniciar-quiz:disabled {
@@ -360,15 +361,6 @@ export default function HomePage() {
             justify-content: center;
             min-height: 100vh;
             padding-top: 20px;
-          }
-
-          .copyright {
-            position: relative;
-            margin-top: 40px;
-            padding: 20px;
-            color: #888;
-            font-size: 12px;
-            text-align: center;
           }
 
           .loading-overlay {
@@ -406,7 +398,6 @@ export default function HomePage() {
             border-radius: 3px;
           }
 
-          /* Modal Styles */
           .modal-overlay {
             position: fixed;
             top: 0;
@@ -422,12 +413,8 @@ export default function HomePage() {
           }
 
           @keyframes fadeIn {
-            from {
-              opacity: 0;
-            }
-            to {
-              opacity: 1;
-            }
+            from { opacity: 0; }
+            to { opacity: 1; }
           }
 
           .modal-content {
@@ -541,7 +528,6 @@ export default function HomePage() {
             color: #dc2626;
             font-size: 28px;
             cursor: pointer;
-            transition: color 0.2s ease;
             padding: 0;
             width: 30px;
             height: 30px;
@@ -554,7 +540,6 @@ export default function HomePage() {
             color: #f87171;
           }
 
-          /* Media Queries para responsividade */
           @media (max-width: 768px) {
             .container-quiz {
               padding: 30px 20px;
@@ -588,11 +573,6 @@ export default function HomePage() {
               max-width: 90%;
               padding: 20px;
             }
-
-            .copyright {
-              margin-top: 30px;
-              padding: 15px;
-            }
           }
 
           @media (max-width: 480px) {
@@ -624,9 +604,9 @@ export default function HomePage() {
           }
         `}</style>
 
-        {/* Loading overlay: Exibido enquanto o quiz está carregando */}
+        {/* Loading overlay */}
         {isLoading && (
-          <div className="loading-overlay" role="status" aria-live="polite" aria-label="Carregando análise personalizada">
+          <div className="loading-overlay" role="status" aria-live="polite">
             <div className="loading-content">
               <div style={{ fontSize: "18px", fontWeight: "600" }}>
                 Preparando tu análisis personalizado...
@@ -641,67 +621,26 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Error message display: Exibido se houver uma mensagem de erro */}
+        {/* Error message */}
         {errorMessage && (
-          <div
-            role="alert"
-            style={{
-              position: "fixed",
-              top: "20px",
-              left: "20px",
-              right: "20px",
-              background: "#dc2626",
-              color: "white",
-              padding: "15px",
-              borderRadius: "10px",
-              zIndex: 1000,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
+          <div role="alert" style={{position: "fixed", top: "20px", left: "20px", right: "20px", background: "#dc2626", color: "white", padding: "15px", borderRadius: "10px", zIndex: 1000, display: "flex", justifyContent: "space-between", alignItems: "center"}}>
             <span>{errorMessage}</span>
-            <button
-              onClick={() => setErrorMessage("")}
-              aria-label="Fechar mensagem de erro"
-              style={{
-                background: "none",
-                border: "none",
-                color: "white",
-                fontSize: "20px",
-                cursor: "pointer",
-              }}
-            >
-              ×
-            </button>
+            <button onClick={() => setErrorMessage("")} style={{background: "none", border: "none", color: "white", fontSize: "20px", cursor: "pointer"}}>×</button>
           </div>
         )}
 
-        {/* Offline indicator: Exibido se a conexão com a internet for perdida */}
+        {/* Offline indicator */}
         {!isOnline && (
-          <div
-            role="alert"
-            style={{
-              position: "fixed",
-              top: "0",
-              left: "0",
-              right: "0",
-              background: "#f59e0b",
-              color: "white",
-              textAlign: "center",
-              padding: "10px",
-              zIndex: 1000,
-            }}
-          >
+          <div role="alert" style={{position: "fixed", top: "0", left: "0", right: "0", background: "#f59e0b", color: "white", textAlign: "center", padding: "10px", zIndex: 1000}}>
             ⚠️ Sem conexão com a internet
           </div>
         )}
 
-        {/* CONTEÚDO PRINCIPAL DA PÁGINA */}
+        {/* CONTEÚDO PRINCIPAL */}
         <div className="main-content">
           <div className="container-quiz">
             
-            {/* LOGO CENTRALIZADA */}
+            {/* LOGO */}
             <div className="logo-container">
               <Image
                 src={CONFIG.LOGO_URL}
@@ -717,7 +656,7 @@ export default function HomePage() {
               />
             </div>
 
-            {/* NOVA HEADLINE IMPACTANTE (Gancho Psicológico) */}
+            {/* HEADLINE */}
             <h1 className="titulo-quiz">
               <span className="emoji-alerta">💭</span>
               SÍ, ELLA PIENSA EN TI A LAS 2AM
@@ -727,7 +666,7 @@ export default function HomePage() {
               </span>
             </h1>
 
-            {/* NOVO SUBTÍTULO (Validação + Curiosidade) */}
+            {/* SUBTÍTULO */}
             <p className="subtitulo-quiz">
               Si sientes que <span className="destaque-palavra">ALGO QUEDÓ INCONCLUSO</span> y no puedes sacártela de la cabeza, no estás loco...
               <br />
@@ -736,14 +675,14 @@ export default function HomePage() {
               <strong style={{color: '#dc2626'}}>¿Quieres saber cuáles?</strong>
             </p>
 
-            {/* INFORMAÇÕES DO QUIZ */}
+            {/* QUIZ INFO */}
             <div className="quiz-info">
               <div>⏱️ {CONFIG.QUIZ_DURATION_MINUTES} min</div>
               <div>🎯 Resultado inmediato</div>
               <div>🔥 Análisis personalizado</div>
             </div>
 
-            {/* NOVO: Modal de Validação Emocional (substitui a escassez artificial) */}
+            {/* REVELAÇÃO PSICOLÓGICA */}
             <div style={{
               background: 'linear-gradient(135deg, #1f1f23 0%, #2d1b1b 100%)',
               border: '2px solid #dc2626',
@@ -765,19 +704,11 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* CTA REFORMULADO */}
+            {/* CTA PRINCIPAL */}
             <button 
               onClick={handleStart} 
               disabled={isLoading || !isOnline} 
               className="btn-iniciar-quiz"
-              aria-label="Descobrir o que ela pensa de mim"
-              style={{
-                background: 'linear-gradient(135deg, #dc2626 0%, #7c2d12 100%)',
-                fontSize: '15px',
-                padding: '20px 35px',
-                textTransform: 'none',
-                fontWeight: '700'
-              }}
             >
               {isLoading ? (
                 "ANALIZANDO..."
@@ -789,7 +720,7 @@ export default function HomePage() {
               )}
             </button>
 
-            {/* Prova Social Específica */}
+            {/* PROVA SOCIAL */}
             <div style={{
               background: 'rgba(0, 0, 0, 0.3)',
               borderRadius: '10px',
@@ -806,7 +737,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* GARANTIA MÍNIMA */}
+            {/* GARANTIA */}
             <div className="garantia-simples">
               <Shield size={14} />
               Completamente confidencial
@@ -815,21 +746,19 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* MODAL CINEMATOGRÁFICO: Exibido após o tempo definido */}
+        {/* MODAL */}
         {showPsychologicalModal && (
-          <div className="modal-overlay" onClick={handleCloseModal} role="dialog" aria-modal="true" aria-labelledby="modal-title">
+          <div className="modal-overlay" onClick={handleCloseModal} role="dialog" aria-modal="true">
             <div className="modal-content" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <span style={{fontSize: '24px'}}>🧠</span>
-                <h3 id="modal-title">PATRÓN PSICOLÓGICO DETECTADO</h3>
+                <h3>PATRÓN PSICOLÓGICO DETECTADO</h3>
               </div>
               
               <div className="modal-body">
-                <p>
-                  <strong>Si estás aquí a esta hora</strong>, probablemente acabas de:
-                </p>
+                <p><strong>Si estás aquí a esta hora</strong>, probablemente acabas de:</p>
                 
-                <ul style={{textAlign: 'left', margin: '15px 0'}}>
+                <ul>
                   <li>✅ Revisar sus redes sociales</li>
                   <li>✅ Preguntarte "¿qué estará haciendo?"</li>
                   <li>✅ Sentir que algo quedó inconcluso</li>
@@ -837,30 +766,22 @@ export default function HomePage() {
                 
                 <div className="revelation-box">
                   <strong style={{color: '#dc2626'}}>REVELACIÓN:</strong>
-                  <p>
-                    Cuando sientes eso, <em>no es casualidad</em>. 
-                    Hay una conexión psicológica que permanece activa.
-                  </p>
-                  <p style={{fontSize: '13px', color: '#fbbf24'}}>
-                    Y este test puede revelarte si ella siente lo mismo...
-                  </p>
+                  <p>Cuando sientes eso, <em>no es casualidad</em>. Hay una conexión psicológica que permanece activa.</p>
+                  <p style={{fontSize: '13px', color: '#fbbf24'}}>Y este test puede revelarte si ella siente lo mismo...</p>
                 </div>
                 
                 <button 
                   className="modal-cta"
                   onClick={() => {
                     setShowPsychologicalModal(false)
-                    handleStart() // Inicia o quiz diretamente do modal
+                    handleStart()
                   }}
-                  aria-label="Analisar conexão psicológica"
                 >
                   🔍 ANALIZAR CONEXIÓN PSICOLÓGICA
                 </button>
               </div>
               
-              <button className="modal-close" onClick={handleCloseModal} aria-label="Fechar modal">
-                ×
-              </button>
+              <button className="modal-close" onClick={handleCloseModal}>×</button>
             </div>
           </div>
         )}
