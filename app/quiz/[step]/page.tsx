@@ -426,33 +426,6 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           </p>
         </motion.div>
 
-        <AnimatePresence>
-          {contentRevealed && (
-            <motion.div
-              initial={{ opacity: 0, y: 50, scale: 0.5 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ type: "spring", stiffness: 100, damping: 10, duration: 0.8 }}
-              className="bg-gradient-to-br from-blue-700 to-purple-800 rounded-xl p-6 sm:p-8 shadow-2xl border-2 border-blue-500 text-white text-left mb-8"
-            >
-              <h3 className="text-2xl sm:text-3xl font-bold mb-4 text-center">
-                ¡ACCESO CONCEDIDO!
-              </h3>
-              <div className="text-gray-200 text-base sm:text-lg leading-relaxed whitespace-pre-wrap">
-                {fullContent().split('**').map((section, index) => {
-                  if (index % 2 === 1) {
-                    return <strong key={index} className="text-orange-400">{section}</strong>
-                  }
-                  return section ? (
-                    <div key={index} className="p-2 bg-gray-800/50 rounded-lg border border-gray-600 text-left mb-2">
-                      {section.trim()}
-                    </div>
-                  ) : null
-                })}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* ✅ CORREÇÃO: Botão com aparição mais rápida */}
         <AnimatePresence>
