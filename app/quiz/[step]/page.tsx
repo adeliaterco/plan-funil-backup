@@ -31,37 +31,43 @@ import { BonusUnlock } from "@/components/bonus-unlock"
 import { ValueCounter } from "@/components/value-counter"
 import { LoadingAnalysis } from "@/components/loading-analysis"
 
-// ✅ CORREÇÃO 4: GA4 com contexto completo
-function enviarEvento(nombre_evento, propriedades = {}) {
-  if (typeof window !== 'undefined' && window.gtag) {
-    // ✅ Adicionar contexto global a todos os eventos
+// 3. Função para enviar eventos a Google Analytics com contexto
+function enviarEvento(nombre_evento: string, propriedades: Record<string, any> = {}) {
+  if (typeof window !== 'undefined' && (window as any).gtag) {
+    const userGender = safeLocalStorage.getItem("userGender", "unknown");
+    const quizAnswers = safeLocalStorage.getItem("quizAnswers", {});
+    const total_answered = Object.keys(quizAnswers).length;
+    const currentStepNumber = Number(window.location.pathname.split('/').pop()) || 0;
+
     const eventoComContexto = {
       ...propriedades,
-      userGender: localStorage.getItem("userGender") || "unknown",
-      step_atual: Number(window.location.pathname.split('/').pop()) || 0,
-      total_answered: Object.keys(JSON.parse(localStorage.getItem("quizAnswers") || "{}")).length
-    }
+      userGender: userGender,
+      step_atual: currentStepNumber,
+      total_answered: total_answered
+    };
     
-    window.gtag('event', nombre_evento, eventoComContexto);
+    (window as any).gtag('event', nombre_evento, eventoComContexto);
     console.log('Evento enviado com contexto completo:', nombre_evento, eventoComContexto);
   }
 }
 
-// ✅ CORREÇÃO 2: Função utilitária para localStorage seguro
+// 4. Objeto safeLocalStorage com try-catch para JSON.parse seguro
 const safeLocalStorage = {
-  getItem: (key: string, fallback = null) => {
+  getItem: (key: string, fallback: any = null) => {
+    if (typeof window === 'undefined') return fallback;
     try {
       const item = localStorage.getItem(key);
       return item ? JSON.parse(item) : fallback;
     } catch (error) {
       console.error(`Erro ao ler localStorage ${key}:`, error);
-      // ✅ Reset seletivo se dados corrompidos
+      // Reset seletivo se dados corrompidos
       localStorage.removeItem(key);
       return fallback;
     }
   },
   
   setItem: (key: string, value: any) => {
+    if (typeof window === 'undefined') return;
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
@@ -70,8 +76,8 @@ const safeLocalStorage = {
   }
 };
 
-// === COMPONENTE MOCKUP WHATSAPP ===
-const WhatsAppMockup = ({ userGender }) => {
+// 5. Componente WhatsAppMockup com useCallback para getPersonalizedFirstMessage e getPersonalizedExResponse
+const WhatsAppMockup = ({ userGender }: { userGender: string }) => {
   const [currentMessage, setCurrentMessage] = useState(0)
   const [isTyping, setIsTyping] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -83,17 +89,14 @@ const WhatsAppMockup = ({ userGender }) => {
   ])
   const [successPercentage, setSuccessPercentage] = useState(0)
 
-  // ✅ CORREÇÃO: Nome fixo para header
-  const getExName = () => {
+  const getExName = useCallback(() => {
     return "José Plan"
-  }
+  }, [])
 
-  // ✅ CORREÇÃO: Usar sempre sua imagem
-  const getExAvatar = () => {
+  const getExAvatar = useCallback(() => {
     return "https://i.ibb.co/5hbjyZFJ/CASAL-JOSE.webp";
-  }
+  }, [])
 
-  // ✅ CORREÇÃO 3: useCallback para evitar re-renders
   const getPersonalizedFirstMessage = useCallback(() => {
     const answers = safeLocalStorage.getItem("quizAnswers", {});
     const currentSituation = answers.question7 || ""
@@ -114,9 +117,8 @@ const WhatsAppMockup = ({ userGender }) => {
       return `Hola, tengo que contarte algo curioso que me pasó que te va a hacer reír. ¿Tienes 5 minutos para una llamada?`
     }
     return `Hola, vi algo que me recordé a cuando fuimos al parque. Me alegró el día. Espero que estés bien.`
-  }, []) // ✅ Dependências otimizadas
+  }, [])
 
-  // ✅ CORREÇÃO 3: useCallback para evitar re-renders
   const getPersonalizedExResponse = useCallback(() => {
     const answers = safeLocalStorage.getItem("quizAnswers", {});
     const currentSituation = answers.question7 || ""
@@ -137,7 +139,7 @@ const WhatsAppMockup = ({ userGender }) => {
       return "Jajaja ya me tienes intrigada. Cuéntame por aquí primero"
     }
     return "Gracias por acordarte de mí. ¿Cómo has estado?"
-  }, []) // ✅ Dependências otimizadas
+  }, [])
 
   const conversation = [
     {
@@ -164,31 +166,31 @@ const WhatsAppMockup = ({ userGender }) => {
     }
   ]
 
-  const updateAnalysisPoint = (pointIndex, status) => {
+  const updateAnalysisPoint = useCallback((pointIndex: number, status: string) => {
     setAnalysisPoints(prev => prev.map((point, index) => 
       index === pointIndex ? { ...point, status } : point
     ))
-  }
+  }, [])
 
-  const animateSuccessPercentage = () => {
+  const animateSuccessPercentage = useCallback(() => {
     let current = 0
     const target = 89
     const increment = target / 30
     
-    const interval = setInterval(() => {
+    const intervalId = setInterval(() => {
       current += increment
       if (current >= target) {
         current = target
-        clearInterval(interval)
+        clearInterval(intervalId)
       }
       setSuccessPercentage(Math.round(current))
     }, 30)
-  }
+    return () => clearInterval(intervalId); // Cleanup function
+  }, [])
 
-  // ✅ CORREÇÃO 5: Cleanup de timers otimizado
   useEffect(() => {
     let stepIndex = 0
-    const timers = [] // ✅ Array para rastrear todos os timers
+    const timers: NodeJS.Timeout[] = []
     
     const steps = [
       { delay: 500, action: 'showUserMessage' },
@@ -209,10 +211,10 @@ const WhatsAppMockup = ({ userGender }) => {
         runAnimation()
       }, step.delay)
       
-      timers.push(timer) // ✅ Rastrear timer
+      timers.push(timer)
     }
 
-    const executeStep = (action) => {
+    const executeStep = (action: string) => {
       switch(action) {
         case 'showUserMessage':
           setCurrentMessage(1)
@@ -247,11 +249,10 @@ const WhatsAppMockup = ({ userGender }) => {
     const initialTimer = setTimeout(runAnimation, 300)
     timers.push(initialTimer)
 
-    // ✅ CORREÇÃO 5: Cleanup completo de todos os timers
     return () => {
       timers.forEach(timer => clearTimeout(timer))
     }
-  }, [getPersonalizedFirstMessage, getPersonalizedExResponse])
+  }, [animateSuccessPercentage, updateAnalysisPoint, getPersonalizedFirstMessage, getPersonalizedExResponse])
 
   return (
     <div className="flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-8 mb-8">
@@ -586,6 +587,17 @@ const WhatsAppMockup = ({ userGender }) => {
           width: 100%;
         }
 
+        .analysis-title {
+          font-size: 18px;
+          font-weight: bold;
+          margin-bottom: 20px;
+          text-align: center;
+        }
+
+        .analysis-points {
+          margin-bottom: 25px;
+        }
+
         .analysis-point {
           display: flex;
           align-items: center;
@@ -686,6 +698,7 @@ const WhatsAppMockup = ({ userGender }) => {
   )
 }
 
+// 6. Componente QuizStep principal
 export default function QuizStep() {
   const params = useParams()
   const router = useRouter()
@@ -700,72 +713,60 @@ export default function QuizStep() {
   const [isLoaded, setIsLoaded] = useState(false)
   const [peopleCount, setPeopleCount] = useState(17)
   const [userGender, setUserGender] = useState<string>("")
-  // ✅ CORREÇÃO 1: Estados para validação
   const [isAnswerInvalid, setIsAnswerInvalid] = useState(false)
   const [shakeAnimation, setShakeAnimation] = useState(false)
 
   const currentStep = quizSteps[step - 1]
   const progress = (step / 13) * 100
 
-  // ✅ CORREÇÃO 2: useEffect com localStorage seguro
   useEffect(() => {
-    // ✅ Cargar dados guardados com try-catch
-    const saved = safeLocalStorage.getItem("quizData", {});
+    const savedQuizData = safeLocalStorage.getItem("quizData", {});
     const savedBonuses = safeLocalStorage.getItem("unlockedBonuses", []);
     const savedValue = safeLocalStorage.getItem("totalValue", "0");
     const savedGender = safeLocalStorage.getItem("userGender", "");
     const savedAnswers = safeLocalStorage.getItem("quizAnswers", {});
 
-    if (saved && Object.keys(saved).length > 0) setQuizData(saved)
-    if (savedBonuses && savedBonuses.length > 0) setUnlockedBonuses(savedBonuses)
-    if (savedValue) setTotalValue(Number.parseInt(savedValue))
-    if (savedGender) setUserGender(savedGender)
-    if (savedAnswers && Object.keys(savedAnswers).length > 0) {
-      window.quizAnswers = savedAnswers
-    }
+    if (Object.keys(savedQuizData).length > 0) setQuizData(savedQuizData);
+    if (savedBonuses.length > 0) setUnlockedBonuses(savedBonuses);
+    setTotalValue(Number.parseInt(savedValue));
+    setUserGender(savedGender);
+    (window as any).quizAnswers = savedAnswers;
 
     setTimeout(() => {
       setIsLoaded(true)
     }, 300)
 
-    // ✅ CORREÇÃO 4: GA4 com contexto completo
     enviarEvento('visualizou_etapa_quiz', {
       numero_etapa: step,
-      pergunta: currentStep?.question || `Etapa ${step}`,
-      userGender: savedGender,
-      step_atual: step,
-      total_answered: Object.keys(savedAnswers).length
+      pergunta: currentStep?.question || `Etapa ${step}`
     });
 
+    let autoAdvanceTimer: NodeJS.Timeout | undefined;
     if (currentStep?.autoAdvance) {
-      const timer = setTimeout(() => {
+      autoAdvanceTimer = setTimeout(() => {
         proceedToNextStep()
       }, 3000)
-
-      return () => clearTimeout(timer)
     }
 
-    // ✅ CORREÇÃO 5: Interval otimizado
-    const interval = setInterval(() => {
+    const intervalId = setInterval(() => {
       setPeopleCount((prev) => prev + Math.floor(Math.random() * 3))
-    }, 30000) // ✅ Reduzido de 45s para 30s
+    }, 30000)
 
-    return () => clearInterval(interval)
-  }, [step])
+    return () => {
+      if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer);
+      clearInterval(intervalId);
+    }
+  }, [step, currentStep?.autoAdvance])
 
   const handleAnswerSelect = (answer: string) => {
     setSelectedAnswer(answer)
-    // ✅ CORREÇÃO 1: Reset estado de erro
     setIsAnswerInvalid(false)
     setShakeAnimation(false)
 
-    // ✅ CORREÇÃO 4: GA4 com contexto
     enviarEvento('selecionou_resposta', {
       numero_etapa: step,
       pergunta: currentStep?.question || `Etapa ${step}`,
-      resposta: answer,
-      userGender: userGender,
-      step_atual: step
+      resposta: answer
     });
 
     if (step === 1) {
@@ -781,42 +782,35 @@ export default function QuizStep() {
   }
 
   const handleNext = () => {
-    // ✅ CORREÇÃO 1: Validação com trim() e feedback visual
-    if (!selectedAnswer || !selectedAnswer.trim()) {
+    if (!selectedAnswer || selectedAnswer.trim() === '') {
       setIsAnswerInvalid(true)
       setShakeAnimation(true)
       
-      // ✅ Reset animation após 500ms
       setTimeout(() => {
         setShakeAnimation(false)
       }, 500)
       
-      // ✅ GA4 evento de erro
       enviarEvento('erro_validacao', {
         numero_etapa: step,
-        tipo_erro: 'resposta_vazia',
-        userGender: userGender
+        tipo_erro: 'resposta_vazia'
       });
       
       return;
     }
 
-    // ✅ CORREÇÃO 4: GA4 com contexto completo
     enviarEvento('avancou_etapa', {
       numero_etapa: step,
       pergunta: currentStep?.question || `Etapa ${step}`,
-      resposta_selecionada: selectedAnswer.trim(),
-      userGender: userGender,
-      step_atual: step
+      resposta_selecionada: selectedAnswer
     });
 
-    const newQuizData = { ...quizData, [step]: selectedAnswer.trim() }
+    const newQuizData = { ...quizData, [step]: selectedAnswer }
     setQuizData(newQuizData)
     safeLocalStorage.setItem("quizData", newQuizData)
 
-    const answers = window.quizAnswers || {}
-    answers[`question${step}`] = selectedAnswer.trim()
-    window.quizAnswers = answers
+    const answers = (window as any).quizAnswers || {}
+    answers[`question${step}`] = selectedAnswer
+    (window as any).quizAnswers = answers
     safeLocalStorage.setItem("quizAnswers", answers)
 
     if (currentStep?.elements?.analysisText || currentStep?.elements?.profileAnalysis) {
@@ -842,18 +836,15 @@ export default function QuizStep() {
       }
     }
     
-    // ✅ CORREÇÃO CRÍTICA: utmParams.toString() ao invés de utmString.toString()
     if (utmParams.toString() !== '') {
       utmString = '?' + utmParams.toString();
     }
 
     if (currentStep?.bonusUnlock && !unlockedBonuses.includes(currentStep.bonusUnlock.id)) {
-      // ✅ CORREÇÃO 4: GA4 com contexto
       enviarEvento('desbloqueou_bonus', {
         numero_etapa: step,
         bonus_id: currentStep.bonusUnlock.id,
-        bonus_titulo: currentStep.bonusUnlock.title,
-        userGender: userGender
+        bonus_titulo: currentStep.bonusUnlock.title
       });
 
       const newUnlockedBonuses = [...unlockedBonuses, currentStep.bonusUnlock.id]
@@ -876,14 +867,12 @@ export default function QuizStep() {
       return
     }
 
-    if (step &lt; 13) {
+    if (step < 13) {
       router.push(`/quiz/${step + 1}${utmString}`)
     } else {
-      // ✅ CORREÇÃO 4: GA4 com contexto completo
       enviarEvento('concluiu_quiz', {
         total_etapas_completadas: 13,
-        total_bonus_desbloqueados: unlockedBonuses.length,
-        userGender: userGender
+        total_bonus_desbloqueados: unlockedBonuses.length
       });
       
       router.push(`/resultado${utmString}`)
@@ -907,7 +896,7 @@ export default function QuizStep() {
       utmString = '?' + utmParams.toString();
     }
     
-    if (step &lt; 13) {
+    if (step < 13) {
       router.push(`/quiz/${step + 1}${utmString}`)
     } else {
       router.push(`/resultado${utmString}`)
@@ -915,11 +904,9 @@ export default function QuizStep() {
   }
 
   const handleBack = () => {
-    // ✅ CORREÇÃO 4: GA4 com contexto
     enviarEvento('retornou_etapa', {
       de_etapa: step,
-      para_etapa: step > 1 ? step - 1 : 'inicio',
-      userGender: userGender
+      para_etapa: step > 1 ? step - 1 : 'inicio'
     });
     
     const currentUrl = new URL(window.location.href);
@@ -944,7 +931,7 @@ export default function QuizStep() {
   }
 
   const getStepIcon = (stepNumber: number, index: number) => {
-    const iconMaps = {
+    const iconMaps: { [key: number]: any[] } = {
       1: [User, Users],
       2: [Calendar, TrendingUp, Target, Zap],
       3: [Clock, Calendar, MessageCircle, Heart],
@@ -1064,7 +1051,7 @@ export default function QuizStep() {
                         }}
                         transition={{
                           duration: 3,
-                          repeat: Number.POSITIVE_INFINITY,
+                          repeat: Infinity,
                           ease: "easeInOut",
                         }}
                       />
@@ -1131,7 +1118,7 @@ export default function QuizStep() {
           <Card className="bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-lg border-orange-500/30 shadow-2xl border-2">
             <CardContent className="p-6 sm:p-8">
               
-              {/* === RENDERIZAÇÃO ESPECIAL PARA STEP 12 - COM MELHORIAS APLICADAS === */}
+              {/* Step 12 com WhatsAppMockup e simulação */}
               {step === 12 && (
                 <div className="text-center">
                   <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-6 leading-tight">
@@ -1182,7 +1169,7 @@ export default function QuizStep() {
                       }}
                       transition={{
                         duration: 4,
-                        repeat: Number.POSITIVE_INFINITY,
+                        repeat: Infinity,
                         ease: "easeInOut",
                       }}
                     />
@@ -1212,7 +1199,7 @@ export default function QuizStep() {
                           }}
                           transition={{
                             duration: 1,
-                            repeat: Number.POSITIVE_INFINITY,
+                            repeat: Infinity,
                             delay: i * 0.15,
                           }}
                         />
@@ -1222,7 +1209,7 @@ export default function QuizStep() {
                 </motion.div>
               )}
 
-              {/* Final reveal para step 13 */}
+              {/* Step 13 com análise final personalizada */}
               {currentStep?.elements?.finalReveal && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -1286,7 +1273,7 @@ export default function QuizStep() {
                       }}
                       transition={{
                         duration: 4,
-                        repeat: Number.POSITIVE_INFINITY,
+                        repeat: Infinity,
                         ease: "easeInOut",
                       }}
                     />
@@ -1315,7 +1302,7 @@ export default function QuizStep() {
               )}
 
               {!currentStep?.autoAdvance && step !== 12 && (
-                &lt;>
+                <>
                   <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-6 text-center leading-tight">
                     {getPersonalizedQuestion()}
                   </h2>
@@ -1328,7 +1315,7 @@ export default function QuizStep() {
                     <div className="text-gray-300 text-center mb-8 text-sm sm:text-base whitespace-pre-wrap">
                       {step === 13 ? (
                         <div className="space-y-6">
-                          {getPersonalizedDescription().split('**').map((section, index) => {
+                          {getPersonalizedDescription().split('**').map((section: string, index: number) => {
                             if (index % 2 === 1) {
                               return <strong key={index} className="text-orange-400">{section}</strong>
                             }
@@ -1419,7 +1406,7 @@ export default function QuizStep() {
 
                   {getPersonalizedOptions().length > 0 && (
                     <div className="space-y-3 sm:space-y-4">
-                      {getPersonalizedOptions().map((option, index) => (
+                      {getPersonalizedOptions().map((option: string, index: number) => (
                         <motion.div
                           key={index}
                           initial={{ opacity: 0, x: -20 }}
@@ -1461,7 +1448,7 @@ export default function QuizStep() {
                               }}
                               transition={{
                                 duration: 1.5,
-                                repeat: Number.POSITIVE_INFINITY,
+                                repeat: Infinity,
                                 delay: index * 0.3,
                               }}
                             />
@@ -1471,7 +1458,6 @@ export default function QuizStep() {
                     </div>
                   )}
 
-                  {/* ✅ CORREÇÃO 1: Mensagem de erro para validação */}
                   {isAnswerInvalid && (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.8 }}
@@ -1517,7 +1503,6 @@ export default function QuizStep() {
                     </motion.div>
                   )}
 
-                  {/* ✅ CORREÇÃO 1: Botão com validação e animação shake */}
                   {getPersonalizedOptions().length > 0 && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
@@ -1527,11 +1512,11 @@ export default function QuizStep() {
                       <Button
                         onClick={handleNext}
                         size="lg"
-                        disabled={!selectedAnswer || !selectedAnswer.trim()}
+                        disabled={!selectedAnswer || selectedAnswer.trim() === ''}
                         className={`bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-3 px-6 sm:py-4 sm:px-8 rounded-full shadow-lg w-full sm:w-auto text-sm sm:text-base transition-all duration-300 ${
                           shakeAnimation ? 'animate-pulse' : ''
                         } ${
-                          !selectedAnswer || !selectedAnswer.trim() 
+                          !selectedAnswer || selectedAnswer.trim() === ''
                             ? 'opacity-50 cursor-not-allowed' 
                             : 'hover:scale-105'
                         }`}
@@ -1598,7 +1583,6 @@ export default function QuizStep() {
         {showBonusUnlock && newBonus && <BonusUnlock bonus={newBonus} onComplete={handleBonusUnlockComplete} />}
       </AnimatePresence>
 
-      {/* ✅ CORREÇÃO 1: CSS para animação shake */}
       <style jsx>{`
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
