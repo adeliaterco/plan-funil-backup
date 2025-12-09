@@ -20,9 +20,8 @@ function getExName() {
     const femaleNames = ['María', 'Ana', 'Carmen', 'Isabel', 'Sofía', 'Elena', 'Laura'];
     const maleNames = ['Carlos', 'José', 'Antonio', 'Manuel', 'Luis', 'Miguel', 'Alejandro'];
 
-const names = gender === "SOY HOMBRE" ? femaleNames : maleNames; // ✅ CORRIGIDO
-return names[Math.floor(Math.random() * names.length)];
-
+    const names = gender === "SOY HOMBRE" ? femaleNames : maleNames; // ✅ CORRIGIDO
+    return names[Math.floor(Math.random() * names.length)];
 }
 
 // ✅ FUNÇÃO CORRIGIDA - MESMA IMAGEM PARA AMBOS OS SEXOS
@@ -40,56 +39,54 @@ function getHeaderName() {
 function getPersonalizedFirstMessage() {
     const currentSituation = getUserAnswer('question7');
 
-if (currentSituation.includes("contacto cero")) {
-    return `Hola, encontré algo que es tuyo. ¿Cuándo puedes pasar a recogerlo?`;
-}
+    if (currentSituation.includes("contacto cero")) {
+        return `Hola, encontré algo que es tuyo. ¿Cuándo puedes pasar a recogerlo?`;
+    }
 
-if (currentSituation.includes("me ignora")) {
-    return `Hola, no voy a molestarte más. Solo quería agradecerte por algo que me enseñaste.`;
-}
+    if (currentSituation.includes("me ignora")) {
+        return `Hola, no voy a molestarte más. Solo quería agradecerte por algo que me enseñaste.`;
+    }
 
-if (currentSituation.includes("bloqueado")) {
-    return `Hola, María me pidió preguntarte sobre el evento del viernes.`;
-}
+    if (currentSituation.includes("bloqueado")) {
+        return `Hola, María me pidió preguntarte sobre el evento del viernes.`;
+    }
 
-if (currentSituation.includes("cosas necesarias")) {
-    return `Hola, vi esta foto nuestra del viaje a la playa y me hizo sonreír. Espero que estés bien.`;
-}
+    if (currentSituation.includes("cosas necesarias")) {
+        return `Hola, vi esta foto nuestra del viaje a la playa y me hizo sonreír. Espero que estés bien.`;
+    }
 
-if (currentSituation.includes("charlamos")) {
-    return `Hola, tengo que contarte algo curioso que me pasó que te va a hacer reír. ¿Tienes 5 minutos para una llamada?`;
-}
+    if (currentSituation.includes("charlamos")) {
+        return `Hola, tengo que contarte algo curioso que me pasó que te va a hacer reír. ¿Tienes 5 minutos para una llamada?`;
+    }
 
-return `Hola, vi algo que me recordó a cuando fuimos al parque. Me alegró el día. Espero que estés bien.`;
-
+    return `Hola, vi algo que me recordó a cuando fuimos al parque. Me alegró el día. Espero que estés bien.`;
 }
 
 // Função para resposta de la ex
 function getPersonalizedExResponse() {
     const currentSituation = getUserAnswer('question7');
 
-if (currentSituation.includes("contacto cero")) {
-    return "¿Qué cosa? No recuerdo haber dejado nada...";
-}
+    if (currentSituation.includes("contacto cero")) {
+        return "¿Qué cosa? No recuerdo haber dejado nada...";
+    }
 
-if (currentSituation.includes("me ignora")) {
-    return "¿Qué me enseñé? Me tienes curiosa...";
-}
+    if (currentSituation.includes("me ignora")) {
+        return "¿Qué me enseñé? Me tienes curiosa...";
+    }
 
-if (currentSituation.includes("bloqueado")) {
-    return "Ah sí, dile que sí voy. Gracias por preguntar.";
-}
+    if (currentSituation.includes("bloqueado")) {
+        return "Ah sí, dile que sí voy. Gracias por preguntar.";
+    }
 
-if (currentSituation.includes("cosas necesarias")) {
-    return "😊 Qué bonito recuerdo. Yo también estoy bien, gracias.";
-}
+    if (currentSituation.includes("cosas necesarias")) {
+        return "😊 Qué bonito recuerdo. Yo también estoy bien, gracias.";
+    }
 
-if (currentSituation.includes("charlamos")) {
-    return "Jajaja ya me tienes intrigada. Cuéntame por aquí primero";
-}
+    if (currentSituation.includes("charlamos")) {
+        return "Jajaja ya me tienes intrigada. Cuéntame por aquí primero";
+    }
 
-return "Gracias por acordarte de mí. ¿Cómo has estado?";
-
+    return "Gracias por acordarte de mí. ¿Cómo has estado?";
 }
 
 // Função para follow-up
@@ -103,36 +100,35 @@ export function getPersonalizedFirstInsight() {
     const timeApart = getUserAnswer('question3');
     const whoEnded = getUserAnswer('question4');
 
-if (currentSituation.includes("contacto cero")) {
-    return "❌ ERROR DETECTADO: Estás aplicando contacto cero de forma INCORRECTA. El 73% de los hombres cometen este error que los aleja definitivamente de su ex.";
-}
+    if (currentSituation.includes("contacto cero")) {
+        return "❌ ERROR DETECTADO: Estás aplicando contacto cero de forma INCORRECTA. El 73% de los hombres cometen este error que los aleja definitivamente de su ex.";
+    }
 
-if (currentSituation.includes("me ignora")) {
-    return "❌ ERROR DETECTADO: Estás siendo IGNORADO porque usas las palabras EQUIVOCADAS. Hay 3 tipos de mensajes que rompen el muro del silencio.";
-}
+    if (currentSituation.includes("me ignora")) {
+        return "❌ ERROR DETECTADO: Estás siendo IGNORADO porque usas las palabras EQUIVOCADAS. Hay 3 tipos de mensajes que rompen el muro del silencio.";
+    }
 
-if (currentSituation.includes("bloqueado")) {
-    return "❌ ERROR DETECTADO: Fuiste BLOQUEADO porque ella siente PRESIÓN. Existe una técnica específica para casos de bloqueo que funciona en 9 de cada 10 veces.";
-}
+    if (currentSituation.includes("bloqueado")) {
+        return "❌ ERROR DETECTADO: Fuiste BLOQUEADO porque ella siente PRESIÓN. Existe una técnica específica para casos de bloqueo que funciona en 9 de cada 10 veces.";
+    }
 
-if (currentSituation.includes("cosas necesarias")) {
-    return "❌ ERROR DETECTADO: El contacto 'solo por necesidad' está MATANDO tu atractivo. Cada mensaje aburrido te aleja más de la reconquista.";
-}
+    if (currentSituation.includes("cosas necesarias")) {
+        return "❌ ERROR DETECTADO: El contacto 'solo por necesidad' está MATANDO tu atractivo. Cada mensaje aburrido te aleja más de la reconquista.";
+    }
 
-if (currentSituation.includes("charlamos")) {
-    return "❌ ERROR DETECTADO: Charlar 'como amigos' es la TRAMPA más peligrosa. Estás en la zona de confort que te mantiene lejos de su corazón.";
-}
+    if (currentSituation.includes("charlamos")) {
+        return "❌ ERROR DETECTADO: Charlar 'como amigos' es la TRAMPA más peligrosa. Estás en la zona de confort que te mantiene lejos de su corazón.";
+    }
 
-if (currentSituation.includes("amigos")) {
-    return "❌ ERROR DETECTADO: Ser 'solo amigos' es el LIMBO emocional. El 87% que se queda aquí nunca sale de esta zona.";
-}
+    if (currentSituation.includes("amigos")) {
+        return "❌ ERROR DETECTADO: Ser 'solo amigos' es el LIMBO emocional. El 87% que se queda aquí nunca sale de esta zona.";
+    }
 
-if (whoEnded.includes("terminó conmigo")) {
-    return "❌ ERROR DETECTADO: Después de que TE DEJARAN, tu estrategia actual está creando más RESISTENCIA. El 84% cometen este error psicológico.";
-}
+    if (whoEnded.includes("terminó conmigo")) {
+        return "❌ ERROR DETECTADO: Después de que TE DEJARAN, tu estrategia actual está creando más RESISTENCIA. El 84% cometen este error psicológico.";
+    }
 
-return "❌ ERROR DETECTADO: Tu estrategia actual está generando el EFECTO CONTRARIO al que buscas. Hay un patrón específico que debes romper.";
-
+    return "❌ ERROR DETECTADO: Tu estrategia actual está generando el EFECTO CONTRARIO al que buscas. Hay un patrón específico que debes romper.";
 }
 
 // 2. FUNÇÃO PARA TÉCNICA PERSONALIZADA (MANTIDA)
@@ -142,9 +138,9 @@ export function getPersonalizedTechnique() {
     const gender = getUserGender();
     const pronoun = gender === "SOY HOMBRE" ? "ella" : "él"; // ✅ CORRIGIDO
 
-if (currentSituation.includes("contacto cero")) {
-    return `🎯 TU TÉCNICA: "RUPTURA DEL SILENCIO MAGNÉTICO"
-    
+    if (currentSituation.includes("contacto cero")) {
+        return `🎯 TU TÉCNICA: "RUPTURA DEL SILENCIO MAGNÉTICO"
+        
 
 Tu situación: Contacto cero + ${timeApart}
 
@@ -155,11 +151,11 @@ PASO 2: Cuando responda (lo hará en 67% de los casos):
 "Perfecto, déjalo en [lugar específico]. No necesitamos vernos."
 
 ¿Por qué funciona? Crea CURIOSIDAD sin presión. El cerebro femenino no puede resistir el misterio.`;
-    }
+        }
 
-if (currentSituation.includes("me ignora")) {
-    return `🎯 TU TÉCNICA: "MENSAJE DE CURIOSIDAD IRRESISTIBLE"
-    
+    if (currentSituation.includes("me ignora")) {
+        return `🎯 TU TÉCNICA: "MENSAJE DE CURIOSIDAD IRRESISTIBLE"
+        
 
 Tu situación: Te ignora + ${timeApart} separados
 
@@ -169,10 +165,10 @@ MENSAJE EXACTO para enviar:
 NO envíes nada más. Espera 72h.
 
 ¿Por qué funciona? Rompe el patrón de expectativa. ${pronoun} esperaba súplicas, no gratitud.`;
-    }
+        }
 
-return `🎯 TU TÉCNICA: "REACTIVACIÓN EMOCIONAL"
-    
+    return `🎯 TU TÉCNICA: "REACTIVACIÓN EMOCIONAL"
+        
 
 Para tu situación específica: ${currentSituation}
 
@@ -202,913 +198,341 @@ export const quizSteps = [
         }
     },
 
-{
-    id: 2,
-    question: "MAPEANDO TU PERFIL EMOCIONAL...",
-    description: "Tu edad determina qué técnicas psicológicas tendrán mayor impacto en tu caso específico.",
-    subtext: "DATO CRÍTICO #2 - Selecciona tu rango de edad:",
-    options: [
-        "18-29 años → Fase de alta intensidad emocional",
-        "30-39 años → Período de madurez y estabilidad", 
-        "40-49 años → Etapa de reevaluación de prioridades",
-        "50+ años → Fase de sabiduría emocional"
-    ],
-    elements: {
-        profileBuilding: true,
-        counter: "personas analizadas hoy",
-        profileComplete: "15%",
-    },
-    note: "Cada grupo de edad responde a diferentes disparadores emocionales."
-},
-
-{
-    id: 3,
-    question: "CALCULANDO PROBABILIDADES DE RECONQUISTA...",
-    description: "El tiempo de separación es el factor más crítico para determinar qué técnicas usar y cuándo aplicarlas.",
-    subtext: "DATO CRÍTICO #3 - ¿Cuánto tiempo llevan separados?",
-    options: [
-        "Menos de 1 semana → Ventana de oportunidad crítica",
-        "1-4 semanas → Período de reflexión activa", 
-        "1-6 meses → Fase de adaptación emocional",
-        "Más de 6 meses → Etapa de reconstrucción profunda"
-    ],
-    elements: {
-        probabilityCalculator: true,
-        profileComplete: "30%",
-    },
-    note: "REVELACIÓN: El 73% de las reconquistas exitosas ocurren aplicando la técnica correcta en el momento exacto."
-},
-
-{
-    id: 4,
-    question: "IDENTIFICANDO PATRÓN DE RUPTURA...",
-    description: "Cómo terminó la relación revela su estado emocional actual y define qué estrategia psicológica será más efectiva.",
-    subtext: "DATO CRÍTICO #4 - ¿Cómo fue la separación?",
-    options: {
-        SOY_HOMBRE: [ // ✅ CORRIGIDO (removido masculino/feminino)
-            "Ella terminó conmigo → Patrón de rechazo activo",
-            "Yo terminé con ella → Patrón de arrepentimiento",
-            "Decisión mutua → Patrón de duda compartida"
+    {
+        id: 2,
+        question: "MAPEANDO TU PERFIL EMOCIONAL...",
+        description: "Tu edad determina qué técnicas psicológicas tendrán mayor impacto en tu caso específico.",
+        subtext: "DATO CRÍTICO #2 - Selecciona tu rango de edad:",
+        options: [
+            "18-29 años → Fase de alta intensidad emocional",
+            "30-39 años → Período de madurez y estabilidad", 
+            "40-49 años → Etapa de reevaluación de prioridades",
+            "50+ años → Fase de sabiduría emocional"
         ],
-        SOY_MUJER: [
-            "Él terminó conmigo → Patrón de rechazo activo", 
-            "Yo terminé con él → Patrón de arrepentimiento",
-            "Decisión mutua → Patrón de duda compartida"
-        ]
+        elements: {
+            profileBuilding: true,
+            counter: "personas analizadas hoy",
+            profileComplete: "15%",
+        },
+        note: "Cada grupo de edad responde a diferentes disparadores emocionales."
     },
-    elements: {
-        patternAnalysis: true,
-        profileComplete: "45%",
-    }
-},
 
-{
-    id: 5,
-    question: "ANALIZANDO INTENSIDAD EMOCIONAL...",
-    description: "La duración de la relación determina la profundidad del vínculo emocional y qué técnicas de reconexión usar.",
-    subtext: "DATO CRÍTICO #5 - ¿Cuánto tiempo estuvieron juntos?",
-    options: [
-        "Más de 3 años → Vínculo profundo establecido",
-        "1-3 años → Conexión emocional sólida", 
-        "6 meses-1 año → Atracción en desarrollo",
-        "Menos de 6 meses → Química inicial"
-    ],
-    elements: {
-        intensityMeter: true,
-        profileComplete: "60%",
-    }
-},
-
-{
-    id: 6,
-    question: "DETECTANDO TU PUNTO DE DOLOR PRINCIPAL...",
-    description: "Tu mayor sufrimiento revela qué necesitas sanar ANTES de aplicar cualquier técnica de reconquista.",
-    subtext: "DATO CRÍTICO #6 - ¿Cuál fue la parte más dolorosa?",
-    options: {
-        SOY_HOMBRE: [ // ✅ CORRIGIDO
-            "😔 La soledad y el vacío → Necesitas 'Protocolo de Autoconfianza'",
-            "😢 La montaña rusa emocional → Necesitas 'Estabilización Mental'",
-            "😐 Los recuerdos constantes → Necesitas 'Técnica de Reframe'",
-            "💔 Imaginarla con otro → Necesitas 'Estrategia de Diferenciación'",
-            "🤔 Los planes perdidos → Necesitas 'Visión de Futuro'",
-            "⚡ Otro → Requiere análisis personalizado"
+    {
+        id: 3,
+        question: "CALCULANDO PROBABILIDADES DE RECONQUISTA...",
+        description: "El tiempo de separación es el factor más crítico para determinar qué técnicas usar y cuándo aplicarlas.",
+        subtext: "DATO CRÍTICO #3 - ¿Cuánto tiempo llevan separados?",
+        options: [
+            "Menos de 1 semana → Ventana de oportunidad crítica",
+            "1-4 semanas → Período de reflexión activa", 
+            "1-6 meses → Fase de adaptación emocional",
+            "Más de 6 meses → Etapa de reconstrucción profunda"
         ],
-        SOY_MUJER: [
-            "😔 La soledad y el vacío → Necesitas 'Protocolo de Autoconfianza'",
-            "😢 La montaña rusa emocional → Necesitas 'Estabilización Mental'", 
-            "😐 Los recuerdos constantes → Necesitas 'Técnica de Reframe'",
-            "💔 Imaginarlo con otra → Necesitas 'Estrategia de Diferenciación'",
-            "🤔 Los planes perdidos → Necesitas 'Visión de Futuro'",
-            "⚡ Otro → Requiere análisis personalizado"
-        ]
+        elements: {
+            probabilityCalculator: true,
+            profileComplete: "30%",
+        },
+        note: "REVELACIÓN: El 73% de las reconquistas exitosas ocurren aplicando la técnica correcta en el momento exacto."
     },
-    elements: {
-        healingProtocol: true,
-        profileComplete: "70%",
-    }
-},
 
-{
-    id: 7,
-    question: "EVALUANDO TU SITUACIÓN ACTUAL...",
-    description: "Tu situación presente define tu PUNTO DE PARTIDA y qué estrategia específica necesitas aplicar primero.",
-    subtext: "DATO CRÍTICO #7 - ¿Cuál es tu situación actual con tu ex?",
-    options: {
-        SOY_HOMBRE: [ // ✅ CORRIGIDO
-            "🧐 Contacto cero → Estrategia de 'Ruptura del Silencio'",
-            "😢 Me ignora → Protocolo de 'Reactivación de Interés'", 
-            "❌ Me bloqueó → Técnica de 'Acceso Indirecto'",
-            "🤝 Solo temas necesarios → Método de 'Escalada Emocional'",
-            "🤔 Charlamos a veces → Sistema de 'Diferenciación'",
-            "😌 Somos 'amigos' → Estrategia de 'Ruptura de Patrón'",
-            "🔥 Encuentros íntimos → Protocolo de 'Definición de Relación'"
+    {
+        id: 4,
+        question: "IDENTIFICANDO PATRÓN DE RUPTURA...",
+        description: "Cómo terminó la relación revela su estado emocional actual y define qué estrategia psicológica será más efectiva.",
+        subtext: "DATO CRÍTICO #4 - ¿Cómo fue la separación?",
+        options: {
+            SOY_HOMBRE: [ // ✅ CORRIGIDO (removido masculino/feminino)
+                "Ella terminó conmigo → Patrón de rechazo activo",
+                "Yo terminé con ella → Patrón de arrepentimiento",
+                "Decisión mutua → Patrón de duda compartida"
+            ],
+            SOY_MUJER: [
+                "Él terminó conmigo → Patrón de rechazo activo", 
+                "Yo terminé con él → Patrón de arrepentimiento",
+                "Decisión mutua → Patrón de duda compartida"
+            ]
+        },
+        elements: {
+            patternAnalysis: true,
+            profileComplete: "45%",
+        }
+    },
+
+    {
+        id: 5,
+        question: "ANALIZANDO INTENSIDAD EMOCIONAL...",
+        description: "La duración de la relación determina la profundidad del vínculo emocional y qué técnicas de reconexión usar.",
+        subtext: "DATO CRÍTICO #5 - ¿Cuánto tiempo estuvieron juntos?",
+        options: [
+            "Más de 3 años → Vínculo profundo establecido",
+            "1-3 años → Conexión emocional sólida", 
+            "6 meses-1 año → Atracción en desarrollo",
+            "Menos de 6 meses → Química inicial"
         ],
-        SOY_MUJER: [
-            "🧐 Contacto cero → Estrategia de 'Ruptura del Silencio'",
-            "😢 Me ignora → Protocolo de 'Reactivación de Interés'",
-            "❌ Me bloqueó → Técnica de 'Acceso Indirecto'", 
-            "🤝 Solo temas necesarios → Método de 'Escalada Emocional'",
-            "🤔 Charlamos a veces → Sistema de 'Diferenciación'",
-            "😌 Somos 'amigos' → Estrategia de 'Ruptura de Patrón'",
-            "🔥 Encuentros íntimos → Protocolo de 'Definición de Relación'"
-        ]
+        elements: {
+            intensityMeter: true,
+            profileComplete: "60%",
+        }
     },
-    elements: {
-        strategyMapping: true,
-        profileComplete: "80%",
-    }
-},
 
-{
-    id: 8,
-    question: "ANALIZANDO FACTOR DE COMPETENCIA...",
-    description: "Esta información determina la URGENCIA de tu estrategia y qué técnicas avanzadas necesitarás.",
-    subtext: "DATO CRÍTICO #8 - ¿Ya está saliendo con otra persona?",
-    options: {
-        SOY_HOMBRE: [ // ✅ CORRIGIDO
-            "🚫 Está soltera → Estrategia estándar aplicable",
-            "🤔 No estoy seguro → Protocolo de investigación discreta",
-            "😔 Saliendo casual → Técnica de diferenciación intensiva", 
-            "💔 Relación seria → Estrategia avanzada de largo plazo",
-            "🔄 Varias personas → Protocolo de valor único"
+    {
+        id: 6,
+        question: "DETECTANDO TU PUNTO DE DOLOR PRINCIPAL...",
+        description: "Tu mayor sufrimiento revela qué necesitas sanar ANTES de aplicar cualquier técnica de reconquista.",
+        subtext: "DATO CRÍTICO #6 - ¿Cuál fue la parte más dolorosa?",
+        options: {
+            SOY_HOMBRE: [ // ✅ CORRIGIDO
+                "😔 La soledad y el vacío → Necesitas 'Protocolo de Autoconfianza'",
+                "😢 La montaña rusa emocional → Necesitas 'Estabilización Mental'",
+                "😐 Los recuerdos constantes → Necesitas 'Técnica de Reframe'",
+                "💔 Imaginarla con otro → Necesitas 'Estrategia de Diferenciación'",
+                "🤔 Los planes perdidos → Necesitas 'Visión de Futuro'",
+                "⚡ Otro → Requiere análisis personalizado"
+            ],
+            SOY_MUJER: [
+                "😔 La soledad y el vacío → Necesitas 'Protocolo de Autoconfianza'",
+                "😢 La montaña rusa emocional → Necesitas 'Estabilización Mental'", 
+                "😐 Los recuerdos constantes → Necesitas 'Técnica de Reframe'",
+                "💔 Imaginarlo con otra → Necesitas 'Estrategia de Diferenciación'",
+                "🤔 Los planes perdidos → Necesitas 'Visión de Futuro'",
+                "⚡ Otro → Requiere análisis personalizado"
+            ]
+        },
+        elements: {
+            healingProtocol: true,
+            profileComplete: "70%",
+        }
+    },
+
+    {
+        id: 7,
+        question: "EVALUANDO TU SITUACIÓN ACTUAL...",
+        description: "Tu situación presente define tu PUNTO DE PARTIDA y qué estrategia específica necesitas aplicar primero.",
+        subtext: "DATO CRÍTICO #7 - ¿Cuál es tu situación actual con tu ex?",
+        options: {
+            SOY_HOMBRE: [ // ✅ CORRIGIDO
+                "🧐 Contacto cero → Estrategia de 'Ruptura del Silencio'",
+                "😢 Me ignora → Protocolo de 'Reactivación de Interés'", 
+                "❌ Me bloqueó → Técnica de 'Acceso Indirecto'",
+                "🤝 Solo temas necesarios → Método de 'Escalada Emocional'",
+                "🤔 Charlamos a veces → Sistema de 'Diferenciación'",
+                "😌 Somos 'amigos' → Estrategia de 'Ruptura de Patrón'",
+                "🔥 Encuentros íntimos → Protocolo de 'Definición de Relación'"
+            ],
+            SOY_MUJER: [
+                "🧐 Contacto cero → Estrategia de 'Ruptura del Silencio'",
+                "😢 Me ignora → Protocolo de 'Reactivación de Interés'",
+                "❌ Me bloqueó → Técnica de 'Acceso Indirecto'", 
+                "🤝 Solo temas necesarios → Método de 'Escalada Emocional'",
+                "🤔 Charlamos a veces → Sistema de 'Diferenciación'",
+                "😌 Somos 'amigos' → Estrategia de 'Ruptura de Patrón'",
+                "🔥 Encuentros íntimos → Protocolo de 'Definición de Relación'"
+            ]
+        },
+        elements: {
+            strategyMapping: true,
+            profileComplete: "80%",
+        }
+    },
+
+    {
+        id: 8,
+        question: "ANALIZANDO FACTOR DE COMPETENCIA...",
+        description: "Esta información determina la URGENCIA de tu estrategia y qué técnicas avanzadas necesitarás.",
+        subtext: "DATO CRÍTICO #8 - ¿Ya está saliendo con otra persona?",
+        options: {
+            SOY_HOMBRE: [ // ✅ CORRIGIDO
+                "🚫 Está soltera → Estrategia estándar aplicable",
+                "🤔 No estoy seguro → Protocolo de investigación discreta",
+                "😔 Saliendo casual → Técnica de diferenciación intensiva", 
+                "💔 Relación seria → Estrategia avanzada de largo plazo",
+                "🔄 Varias personas → Protocolo de valor único"
+            ],
+            SOY_MUJER: [
+                "🚫 Está soltero → Estrategia estándar aplicable",
+                "🤔 No estoy segura → Protocolo de investigación discreta",
+                "😔 Saliendo casual → Técnica de diferenciación intensiva",
+                "💔 Relación seria → Estrategia avanzada de largo plazo", 
+                "🔄 Varias personas → Protocolo de valor único"
+            ]
+        },
+        elements: {
+            competitionAnalysis: true,
+            profileComplete: "85%",
+        }
+    },
+
+    {
+        id: 9,
+        question: "MIDIENDO TU NIVEL DE COMPROMISO...",
+        description: "Tu nivel de determinación define qué tan profundo será tu plan personalizado y qué resultados puedes esperar.",
+        subtext: "DATO FINAL - ¿Cuánto quieres recuperar esta relación?",
+        options: [
+            "1 - No estoy seguro → Plan básico de exploración",
+            "2 - Lo estoy considerando → Plan intermedio de evaluación", 
+            "3 - Lo quiero bastante → Plan avanzado de reconquista",
+            "4 - Lo quiero con toda mi alma → Plan INTENSIVO personalizado"
         ],
-        SOY_MUJER: [
-            "🚫 Está soltero → Estrategia estándar aplicable",
-            "🤔 No estoy segura → Protocolo de investigación discreta",
-            "😔 Saliendo casual → Técnica de diferenciación intensiva",
-            "💔 Relación seria → Estrategia avanzada de largo plazo", 
-            "🔄 Varias personas → Protocolo de valor único"
-        ]
+        elements: {
+            commitmentThermometer: true,
+            profileComplete: "90%",
+        }
     },
-    elements: {
-        competitionAnalysis: true,
-        profileComplete: "85%",
-    }
-},
 
-{
-    id: 9,
-    question: "MIDIENDO TU NIVEL DE COMPROMISO...",
-    description: "Tu nivel de determinación define qué tan profundo será tu plan personalizado y qué resultados puedes esperar.",
-    subtext: "DATO FINAL - ¿Cuánto quieres recuperar esta relación?",
-    options: [
-        "1 - No estoy seguro → Plan básico de exploración",
-        "2 - Lo estoy considerando → Plan intermedio de evaluación", 
-        "3 - Lo quiero bastante → Plan avanzado de reconquista",
-        "4 - Lo quiero con toda mi alma → Plan INTENSIVO personalizado"
-    ],
-    elements: {
-        commitmentThermometer: true,
-        profileComplete: "90%",
-    }
-},
-
-{
-    id: 10,
-    question: "GENERANDO TU DIAGNÓSTICO PERSONALIZADO...",
-    description: "Analizando todos tus datos para crear tu estrategia específica de reconquista...",
-    options: [],
-    autoAdvance: true,
-    elements: {
-        expertPhoto: true,
-        expertImage: "https://comprarplanseguro.shop/wp-content/uploads/2025/09/Generated-Image-September-07_-2025-12_00AM-_1_-e1757389439336.webp",
-        autoMessage: "Procesando 9 variables críticas de tu caso... basándome en 7 años de experiencia y 12,000 casos exitosos...",
-        profileComplete: "95%",
-        diagnosticGeneration: true,
-    }
-},
-
-{
-    id: 11,
-    question: "MIENTRAS ANALIZO TU CASO, DESCUBRE LA CIENCIA DETRAS DE ESTE METODO",
-    description: "Una investigación reciente revela por qué el PLAN A funciona a nivel neurológico y psicológico.",
-    subtext: "Estudios recientes confirman que las técnicas que usaremos son avaladas por ciencia:",
-    options: ["CONTINUAR PARA VER MIS RESULTADOS"],
-    elements: {
-        scientificEvidence: true,
-        reportageImage: "https://comprarplanseguro.shop/wp-content/uploads/2025/10/imagem3-nova.webp",
-        curiousImage: "https://comprarplanseguro.shop/wp-content/uploads/2025/10/estudos-imagem-2.webp",
-        profileComplete: "97%",
-    }
-},
-
-// === STEP 12 - VERSÃO COM COPY MELHORADA ===
-{
-    id: 12,
-    question: "🔮 ESTO ES LO QUE ELLA REALMENTE SENTIRÍA SI LE ESCRIBIERAS HOY",
-    description: "Basándome en tu situación exacta y en 12,000 casos reales, aquí está la conversación que probablemente sucedería. No es una predicción genérica - es específica para ti.",
-    subtext: "Lo que verás en los próximos segundos es lo más probable que suceda en la vida real:",
-    options: ["VER CÓMO ELLA RESPONDERÍA"],
-    elements: {
-        whatsappSimulation: true,
-        phoneSimulation: true,
-        typingAnimation: true,
-        personalizedChat: true,
-        cinematicReveal: true,
-        profileComplete: "100%",
-        badge: "ANÁLISIS PREDICTIVO PERSONALIZADO",
-        customComponent: "PhoneSimulationStep"
+    {
+        id: 10,
+        question: "GENERANDO TU DIAGNÓSTICO PERSONALIZADO...",
+        description: "Analizando todos tus datos para crear tu estrategia específica de reconquista...",
+        options: [],
+        autoAdvance: true,
+        elements: {
+            expertPhoto: true,
+            expertImage: "https://comprarplanseguro.shop/wp-content/uploads/2025/09/Generated-Image-September-07_-2025-12_00AM-_1_-e1757389439336.webp",
+            autoMessage: "Procesando 9 variables críticas de tu caso... basándome en 7 años de experiencia y 12,000 casos exitosos...",
+            profileComplete: "95%",
+            diagnosticGeneration: true,
+        }
     },
-    note: "Esta demostración usa IA para predecir las respuestas más probables basándose en tu situación específica.",
-    customContent: `
-        <div class="phone-simulation-container">
-            <!-- iPhone Mockup -->
-            <div class="iphone-mockup">
-                <div class="notch"></div>
-                <div class="screen-content">
-                    <!-- WhatsApp Header -->
-                    <div class="whatsapp-header">
-                        <div class="back-arrow">←</div>
-                        <img src="${getExAvatar()}" class="contact-avatar" alt="Avatar" />
-                        <div class="contact-info">
-                            <div class="contact-name">${getHeaderName()}</div>
-                            <div class="last-seen" id="typing-status">En línea</div>
-                        </div>
-                        <div class="header-icons">
-                            <span class="video-icon">📹</span>
-                            <span class="call-icon">📞</span>
-                            <span class="menu-icon">⋮</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Chat Messages -->
-                    <div class="chat-messages" id="chat-container">
-                        <div class="date-separator">
-                            <span>Hoy</span>
-                        </div>
-                        
-                        <!-- Mensaje del usuario -->
-                        <div class="message-bubble sent" id="user-message" style="opacity: 0;">
-                            <div class="message-content">${getPersonalizedFirstMessage()}</div>
-                            <div class="message-time">19:30 ✓✓</div>
-                        </div>
-                        
-                        <!-- Typing indicator -->
-                        <div class="message-bubble received typing-indicator" id="typing-bubble" style="display: none;">
-                            <div class="typing-dots">
-                                <span></span>
-                                <span></span>
-                                <span></span>
-                            </div>
-                        </div>
-                        
-                        <!-- Respuesta de la ex -->
-                        <div class="message-bubble received" id="ex-response" style="display: none;">
-                            <div class="message-content">${getPersonalizedExResponse()}</div>
-                            <div class="message-time">19:47</div>
-                        </div>
-                        
-                        <!-- Segundo mensaje del usuario -->
-                        <div class="message-bubble sent" id="user-followup" style="display: none;">
-                            <div class="message-content">${getPersonalizedFollowUp()}</div>
-                            <div class="message-time">19:52 ✓✓</div>
-                        </div>
-                    </div>
-                    
-                    <!-- WhatsApp Input -->
-                    <div class="whatsapp-input">
-                        <div class="input-container">
-                            <span class="emoji-icon">😊</span>
-                            <input type="text" placeholder="Escribe un mensaje" disabled />
-                            <span class="attachment-icon">📎</span>
-                            <span class="mic-icon">🎤</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Análisis en tiempo real -->
-            <div class="real-time-analysis">
-                <h3 class="analysis-title">📊 ANÁLISIS PSICOLÓGICO EN TIEMPO REAL</h3>
-                <div class="analysis-points">
-                    <div class="analysis-point" id="point-1">
-                        <div class="point-status pending">⏳</div>
-                        <div class="point-text">Enviando mensaje optimizado...</div>
-                    </div>
-                    <div class="analysis-point" id="point-2">
-                        <div class="point-status pending">⏳</div>
-                        <div class="point-text">Generando curiosidad e interés...</div>
-                    </div>
-                    <div class="analysis-point" id="point-3">
-                        <div class="point-status pending">⏳</div>
-                        <div class="point-text">Activando memoria emocional...</div>
-                    </div>
-                    <div class="analysis-point" id="point-4">
-                        <div class="point-status pending">⏳</div>
-                        <div class="point-text">Respuesta emocional detectada...</div>
-                    </div>
-                </div>
-                
-                <div class="success-probability">
-                    <div class="probability-circle">
-                        <div class="percentage" id="success-percentage">0%</div>
-                        <div class="label">Probabilidad de éxito</div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Estilos CSS -->
-        <style>
-            .phone-simulation-container {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 30px;
-                margin: 20px 0;
-                max-width: 100%;
-            }
+    {
+        id: 11,
+        question: "MIENTRAS ANALIZO TU CASO, DESCUBRE LA CIENCIA DETRAS DE ESTE METODO",
+        description: "Una investigación reciente revela por qué el PLAN A funciona a nivel neurológico y psicológico.",
+        subtext: "Estudios recientes confirman que las técnicas que usaremos son avaladas por ciencia:",
+        options: ["CONTINUAR PARA VER MIS RESULTADOS"],
+        elements: {
+            scientificEvidence: true,
+            reportageImage: "https://comprarplanseguro.shop/wp-content/uploads/2025/10/imagem3-nova.webp",
+            curiousImage: "https://comprarplanseguro.shop/wp-content/uploads/2025/10/estudos-imagem-2.webp",
+            profileComplete: "97%",
+        }
+    },
 
-            @media (min-width: 768px) {
-                .phone-simulation-container {
-                    flex-direction: row;
-                    justify-content: center;
-                    align-items: flex-start;
-                }
-            }
+    // === STEP 12 - VERSÃO COM COPY MELHORADA ===
+    {
+        id: 12,
+        question: "🔮 ESTO ES LO QUE ELLA REALMENTE SENTIRÍA SI LE ESCRIBIERAS HOY",
+        description: "Basándome en tu situación exacta y en 12,000 casos reales, aquí está la conversación que probablemente sucedería. No es una predicción genérica - es específica para ti.",
+        subtext: "Lo que verás en los próximos segundos es lo más probable que suceda en la vida real:",
+        options: ["VER CÓMO ELLA RESPONDERÍA"],
+        elements: {
+            whatsappSimulation: true,
+            phoneSimulation: true,
+            typingAnimation: true,
+            personalizedChat: true,
+            cinematicReveal: true,
+            profileComplete: "100%",
+            badge: "ANÁLISIS PREDICTIVO PERSONALIZADO",
+            customComponent: "PhoneSimulationStep"
+        },
+        note: "Esta demostración usa IA para predecir las respuestas más probables basándose en tu situación específica."
+    },
 
-            .iphone-mockup {
-                width: 300px;
-                height: 600px;
-                background: linear-gradient(145deg, #1a1a1a, #2d2d2d);
-                border-radius: 35px;
-                padding: 8px;
-                box-shadow: 
-                    0 25px 50px rgba(0,0,0,0.5),
-                    0 0 0 1px rgba(255,255,255,0.1),
-                    inset 0 1px 0 rgba(255,255,255,0.1);
-                position: relative;
-                margin: 0 auto;
-            }
-
-            .notch {
-                position: absolute;
-                top: 8px;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 150px;
-                height: 25px;
-                background: #000;
-                border-radius: 0 0 15px 15px;
-                z-index: 10;
-            }
-
-            .screen-content {
-                background: #000;
-                height: 100%;
-                border-radius: 28px;
-                overflow: hidden;
-                position: relative;
-                display: flex;
-                flex-direction: column;
-            }
-
-            .whatsapp-header {
-                background: #075e54;
-                padding: 35px 15px 15px 15px;
-                display: flex;
-                align-items: center;
-                color: white;
-                font-size: 14px;
-                z-index: 5;
-            }
-
-            .back-arrow {
-                margin-right: 10px;
-                font-size: 18px;
-            }
-
-            .contact-avatar {
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                margin-right: 10px;
-                object-fit: cover;
-            }
-
-            .contact-info {
-                flex: 1;
-            }
-
-            .contact-name {
-                font-weight: bold;
-                margin-bottom: 2px;
-            }
-
-            .last-seen {
-                font-size: 12px;
-                color: #b3d4d1;
-            }
-
-            .header-icons {
-                display: flex;
-                gap: 15px;
-            }
-
-            .chat-messages {
-                flex: 1;
-                background: #ece5dd url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><rect width="20" height="20" fill="%23ece5dd"/><rect x="0" y="0" width="10" height="10" fill="%23e8ddd4"/><rect x="10" y="10" width="10" height="10" fill="%23e8ddd4"/></svg>');
-                padding: 20px 15px;
-                overflow-y: auto;
-                position: relative;
-            }
-
-            .date-separator {
-                text-align: center;
-                margin: 10px 0 20px 0;
-            }
-
-            .date-separator span {
-                background: rgba(0,0,0,0.1);
-                color: #667781;
-                padding: 5px 12px;
-                border-radius: 20px;
-                font-size: 12px;
-            }
-
-            .message-bubble {
-                margin: 8px 0;
-                max-width: 80%;
-                position: relative;
-                animation: messageSlideIn 0.5s ease-out;
-            }
-
-            @keyframes messageSlideIn {
-                from {
-                    opacity: 0;
-                    transform: translateY(10px);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
-
-            .message-bubble.sent {
-                margin-left: auto;
-                background: #dcf8c6;
-                border-radius: 18px 18px 4px 18px;
-                align-self: flex-end;
-            }
-
-            .message-bubble.received {
-                margin-right: auto;
-                background: white;
-                border-radius: 18px 18px 18px 4px;
-                align-self: flex-start;
-            }
-
-            .message-content {
-                padding: 8px 12px 4px 12px;
-                font-size: 14px;
-                line-height: 1.4;
-                word-wrap: break-word;
-            }
-
-            .message-time {
-                padding: 0 12px 8px 12px;
-                font-size: 11px;
-                color: #667781;
-                text-align: right;
-            }
-
-            .message-bubble.received .message-time {
-                text-align: left;
-            }
-
-            .typing-indicator {
-                background: white !important;
-                padding: 12px !important;
-                border-radius: 18px 18px 18px 4px !important;
-                width: 60px !important;
-                animation: typingPulse 1.5s infinite;
-            }
-
-            @keyframes typingPulse {
-                0%, 100% { opacity: 0.7; }
-                50% { opacity: 1; }
-            }
-
-            .typing-dots {
-                display: flex;
-                gap: 4px;
-            }
-
-            .typing-dots span {
-                width: 6px;
-                height: 6px;
-                background: #999;
-                border-radius: 50%;
-                animation: typingDots 1.4s infinite;
-            }
-
-            .typing-dots span:nth-child(1) { animation-delay: 0s; }
-            .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-            .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-            @keyframes typingDots {
-                0%, 60%, 100% { transform: scale(0.8); opacity: 0.5; }
-                30% { transform: scale(1.2); opacity: 1; }
-            }
-
-            .whatsapp-input {
-                background: #f0f0f0;
-                padding: 8px;
-            }
-
-            .input-container {
-                background: white;
-                border-radius: 25px;
-                display: flex;
-                align-items: center;
-                padding: 8px 15px;
-                gap: 10px;
-            }
-
-            .input-container input {
-                flex: 1;
-                border: none;
-                outline: none;
-                font-size: 14px;
-                color: #999;
-            }
-
-            .real-time-analysis {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                border-radius: 20px;
-                padding: 25px;
-                color: white;
-                max-width: 350px;
-                width: 100%;
-                margin-top: 20px;
-            }
-
-            @media (min-width: 768px) {
-                .real-time-analysis {
-                    margin-top: 0;
-                    margin-left: 20px;
-                }
-            }
-
-            .analysis-title {
-                font-size: 18px;
-                font-weight: bold;
-                margin-bottom: 20px;
-                text-align: center;
-            }
-
-            .analysis-points {
-                margin-bottom: 25px;
-            }
-
-            .analysis-point {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                margin: 12px 0;
-                padding: 8px;
-                background: rgba(255,255,255,0.1);
-                border-radius: 8px;
-                transition: all 0.5s ease;
-            }
-
-            .point-status {
-                width: 24px;
-                height: 24px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 12px;
-                flex-shrink: 0;
-            }
-
-            .point-status.pending {
-                background: rgba(255,255,255,0.2);
-                color: #ffd700;
-            }
-
-            .point-status.active {
-                background: #4CAF50;
-                color: white;
-                animation: pulse 1s infinite;
-            }
-
-            .point-status.completed {
-                background: #4CAF50;
-                color: white;
-            }
-
-            @keyframes pulse {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.1); }
-                100% { transform: scale(1); }
-            }
-
-            .point-text {
-                font-size: 14px;
-                flex: 1;
-            }
-
-            .success-probability {
-                text-align: center;
-            }
-
-            .probability-circle {
-                width: 100px;
-                height: 100px;
-                border: 4px solid rgba(255,255,255,0.2);
-                border-top: 4px solid #4CAF50;
-                border-radius: 50%;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                margin: 0 auto;
-                animation: rotate 2s linear infinite;
-            }
-
-            @keyframes rotate {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-
-            .percentage {
-                font-size: 24px;
-                font-weight: bold;
-                color: #4CAF50;
-            }
-
-            .label {
-                font-size: 10px;
-                color: #ccc;
-                margin-top: 2px;
-            }
-
-            /* Responsive adjustments */
-            @media (max-width: 767px) {
-                .iphone-mockup {
-                    width: 280px;
-                    height: 560px;
-                }
-                
-                .real-time-analysis {
-                    max-width: 100%;
-                    margin-top: 20px;
-                }
-            }
-        </style>
-
-        <!-- JavaScript para animação - TIMING ACELERADO -->
-        <script>
-            (function() {
-                let currentStep = 0;
-                const steps = [
-                    { delay: 500, action: 'showUserMessage' },
-                    { delay: 1500, action: 'showTyping' },
-                    { delay: 2500, action: 'hideTyping' },
-                    { delay: 3000, action: 'showExResponse' },
-                    { delay: 4000, action: 'showUserFollowup' },
-                    { delay: 4500, action: 'showSuccess' }
-                ];
-
-                function runAnimation() {
-                    if (currentStep >= steps.length) return;
-                    
-                    const step = steps[currentStep];
-                    setTimeout(() => {
-                        executeStep(step.action);
-                        currentStep++;
-                        runAnimation();
-                    }, step.delay);
-                }
-
-                function executeStep(action) {
-                    const userMessage = document.getElementById('user-message');
-                    const typingBubble = document.getElementById('typing-bubble');
-                    const exResponse = document.getElementById('ex-response');
-                    const userFollowup = document.getElementById('user-followup');
-                    const typingStatus = document.getElementById('typing-status');
-
-                    switch(action) {
-                        case 'showUserMessage':
-                            if (userMessage) {
-                                userMessage.style.opacity = '1';
-                                updateAnalysisPoint(1, 'active');
-                                playMessageSound();
-                            }
-                            break;
-                            
-                        case 'showTyping':
-                            if (typingBubble && typingStatus) {
-                                typingBubble.style.display = 'block';
-                                typingStatus.textContent = 'escribiendo...';
-                                updateAnalysisPoint(1, 'completed');
-                                updateAnalysisPoint(2, 'active');
-                            }
-                            break;
-                            
-                        case 'hideTyping':
-                            if (typingBubble && typingStatus) {
-                                typingBubble.style.display = 'none';
-                                typingStatus.textContent = 'En línea';
-                            }
-                            break;
-                            
-                        case 'showExResponse':
-                            if (exResponse) {
-                                exResponse.style.display = 'block';
-                                updateAnalysisPoint(2, 'completed');
-                                updateAnalysisPoint(3, 'active');
-                                playMessageSound();
-                            }
-                            break;
-                            
-                        case 'showUserFollowup':
-                            if (userFollowup) {
-                                userFollowup.style.display = 'block';
-                                updateAnalysisPoint(3, 'completed');
-                                updateAnalysisPoint(4, 'active');
-                                playMessageSound();
-                            }
-                            break;
-                            
-                        case 'showSuccess':
-                            updateAnalysisPoint(4, 'completed');
-                            animateSuccessPercentage();
-                            break;
-                    }
-                }
-
-                function updateAnalysisPoint(pointNumber, status) {
-                    const point = document.getElementById('point-' + pointNumber);
-                    if (!point) return;
-                    
-                    const statusEl = point.querySelector('.point-status');
-                    if (statusEl) {
-                        statusEl.className = 'point-status ' + status;
-                        if (status === 'completed') {
-                            statusEl.textContent = '✓';
-                        } else if (status === 'active') {
-                            statusEl.textContent = '⚡';
-                        }
-                    }
-                }
-
-                function animateSuccessPercentage() {
-                    const percentageEl = document.getElementById('success-percentage');
-                    if (!percentageEl) return;
-                    
-                    let current = 0;
-                    const target = 89;
-                    const increment = target / 30; // Reduzido para animação mais rápida
-                    
-                    const interval = setInterval(() => {
-                        current += increment;
-                        if (current >= target) {
-                            current = target;
-                            clearInterval(interval);
-                        }
-                        percentageEl.textContent = Math.round(current) + '%';
-                    }, 30); // Intervalo reduzido para 30ms
-                }
-
-                function playMessageSound() {
-                    // Simular vibração no mobile
-                    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-                        navigator.vibrate(50);
-                    }
-                }
-
-                // Iniciar animação quando o step é carregado
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', runAnimation);
-                } else {
-                    setTimeout(runAnimation, 300); // Reduzido para 300ms
-                }
-            })();
-        </script>
-    `
-},
-
-// === STEP 13 - VERSÃO CORRIGIDA ===
-{
-    id: 13,
-    question: "🎯 TU PLAN A PERSONALIZADO ESTÁ LISTO",
-    description: () => `Después de crear tu demostración específica, he confirmado que tu situación tiene **89% de probabilidad de éxito** usando el Plan A.
+    // === STEP 13 - VERSÃO CORRIGIDA ===
+    {
+        id: 13,
+        question: "🎯 TU PLAN A PERSONALIZADO ESTÁ LISTO",
+        description: () => `Después de crear tu demostración específica, he confirmado que tu situación tiene **89% de probabilidad de éxito** usando el Plan A.
 
 ${getPersonalizedFirstInsight()}
 
 Esta es solo la PRIMERA de las 21 técnicas específicas para tu caso:
 
 ${getPersonalizedTechnique()}`,
-        subtext: "Plan completo personalizado + 21 técnicas específicas para tu situación",
-        options: ["🚀 QUIERO ACCEDER AL PLAN A COMPLETO AHORA"],
-        elements: {
-            planAReveal: true,
-            profileComplete: "100%",
-            badge: "PLAN A - MÉTODO COMPLETO",
-            finalReveal: true,
-            planPreview: true,
-            expertPhoto: true,
-            expertImage: "https://comprarplanseguro.shop/wp-content/uploads/2025/09/Generated-Image-September-07_-2025-12_00AM-_1_-e1757389439336.webp",
-        },
-        finalReveal: {
-            title: "🎁 EL PLAN A INCLUYE TODO ESTO:",
-            features: [
-                "✅ Las 21 técnicas específicas para tu situación exacta",
-                "✅ Scripts personalizados para cada día del proceso", 
-                "✅ Protocolo de emergencia si algo sale mal",
-                "✅ Sistema de análisis de respuestas (decodificar qué piensa)",
-                "✅ Plan B para casos con terceras personas",
-                "✅ Técnicas avanzadas de psicología de reconquista",
-                "✅ Soporte personalizado durante todo el proceso"
-            ],
-            urgency: "Solo 27 spots disponibles hoy - precio especial expira en 47 minutos",
-            socialProof: "4,129 personas han usado el Plan A exitosamente este año",
-            guarantee: "Garantía incondicional de 30 días - Si no funciona, te devuelvo el dinero"
+            subtext: "Plan completo personalizado + 21 técnicas específicas para tu situación",
+            options: ["🚀 QUIERO ACCEDER AL PLAN A COMPLETO AHORA"],
+            elements: {
+                planAReveal: true,
+                profileComplete: "100%",
+                badge: "PLAN A - MÉTODO COMPLETO",
+                finalReveal: true,
+                planPreview: true,
+                expertPhoto: true,
+                expertImage: "https://comprarplanseguro.shop/wp-content/uploads/2025/09/Generated-Image-September-07_-2025-12_00AM-_1_-e1757389439336.webp",
+            },
+            finalReveal: {
+                title: "🎁 EL PLAN A INCLUYE TODO ESTO:",
+                features: [
+                    "✅ Las 21 técnicas específicas para tu situación exacta",
+                    "✅ Scripts personalizados para cada día del proceso", 
+                    "✅ Protocolo de emergencia si algo sale mal",
+                    "✅ Sistema de análisis de respuestas (decodificar qué piensa)",
+                    "✅ Plan B para casos con terceras personas",
+                    "✅ Técnicas avanzadas de psicología de reconquista",
+                    "✅ Soporte personalizado durante todo el proceso"
+                ],
+                urgency: "Solo 27 spots disponibles hoy - precio especial expira en 47 minutos",
+                socialProof: "4,129 personas han usado el Plan A exitosamente este año",
+                guarantee: "Garantía incondicional de 30 días - Si no funciona, te devuelvo el dinero"
+            }
         }
-    }
-]
+    ]
 
-// === MANTÉM RESTO DO CÓDIGO ORIGINAL ===
+    // === MANTÉM RESTO DO CÓDIGO ORIGINAL ===
 
-export const testimonials = [
-    {
-        name: "Carlos M., 34 años",
-        text: "Respondió en 3 días. Volvimos en 11.",
-        rating: 5,
-    },
-    {
-        name: "Santiago B., 31 años", 
-        text: "Seguí exactamente los pasos del Plan A. Al día 7, rompí el contacto cero. Al día 14 me pidió que nos viéramos. Ahora llevamos 6 meses juntos de nuevo.",
-        rating: 5,
-    },
-    {
-        name: "Diego L., 36 años",
-        text: "Pensé que era imposible porque estaba con otro tipo. En 16 días lo dejó por mí.",
-        rating: 5,
-    }
-]
+    export const testimonials = [
+        {
+            name: "Carlos M., 34 años",
+            text: "Respondió en 3 días. Volvimos en 11.",
+            rating: 5,
+        },
+        {
+            name: "Santiago B., 31 años", 
+            text: "Seguí exactamente los pasos del Plan A. Al día 7, rompí el contacto cero. Al día 14 me pidió que nos viéramos. Ahora llevamos 6 meses juntos de nuevo.",
+            rating: 5,
+        },
+        {
+            name: "Diego L., 36 años",
+            text: "Pensé que era imposible porque estaba con otro tipo. En 16 días lo dejó por mí.",
+            rating: 5,
+        }
+    ]
 
-export const socialProofMessages = [
-    "Estás entre el 17% más decidido a reconquistar",
-    "Tu perfil muestra alta compatibilidad",
-    "El 87% de personas en tu situación lograron resultados en menos de 14 días",
-    "Estás más comprometido que el 73% que hizo esta prueba",
-    "Solo 27 spots disponibles hoy para este método",
-    "4,129 personas recuperaron sus relaciones este año"
-]
+    export const socialProofMessages = [
+        "Estás entre el 17% más decidido a reconquistar",
+        "Tu perfil muestra alta compatibilidad",
+        "El 87% de personas en tu situación lograron resultados en menos de 14 días",
+        "Estás más comprometido que el 73% que hizo esta prueba",
+        "Solo 27 spots disponibles hoy para este método",
+        "4,129 personas recuperaron sus relaciones este año"
+    ]
 
-// Função utilitaria para personalizar textos basados no gênero
-export function getPersonalizedContent(content, gender) {
-    if (typeof content === "string") {
+    // Função utilitaria para personalizar textos basados no gênero
+    export function getPersonalizedContent(content, gender) {
+        if (typeof content === "string") {
+            return content
+        }
+
+        if (typeof content === "object" && content !== null) {
+            if (content.SOY_HOMBRE && content.SOY_MUJER) { // ✅ CORRIGIDO
+                return gender === "SOY HOMBRE" ? content.SOY_HOMBRE : content.SOY_MUJER
+            }
+            // ✅ FALLBACK para compatibilidade com versões antigas
+            if (content.masculino && content.feminino) {
+                return gender === "SOY HOMBRE" ? content.masculino : content.feminino
+            }
+            return content
+        }
+
         return content
     }
 
-if (typeof content === "object" && content !== null) {
-    if (content.SOY_HOMBRE && content.SOY_MUJER) { // ✅ CORRIGIDO
-        return gender === "SOY HOMBRE" ? content.SOY_HOMBRE : content.SOY_MUJER
+    // ✅ EXPORTAÇÕES CORRIGIDAS - ADICIONE ESTAS LINHAS
+    export { getExName }
+    export { getExAvatar }
+    export { getPersonalizedFirstMessage }
+    export { getPersonalizedExResponse }
+    export { getPersonalizedFollowUp }
+    export { getHeaderName }
+
+    // Expor funções globalmente para o quiz-step (se necessário)
+    if (typeof window !== 'undefined') {
+        window.getPersonalizedFirstInsight = getPersonalizedFirstInsight;
+        window.getPersonalizedTechnique = getPersonalizedTechnique;
+        window.getExName = getExName;
+        window.getExAvatar = getExAvatar;
+        window.getPersonalizedFirstMessage = getPersonalizedFirstMessage;
+        window.getPersonalizedExResponse = getPersonalizedExResponse;
+        window.getPersonalizedFollowUp = getPersonalizedFollowUp;
+        window.getHeaderName = getHeaderName;
     }
-    // ✅ FALLBACK para compatibilidade com versões antigas
-    if (content.masculino && content.feminino) {
-        return gender === "SOY HOMBRE" ? content.masculino : content.feminino
-    }
-    return content
-}
-
-return content
-
-}
-
-// Expor funções globalmente para o quiz-step (se necessário)
-if (typeof window !== 'undefined') {
-    window.getPersonalizedFirstInsight = getPersonalizedFirstInsight;
-    window.getPersonalizedTechnique = getPersonalizedTechnique;
-    window.getExName = getExName;
-    window.getExAvatar = getExAvatar; // ✅ EXPORTANDO A FUNÇÃO CORRIGIDA
-    window.getPersonalizedFirstMessage = getPersonalizedFirstMessage;
-    window.getPersonalizedExResponse = getPersonalizedExResponse;
-    window.getPersonalizedFollowUp = getPersonalizedFollowUp;
-    window.getHeaderName = getHeaderName;
-}
