@@ -22,7 +22,7 @@ import { CountdownTimer } from "@/components/countdown-timer"
 import { enviarEvento } from "../../lib/analytics"
 
 export default function ResultPageFixed() {
-  // ===== ESTADOS =====
+  // ===== ESTADOS (REMOVIDOS OS ESTADOS DO VÍDEO) =====
   const [isLoaded, setIsLoaded] = useState(false)
   const [userGender, setUserGender] = useState<string>("")
   const [userAnswers, setUserAnswers] = useState<object>({})
@@ -33,19 +33,11 @@ export default function ResultPageFixed() {
   const [decryptedText, setDecryptedText] = useState("")
   const [isDecrypting, setIsDecrypting] = useState(true)
   const [activeBuyers, setActiveBuyers] = useState(Math.floor(Math.random() * 5) + 8)
-  
-  // ✅ CORREÇÃO CRÍTICA: Estados simplificados para o vídeo
-  const [isVideoReady, setIsVideoReady] = useState(false)
-  const [videoError, setVideoError] = useState<string | null>(null)
   const [isBrowser, setIsBrowser] = useState(false)
 
   const contentRef = useRef<HTMLDivElement>(null)
   const startTimeRef = useRef(Date.now())
-  
-  // ✅ CORREÇÃO CRÍTICA: Refs para controle preciso
   const decryptIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const videoContainerRef = useRef<HTMLDivElement>(null)
-  const scriptLoadedRef = useRef(false)
 
   // ===== VERIFICAÇÃO DE AMBIENTE BROWSER =====
   useEffect(() => {
@@ -97,7 +89,6 @@ export default function ResultPageFixed() {
   // ===== PROGRESSÃO AUTOMÁTICA DE REVELAÇÕES ===== 
   useEffect(() => {
     try {
-      // ✅ CORREÇÃO CRÍTICA DO LOOP: Limpeza adequada do interval
       if (decryptIntervalRef.current) {
         clearInterval(decryptIntervalRef.current)
       }
@@ -112,7 +103,6 @@ export default function ResultPageFixed() {
       // Sequência de revelações
       const timers = [
         setTimeout(() => {
-          // ✅ CORREÇÃO CRÍTICA DO LOOP: Para o interval quando termina
           if (decryptIntervalRef.current) {
             clearInterval(decryptIntervalRef.current);
             decryptIntervalRef.current = null;
@@ -138,7 +128,6 @@ export default function ResultPageFixed() {
       ]
 
       return () => {
-        // ✅ CORREÇÃO CRÍTICA DO LOOP: Limpeza completa na desmontagem
         if (decryptIntervalRef.current) {
           clearInterval(decryptIntervalRef.current);
           decryptIntervalRef.current = null;
@@ -149,76 +138,6 @@ export default function ResultPageFixed() {
       console.error("Erro na progressão de revelações:", error)
     }
   }, [])
-
-  // ✅ CORREÇÃO CRÍTICA DO VÍDEO: Abordagem SUPER SIMPLIFICADA
-  useEffect(() => {
-    if (!showVSL || !isBrowser || scriptLoadedRef.current) return
-
-    const initializeVideo = async () => {
-      try {
-        setVideoError(null)
-        setIsVideoReady(false)
-        
-        // Garantir que o container existe
-        if (!videoContainerRef.current) {
-          console.log("Container não encontrado")
-          return
-        }
-
-        console.log("Iniciando carregamento do vídeo ConvertAI...")
-
-        // ✅ MARCAR COMO CARREGADO PARA EVITAR MÚLTIPLAS CARGAS
-        scriptLoadedRef.current = true
-
-        // ✅ LIMPAR CONTAINER COMPLETAMENTE
-        videoContainerRef.current.innerHTML = ''
-        
-        // ✅ INSERIR PLAYER DE FORMA MAIS DIRETA
-        videoContainerRef.current.innerHTML = `
-          <div style="position: relative; padding-bottom: 56.25%; height: 0; background: #000;">
-            <vturb-smartplayer 
-              id="vid-692ef1c85df8a7aaec7c6000" 
-              style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
-              data-setup='{"autoplay":false,"controls":true}'
-            ></vturb-smartplayer>
-          </div>
-        `
-
-        // ✅ AGUARDAR UM POUCO PARA O HTML SER PROCESSADO
-        await new Promise(resolve => setTimeout(resolve, 500))
-
-        // ✅ CARREGAR O SCRIPT
-        const script = document.createElement("script")
-        script.src = "https://scripts.converteai.net/15be01a4-4462-4736-aeb9-b95eda21b8b8/players/692ef1c85df8a7aaec7c6000/v4/player.js"
-        script.async = true
-        
-        script.onload = () => {
-          console.log("Script ConvertAI carregado com sucesso!")
-          setIsVideoReady(true)
-        }
-        
-        script.onerror = (error) => {
-          console.error("Erro ao carregar script ConvertAI:", error)
-          setVideoError("Erro ao carregar o script do vídeo")
-          scriptLoadedRef.current = false // Permitir nova tentativa
-        }
-        
-        document.head.appendChild(script)
-        
-      } catch (error) {
-        console.error("Erro na inicialização do vídeo:", error)
-        setVideoError("Erro inesperado ao carregar o vídeo")
-        scriptLoadedRef.current = false // Permitir nova tentativa
-      }
-    }
-
-    // ✅ AGUARDAR UM POUCO ANTES DE INICIALIZAR
-    const timer = setTimeout(initializeVideo, 1000)
-    
-    return () => {
-      clearTimeout(timer)
-    }
-  }, [showVSL, isBrowser])
 
   // ===== FUNÇÕES DE PERSONALIZAÇÃO =====
   const getPronoun = useCallback(() => userGender === "SOY MUJER" ? "él" : "ella", [userGender])
@@ -276,90 +195,37 @@ export default function ResultPageFixed() {
     }
   }, [isBrowser])
 
-  // ===== FUNÇÃO PARA RETRY MANUAL =====
-  const handleRetryVideo = () => {
-    console.log("Tentando recarregar vídeo...")
-    setVideoError(null)
-    setIsVideoReady(false)
-    scriptLoadedRef.current = false
-    
-    // Remover scripts existentes
-    const existingScripts = document.querySelectorAll('script[src*="converteai.net"]')
-    existingScripts.forEach(script => script.remove())
-    
-    // Limpar container
-    if (videoContainerRef.current) {
-      videoContainerRef.current.innerHTML = ''
-    }
-    
-    // Forçar re-execução do useEffect
-    setShowVSL(false)
-    setTimeout(() => setShowVSL(true), 100)
-  }
-
-  // ✅ COMPONENTE DE VÍDEO SUPER OTIMIZADO E SIMPLIFICADO
+  // ✅ COMPONENTE DE VÍDEO SUPER SIMPLES E LIMPO
   const VideoPlayer = () => {
-    if (!isBrowser || !showVSL) {
-      return null
-    }
+    useEffect(() => {
+      // Verificar se o script já existe
+      const existingScript = document.querySelector('script[src="https://scripts.converteai.net/15be01a4-4462-4736-aeb9-b95eda21b8b8/players/692ef1c85df8a7aaec7c6000/v4/player.js"]');
+      
+      if (!existingScript) {
+        const s = document.createElement("script");
+        s.src = "https://scripts.converteai.net/15be01a4-4462-4736-aeb9-b95eda21b8b8/players/692ef1c85df8a7aaec7c6000/v4/player.js";
+        s.async = true;
+        document.head.appendChild(s);
+      }
+    }, []);
 
     return (
-      <div className="relative w-full bg-black rounded-lg overflow-hidden" style={{ minHeight: '300px' }}>
-        {/* Container do vídeo */}
-        <div 
-          ref={videoContainerRef}
-          className="w-full h-full min-h-[300px] flex items-center justify-center bg-gray-900"
-          style={{ aspectRatio: '16/9' }}
-        >
-          {/* Loading overlay */}
-          {!isVideoReady && !videoError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-white z-20">
-              <div className="text-center">
-                <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-3"></div>
-                <p className="mb-2">Cargando video ConvertAI...</p>
-                <p className="text-sm text-gray-400">Puede tomar unos segundos</p>
-              </div>
-            </div>
-          )}
-          
-          {/* Error overlay */}
-          {videoError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-red-900/30 text-white z-20">
-              <div className="text-center p-4">
-                <p className="text-red-300 mb-3">⚠️ {videoError}</p>
-                <button 
-                  onClick={handleRetryVideo}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                  🔄 Tentar Novamente
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-        
-        {/* Botão de retry sempre visível */}
-        <div className="absolute bottom-2 right-2 z-30">
-          <button 
-            onClick={handleRetryVideo}
-            className="bg-black/50 hover:bg-black/70 text-white px-2 py-1 rounded text-xs transition-colors"
-            title="Recargar video"
-          >
-            🔄
-          </button>
-        </div>
-        
-        {/* Debug info */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="absolute top-2 left-2 z-30 bg-black/70 text-white text-xs p-2 rounded">
-            <div>Script loaded: {scriptLoadedRef.current ? 'Sim' : 'Não'}</div>
-            <div>Video ready: {isVideoReady ? 'Sim' : 'Não'}</div>
-            <div>Error: {videoError || 'Nenhum'}</div>
-          </div>
-        )}
+      <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', backgroundColor: '#000', borderRadius: '8px', overflow: 'hidden' }}>
+        <vturb-smartplayer 
+          id="vid-692ef1c85df8a7aaec7c6000" 
+          style={{ 
+            display: 'block', 
+            margin: '0 auto', 
+            width: '100%', 
+            height: '100%', 
+            position: 'absolute', 
+            top: 0, 
+            left: 0 
+          }}
+        ></vturb-smartplayer>
       </div>
-    )
-  }
+    );
+  };
 
   if (!isBrowser) {
     return <div className="min-h-screen bg-black flex items-center justify-center text-white">Cargando...</div>
@@ -486,7 +352,7 @@ export default function ResultPageFixed() {
               )}
             </AnimatePresence>
 
-            {/* ===== REVELACIÓN 2: VSL ESTRATÉGICO (VÍDEO CORRIGIDO) ===== */}
+            {/* ===== REVELACIÓN 2: VSL ESTRATÉGICO (VÍDEO LIMPO) ===== */}
             <AnimatePresence>
               {showVSL && (
                 <motion.div
@@ -505,15 +371,9 @@ export default function ResultPageFixed() {
                       </p>
                     </div>
 
-                    {/* ✅ CONTAINER DO VÍDEO CORRIGIDO */}
+                    {/* ✅ CONTAINER DO VÍDEO SUPER LIMPO */}
                     <div className="max-w-3xl mx-auto mb-6">
-                      <div className="relative bg-black rounded-xl p-4 border-2 border-blue-500 shadow-2xl">
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-green-600/20 rounded-xl animate-pulse"></div>
-                        
-                        <div className="relative z-10">
-                          <VideoPlayer />
-                        </div>
-                      </div>
+                      <VideoPlayer />
                     </div>
                     
                     <div className="text-center bg-green-900/30 rounded-lg p-4 border border-green-500">
@@ -527,7 +387,6 @@ export default function ResultPageFixed() {
               )}
             </AnimatePresence>
 
-            {/* ===== RESTO DO CÓDIGO CONTINUA IGUAL... ===== */}
             {/* ===== REVELACIÓN 3: OFERTA IRRESISTÍVEL ===== */}
             <AnimatePresence>
               {showOffer && (
@@ -725,7 +584,7 @@ export default function ResultPageFixed() {
 
             {/* ===== SEÇÃO 5: GARANTIA RÁPIDA ===== */}
             <AnimatePresence>
-              {showFinalCTA && ( // Mostra a garantia junto com o CTA final
+              {showFinalCTA && (
                 <motion.div
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -760,12 +619,11 @@ export default function ResultPageFixed() {
               )}
             </AnimatePresence>
 
-          </div> {/* Fim do max-w-4xl */}
-        </div> {/* Fim do matrix-background */}
+          </div>
+        </div>
 
-        {/* ===== CSS GLOBAL (MANTIDO IGUAL) ===== */}
+        {/* ===== CSS GLOBAL ===== */}
         <style jsx global>{`
-          /* Reset e Base Mobile-First */
           * {
             box-sizing: border-box !important;
             max-width: 100% !important;
@@ -787,7 +645,6 @@ export default function ResultPageFixed() {
             padding: 0;
           }
 
-          /* Matrix Background Effect */
           @keyframes matrix-fall {
             from { background-position: 0 0; }
             to { background-position: -1000px -1000px; }
@@ -813,51 +670,6 @@ export default function ResultPageFixed() {
             z-index: 0;
           }
 
-          /* ✅ CORREÇÃO CRÍTICA: CSS SUPER OTIMIZADO PARA O VÍDEO */
-          vturb-smartplayer {
-            display: block !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            height: 100% !important;
-            position: relative !important;
-            z-index: 1 !important;
-            background: #000 !important;
-            border-radius: 8px !important;
-            overflow: hidden !important;
-          }
-
-          /* ✅ FORÇA TODOS OS ELEMENTOS FILHOS DO PLAYER */
-          vturb-smartplayer * {
-            width: 100% !important;
-            height: 100% !important;
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-          }
-
-          /* ✅ FORÇA IFRAME E VÍDEO ESPECIFICAMENTE */
-          vturb-smartplayer iframe,
-          vturb-smartplayer video {
-            width: 100% !important;
-            height: 100% !important;
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            border: none !important;
-            border-radius: 8px !important;
-          }
-
-          /* ✅ CORRIGE QUALQUER CONFLITO DE POSITIONING */
-          [id^="vid-692ef1c85df8a7aaec7c6000"] {
-            display: block !important;
-            width: 100% !important;
-            height: 100% !important;
-            position: relative !important;
-            background: #000 !important;
-            min-height: 200px !important;
-          }
-
-          /* Padding e Spacing */
           .mobile-padding {
             padding: clamp(1rem, 4vw, 2rem) clamp(0.75rem, 3vw, 1rem);
           }
@@ -878,24 +690,6 @@ export default function ResultPageFixed() {
             padding: clamp(1rem, 4vw, 1.5rem);
           }
 
-          /* CSS para Vídeo */
-          .mobile-video-padding {
-            padding: clamp(0.5rem, 2vw, 1rem);
-          }
-
-          .mobile-video-container {
-            width: 100% !important;
-            max-width: 100% !important;
-            position: relative !important;
-            overflow: hidden !important;
-            border-radius: clamp(0.5rem, 2vw, 1rem) !important;
-          }
-
-          .mobile-border-orange {
-            border: clamp(1px, 0.5vw, 2px) solid rgb(249 115 22);
-          }
-
-          /* Tipografia */
           .mobile-headline {
             font-size: clamp(1.5rem, 6vw, 3rem);
             line-height: 1.2;
@@ -982,7 +776,6 @@ export default function ResultPageFixed() {
             line-height: 1.3;
           }
 
-          /* Ícones */
           .mobile-icon-size {
             width: clamp(1.25rem, 4vw, 1.5rem);
             height: clamp(1.25rem, 4vw, 1.5rem);
@@ -998,7 +791,6 @@ export default function ResultPageFixed() {
             height: clamp(3rem, 8vw, 4rem);
           }
 
-          /* Bordas */
           .mobile-border-yellow {
             border: clamp(2px, 1vw, 4px) solid rgb(250 204 21) !important;
           }
@@ -1007,7 +799,6 @@ export default function ResultPageFixed() {
             border: clamp(2px, 1vw, 4px) solid rgb(34 197 94) !important;
           }
 
-          /* Botões */
           .mobile-cta-offer,
           .mobile-cta-final {
             width: 100% !important;
@@ -1061,7 +852,6 @@ export default function ResultPageFixed() {
             font-weight: 800 !important;
           }
 
-          /* Performance */
           .bg-gradient-to-r,
           .bg-gradient-to-br {
             will-change: transform !important;
@@ -1069,7 +859,6 @@ export default function ResultPageFixed() {
             transform: translateZ(0) !important;
           }
 
-          /* Texto */
           .break-words {
             word-wrap: break-word !important;
             overflow-wrap: break-word !important;
@@ -1081,7 +870,6 @@ export default function ResultPageFixed() {
             overflow-wrap: anywhere !important;
           }
 
-          /* Imagens */
           img,
           video {
             max-width: 100% !important;
@@ -1089,7 +877,6 @@ export default function ResultPageFixed() {
             display: block !important;
           }
 
-          /* Container limits */
           .min-h-screen {
             max-width: 100vw !important;
             width: 100% !important;
@@ -1107,7 +894,6 @@ export default function ResultPageFixed() {
             .max-w-md { max-width: 28rem !important; }
           }
 
-          /* Dark mode compatibility */
           @media (prefers-color-scheme: dark) {
             .bg-green-50 {
               background-color: rgb(20 83 45) !important;
@@ -1122,7 +908,6 @@ export default function ResultPageFixed() {
             }
           }
 
-          /* Mobile pequeno */
           @media (max-width: 375px) {
             .mobile-headline {
               font-size: 1.25rem !important;
