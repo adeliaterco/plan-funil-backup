@@ -64,7 +64,7 @@ export default function HomePageOptimized() {
 
     let progress = 20
     const interval = setInterval(() => {
-      progress += 15
+      progress += 30
       setLoadingProgress(progress)
 
       if (progress >= 100) {
@@ -84,7 +84,7 @@ export default function HomePageOptimized() {
 
         router.push(url)
       }
-    }, 200)
+    }, 100)
   }, [isLoading, isOnline, router, spotsLeft])
 
   return (
