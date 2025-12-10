@@ -314,7 +314,6 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
     return `🎯 TU PLAN A PERSONALIZADO ESTÁ LISTO\n\nDespués de crear tu demostración específica, he confirmado que tu situación tiene **89% de probabilidad de éxito** usando el Plan A.\n\n${insight}\n\nEsta es solo la PRIMERA de las 21 técnicas específicas para tu caso:\n\n${technique}`;
   }, [userGender]);
 
-  // ✅ CORREÇÃO: Caracteres aleatórios pré-gerados (sem tremulação)
   const getRandomChars = useCallback((length) => {
     const chars = '!@#$%^&*()_+-=[]{}|;:,.<>?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     return Array.from({length}, () => chars[Math.floor(Math.random() * chars.length)]);
@@ -328,10 +327,8 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
       const randomChars = getRandomChars(targetText.length);
       let revealIndex = 0;
 
-      // ✅ CORREÇÃO: Animação otimizada e mais rápida
       intervalId = setInterval(() => {
         if (revealIndex < targetText.length) {
-          // ✅ CORREÇÃO: Construção eficiente da string (sem tremulação)
           const newText = targetText.substring(0, revealIndex + 1) + 
                          randomChars.slice(revealIndex + 1).join('');
           setDisplayText(newText);
@@ -340,15 +337,14 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           clearInterval(intervalId);
           setIsDecrypting(false);
           setDecryptionComplete(true);
-          setDisplayText(targetText); // ✅ Texto final limpo
+          setDisplayText(targetText);
           
-          // ✅ CORREÇÃO: Botão aparece IMEDIATAMENTE após descriptografia
           setTimeout(() => {
             setContentRevealed(true);
             setShowButton(true);
-          }, 100); // Apenas 100ms para suavizar transição
+          }, 100);
         }
-      }, 8); // ✅ CORREÇÃO: Ainda mais rápido (8ms por caractere)
+      }, 8);
     }
 
     return () => {
@@ -358,7 +354,6 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
 
   return (
     <div className="relative min-h-[600px] bg-black overflow-hidden rounded-xl p-6 sm:p-8 flex flex-col items-center justify-center">
-      {/* Matrix Background Effect */}
       <style jsx>{`
         @keyframes matrix-fall {
           from { background-position: 0 0; }
@@ -414,10 +409,9 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           <span className="text-white">PLAN</span> <span className="text-green-500">DESBLOQUEADO</span>
         </h2>
 
-        {/* ✅ CORREÇÃO: Texto sempre visível (opacity: 1) */}
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }} // ✅ SEMPRE VISÍVEL
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
           className="bg-gray-900/80 border border-green-700 rounded-lg p-4 sm:p-6 mb-8 shadow-lg"
         >
@@ -426,21 +420,24 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           </p>
         </motion.div>
 
-
-        {/* ✅ CORREÇÃO: Botão com aparição mais rápida */}
+        {/* ✅ CORREÇÃO 2: Botão sempre clicável */}
         <AnimatePresence>
           {showButton && (
             <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.8 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.8 }}
-              transition={{ duration: 0.3, type: "spring", stiffness: 200 }} // ✅ Mais rápido
+              transition={{ duration: 0.3, type: "spring", stiffness: 200 }}
               className="mt-8"
             >
               <Button
-                onClick={onComplete}
+                onClick={() => {
+                  console.log('Botão ACCEDER AL PLAN clicado');
+                  onComplete && onComplete();
+                }}
                 size="lg"
-                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 px-8 rounded-full shadow-lg w-full sm:w-auto text-lg transform hover:scale-105 transition-all duration-200"
+                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 px-8 rounded-full shadow-lg w-full sm:w-auto text-lg transform hover:scale-105 transition-all duration-200 cursor-pointer"
+                disabled={false}
               >
                 🚀 ACCEDER AL PLAN A COMPLETO
                 <ArrowRight className="w-6 h-6 ml-3" />
@@ -449,18 +446,21 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           )}
         </AnimatePresence>
 
-        {/* ✅ CORREÇÃO: Botão de emergência mais rápido */}
         {!showButton && decryptionComplete && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 2 }} // ✅ Reduzido de 5s para 2s
+            transition={{ delay: 2 }}
             className="mt-8"
           >
             <Button
-              onClick={onComplete}
+              onClick={() => {
+                console.log('Botão emergência clicado');
+                onComplete && onComplete();
+              }}
               size="lg"
-              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-4 px-8 rounded-full shadow-lg w-full sm:w-auto text-lg"
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-4 px-8 rounded-full shadow-lg w-full sm:w-auto text-lg cursor-pointer"
+              disabled={false}
             >
               ⚠️ CONTINUAR AL RESULTADO
               <ArrowRight className="w-6 h-6 ml-3" />
@@ -477,6 +477,7 @@ export default function QuizStep() {
   const router = useRouter()
   const step = Number.parseInt(params.step as string)
   const [selectedAnswer, setSelectedAnswer] = useState<string>("")
+  const [isProcessing, setIsProcessing] = useState(false)
   const [quizData, setQuizData] = useState<any>({})
   const [unlockedBonuses, setUnlockedBonuses] = useState<number[]>([])
   const [totalValue, setTotalValue] = useState(0)
@@ -545,7 +546,7 @@ export default function QuizStep() {
       
       router.push(`/resultado${utmString}`)
     }
-  }, [step, router]);
+  }, [step, router, unlockedBonuses, totalValue]);
 
   const handleNext = useCallback(() => {
     enviarEvento('avancou_etapa', {
@@ -574,10 +575,11 @@ export default function QuizStep() {
     }
 
     proceedToNextStep()
-  }, [step, selectedAnswer, quizData]);
+  }, [step, selectedAnswer, quizData, proceedToNextStep]);
 
+  // ✅ CORREÇÃO 1: Removido a verificação inicial de isProcessing
   const handleAnswerSelect = useCallback((answer: string) => {
-    setSelectedAnswer(answer)
+    setSelectedAnswer(answer);
 
     if (step === 1) {
       enviarEvento('quiz_start', {
@@ -586,13 +588,17 @@ export default function QuizStep() {
         step: 1
       });
       
-      setUserGender(answer)
-      localStorage.setItem("userGender", answer)
+      setUserGender(answer);
+      localStorage.setItem("userGender", answer);
+      
+      // ✅ CORREÇÃO 1: Usar isProcessing para evitar múltiplos cliques
+      setIsProcessing(true);
       
       setTimeout(() => {
-        handleNext()
-      }, 800)
-      return
+        handleNext();
+        setIsProcessing(false);
+      }, 800);
+      return;
     }
 
     enviarEvento('selecionou_resposta', {
@@ -600,7 +606,7 @@ export default function QuizStep() {
       pergunta: quizSteps[step - 1]?.question || `Etapa ${step}`,
       resposta: answer
     });
-  }, [step]);
+  }, [step, handleNext]);
 
   useEffect(() => {
     const saved = localStorage.getItem("quizData")
@@ -636,7 +642,7 @@ export default function QuizStep() {
       clearTimeout(loadTimer)
       if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer)
     }
-  }, [step]);
+  }, [step, proceedToNextStep]);
 
   const handleStep12Complete = useCallback(() => {
     setStep12Completed(true)
@@ -832,7 +838,7 @@ export default function QuizStep() {
                     initial={{ x: -50, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ delay: 0.3, duration: 0.3 }}
-                    disabled={selectedAnswer !== ""}
+                    disabled={isProcessing}
                   >
                     👨 SOY HOMBRE
                   </motion.button>
@@ -845,7 +851,7 @@ export default function QuizStep() {
                     initial={{ x: 50, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ delay: 0.4, duration: 0.3 }}
-                    disabled={selectedAnswer !== ""}
+                    disabled={isProcessing}
                   >
                     👩 SOY MUJER
                   </motion.button>
