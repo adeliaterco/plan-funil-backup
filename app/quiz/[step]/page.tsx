@@ -38,21 +38,22 @@ import {
   getHeaderName,
   getPersonalizedFirstInsight,
   getPersonalizedTechnique,
+  getUserAnswer // Importar para validação
 } from "@/lib/quiz-data"
 import { BonusUnlock } from "@/components/bonus-unlock"
 import { ValueCounter } from "@/components/value-counter"
 import { LoadingAnalysis } from "@/components/loading-analysis"
 
 // Função para enviar eventos a Google Analytics
-function enviarEvento(nombre_evento, propriedades = {}) {
+function enviarEvento(nombre_evento: string, propriedades: Record<string, any> = {}) {
   if (typeof window !== 'undefined' && window.gtag) {
     window.gtag('event', nombre_evento, propriedades);
-    console.log('Evento enviado:', nombre_evento, propriedades);
+    console.log('Evento GA4 enviado:', nombre_evento, propriedades);
   }
 }
 
 // === COMPONENTE WHATSAPP MOCKUP FUNCIONAL ===
-const WhatsAppMockup = ({ userGender, onComplete }) => {
+const WhatsAppMockup = ({ userGender, onComplete }: { userGender: string; onComplete: () => void }) => {
   const [currentMessage, setCurrentMessage] = useState(0)
   const [isTyping, setIsTyping] = useState(false)
   const [analysisPoints, setAnalysisPoints] = useState([
@@ -65,11 +66,11 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
   const [animationComplete, setAnimationComplete] = useState(false)
   
   const hasStartedRef = useRef(false)
-  const timeoutsRef = useRef([])
+  const timeoutsRef = useRef<NodeJS.Timeout[]>([])
   const onCompleteCalledRef = useRef(false)
-  const intervalRef = useRef(null)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  const updateAnalysisPoint = useCallback((pointIndex, status) => {
+  const updateAnalysisPoint = useCallback((pointIndex: number, status: 'pending' | 'active' | 'completed') => {
     setAnalysisPoints(prev => prev.map((point, index) => 
       index === pointIndex ? { ...point, status } : point
     ))
@@ -98,7 +99,7 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
     if (hasStartedRef.current) return
     hasStartedRef.current = true
 
-    const addTimeout = (callback, delay) => {
+    const addTimeout = (callback: () => void, delay: number) => {
       const timeoutId = setTimeout(callback, delay)
       timeoutsRef.current.push(timeoutId)
       return timeoutId
@@ -146,12 +147,19 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
   useEffect(() => {
     if (animationComplete && !onCompleteCalledRef.current) {
       onCompleteCalledRef.current = true
+      
+      enviarEvento('completou_whatsapp_mockup', {
+        numero_etapa: 12,
+        success_percentage: successPercentage,
+        timestamp: new Date().toISOString()
+      });
+
       const timeoutId = setTimeout(() => {
         onComplete && onComplete()
       }, 1000)
       timeoutsRef.current.push(timeoutId)
     }
-  }, [animationComplete, onComplete])
+  }, [animationComplete, onComplete, successPercentage])
 
   return (
     <div className="flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-8 mb-8">
@@ -300,13 +308,14 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
   )
 }
 
-// === ✅ COMPONENTE CODE UNLOCK REVEAL CORRIGIDO - SEM BUGS ===
-const CodeUnlockReveal = ({ onComplete, userGender }) => {
+// === COMPONENTE CODE UNLOCK REVEAL ===
+const CodeUnlockReveal = ({ onComplete, userGender }: { onComplete: () => void; userGender: string }) => {
   const [displayText, setDisplayText] = useState("")
   const [isDecrypting, setIsDecrypting] = useState(true)
   const [contentRevealed, setContentRevealed] = useState(false)
   const [showButton, setShowButton] = useState(false)
   const [decryptionComplete, setDecryptionComplete] = useState(false)
+  const decryptionStartTimeRef = useRef<number | null>(null);
 
   const fullContent = useCallback(() => {
     const insight = getPersonalizedFirstInsight();
@@ -314,24 +323,22 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
     return `🎯 TU PLAN A PERSONALIZADO ESTÁ LISTO\n\nDespués de crear tu demostración específica, he confirmado que tu situación tiene **89% de probabilidad de éxito** usando el Plan A.\n\n${insight}\n\nEsta es solo la PRIMERA de las 21 técnicas específicas para tu caso:\n\n${technique}`;
   }, [userGender]);
 
-  // ✅ CORREÇÃO: Caracteres aleatórios pré-gerados (sem tremulação)
-  const getRandomChars = useCallback((length) => {
+  const getRandomChars = useCallback((length: number) => {
     const chars = '!@#$%^&*()_+-=[]{}|;:,.<>?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     return Array.from({length}, () => chars[Math.floor(Math.random() * chars.length)]);
   }, []);
 
   useEffect(() => {
-    let intervalId;
+    let intervalId: NodeJS.Timeout;
 
     if (isDecrypting) {
+      decryptionStartTimeRef.current = Date.now();
       const targetText = fullContent();
       const randomChars = getRandomChars(targetText.length);
       let revealIndex = 0;
 
-      // ✅ CORREÇÃO: Animação otimizada e mais rápida
       intervalId = setInterval(() => {
         if (revealIndex < targetText.length) {
-          // ✅ CORREÇÃO: Construção eficiente da string (sem tremulação)
           const newText = targetText.substring(0, revealIndex + 1) + 
                          randomChars.slice(revealIndex + 1).join('');
           setDisplayText(newText);
@@ -340,15 +347,21 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           clearInterval(intervalId);
           setIsDecrypting(false);
           setDecryptionComplete(true);
-          setDisplayText(targetText); // ✅ Texto final limpo
+          setDisplayText(targetText);
           
-          // ✅ CORREÇÃO: Botão aparece IMEDIATAMENTE após descriptografia
+          const timeToDecrypt = decryptionStartTimeRef.current ? (Date.now() - decryptionStartTimeRef.current) / 1000 : 0;
+          enviarEvento('completou_code_unlock', {
+            numero_etapa: 13,
+            tempo_descriptografia: timeToDecrypt,
+            timestamp: new Date().toISOString()
+          });
+
           setTimeout(() => {
             setContentRevealed(true);
             setShowButton(true);
-          }, 100); // Apenas 100ms para suavizar transição
+          }, 100);
         }
-      }, 8); // ✅ CORREÇÃO: Ainda mais rápido (8ms por caractere)
+      }, 8);
     }
 
     return () => {
@@ -414,10 +427,9 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           <span className="text-white">PLAN</span> <span className="text-green-500">DESBLOQUEADO</span>
         </h2>
 
-        {/* ✅ CORREÇÃO: Texto sempre visível (opacity: 1) */}
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }} // ✅ SEMPRE VISÍVEL
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
           className="bg-gray-900/80 border border-green-700 rounded-lg p-4 sm:p-6 mb-8 shadow-lg"
         >
@@ -426,15 +438,13 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           </p>
         </motion.div>
 
-
-        {/* ✅ CORREÇÃO: Botão com aparição mais rápida */}
         <AnimatePresence>
           {showButton && (
             <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.8 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.8 }}
-              transition={{ duration: 0.3, type: "spring", stiffness: 200 }} // ✅ Mais rápido
+              transition={{ duration: 0.3, type: "spring", stiffness: 200 }}
               className="mt-8"
             >
               <Button
@@ -449,12 +459,11 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           )}
         </AnimatePresence>
 
-        {/* ✅ CORREÇÃO: Botão de emergência mais rápido */}
         {!showButton && decryptionComplete && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 2 }} // ✅ Reduzido de 5s para 2s
+            transition={{ delay: 0.5 }} // Corrigido para 0.5s
             className="mt-8"
           >
             <Button
@@ -488,9 +497,49 @@ export default function QuizStep() {
   const [userGender, setUserGender] = useState<string>("")
   const [step12Completed, setStep12Completed] = useState(false)
   const [step13AnimationComplete, setStep13AnimationComplete] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false); // NOVO: Estado para evitar múltiplos cliques
+  const stepStartTimeRef = useRef<number | null>(null); // NOVO: Para rastrear tempo na etapa
 
   const currentStep = quizSteps[step - 1]
   const progress = (step / 13) * 100
+
+  // NOVO: Função para rastrear scroll na Etapa 11
+  const trackStep11Scroll = useCallback(() => {
+    if (step !== 11) return;
+
+    const isInViewport = (element: Element) => {
+      const rect = element.getBoundingClientRect();
+      return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+      );
+    };
+
+    const handleScroll = () => {
+      const reportageImg = document.querySelector('img[alt*="Reportagem"]');
+      const curiousImg = document.querySelector('img[alt*="Evidência"]');
+
+      if (reportageImg && isInViewport(reportageImg)) {
+        enviarEvento('scroll_para_reportagem_etapa_11', {
+          numero_etapa: 11,
+          timestamp: new Date().toISOString()
+        });
+        // Remover listener após visualização para evitar múltiplos eventos
+        window.removeEventListener('scroll', handleScroll);
+      } else if (curiousImg && isInViewport(curiousImg)) {
+        enviarEvento('scroll_para_evidencia_etapa_11', {
+          numero_etapa: 11,
+          timestamp: new Date().toISOString()
+        });
+        window.removeEventListener('scroll', handleScroll);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [step]);
 
   const proceedToNextStep = useCallback(() => {
     const currentUrl = new URL(window.location.href);
@@ -512,7 +561,9 @@ export default function QuizStep() {
       enviarEvento('desbloqueou_bonus', {
         numero_etapa: step,
         bonus_id: currentStepData.bonusUnlock.id,
-        bonus_titulo: currentStepData.bonusUnlock.title
+        bonus_titulo: currentStepData.bonusUnlock.title,
+        bonus_valor: currentStepData.bonusUnlock.value, // NOVO: Valor do bônus
+        timestamp: new Date().toISOString()
       });
 
       const newUnlockedBonuses = [...unlockedBonuses, currentStepData.bonusUnlock.id]
@@ -528,8 +579,21 @@ export default function QuizStep() {
       }
       setNewBonus(personalizedBonus)
 
-      localStorage.setItem("unlockedBonuses", JSON.stringify(newUnlockedBonuses))
-      localStorage.setItem("totalValue", newTotalValue.toString())
+      try { // NOVO: Try-catch para localStorage
+        localStorage.setItem("unlockedBonuses", JSON.stringify(newUnlockedBonuses))
+        localStorage.setItem("totalValue", newTotalValue.toString())
+        enviarEvento('salvou_unlocked_bonuses', {
+          numero_etapa: step,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error: any) {
+        console.error('Erro ao salvar unlockedBonuses/totalValue:', error);
+        enviarEvento('erro_salvar_unlocked_bonuses', {
+          numero_etapa: step,
+          erro: error.message,
+          timestamp: new Date().toISOString()
+        });
+      }
 
       setShowBonusUnlock(true)
       return
@@ -540,28 +604,83 @@ export default function QuizStep() {
     } else {
       enviarEvento('concluiu_quiz', {
         total_etapas_completadas: 13,
-        total_bonus_desbloqueados: unlockedBonuses.length
+        total_bonus_desbloqueados: unlockedBonuses.length,
+        timestamp: new Date().toISOString()
       });
       
       router.push(`/resultado${utmString}`)
     }
-  }, [step, router]);
+  }, [step, router, unlockedBonuses, totalValue]);
 
   const handleNext = useCallback(() => {
+    if (isProcessing) return; // NOVO: Previne múltiplos cliques
+    setIsProcessing(true); // NOVO: Inicia processamento
+
+    // NOVO: Rastreamento de tempo na etapa
+    if (stepStartTimeRef.current) {
+      const timeSpent = (Date.now() - stepStartTimeRef.current) / 1000;
+      enviarEvento('tempo_etapa_quiz', {
+        numero_etapa: step,
+        tempo_segundos: timeSpent,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // NOVO: Validação de resposta para etapas com opções
+    if (getPersonalizedOptions().length > 0 && !selectedAnswer) {
+      enviarEvento('tentou_avancar_sem_resposta', {
+        numero_etapa: step,
+        pergunta: quizSteps[step - 1]?.question,
+        timestamp: new Date().toISOString()
+      });
+      console.warn(`Etapa ${step}: Tentou avançar sem selecionar uma resposta.`);
+      setIsProcessing(false); // NOVO: Libera processamento
+      return;
+    }
+
     enviarEvento('avancou_etapa', {
       numero_etapa: step,
       pergunta: quizSteps[step - 1]?.question || `Etapa ${step}`,
-      resposta_selecionada: selectedAnswer
+      resposta_selecionada: selectedAnswer,
+      timestamp: new Date().toISOString()
     });
 
     const newQuizData = { ...quizData, [step]: selectedAnswer }
     setQuizData(newQuizData)
-    localStorage.setItem("quizData", JSON.stringify(newQuizData))
+    try { // NOVO: Try-catch para localStorage
+      localStorage.setItem("quizData", JSON.stringify(newQuizData))
+      enviarEvento('salvou_quiz_data', {
+        numero_etapa: step,
+        dados_salvos: Object.keys(newQuizData).length,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('Erro ao salvar quizData:', error);
+      enviarEvento('erro_salvar_quiz_data', {
+        numero_etapa: step,
+        erro: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     const answers = window.quizAnswers || {}
     answers[`question${step}`] = selectedAnswer
     window.quizAnswers = answers
-    localStorage.setItem("quizAnswers", JSON.stringify(answers))
+    try { // NOVO: Try-catch para localStorage
+      localStorage.setItem("quizAnswers", JSON.stringify(answers))
+      enviarEvento('salvou_quiz_answers', {
+        numero_etapa: step,
+        dados_salvos: Object.keys(answers).length,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('Erro ao salvar quizAnswers:', error);
+      enviarEvento('erro_salvar_quiz_answers', {
+        numero_etapa: step,
+        erro: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     const currentStepData = quizSteps[step - 1];
     if (currentStepData?.elements?.analysisText || currentStepData?.elements?.profileAnalysis) {
@@ -569,52 +688,81 @@ export default function QuizStep() {
       setTimeout(() => {
         setShowAnalysis(false)
         proceedToNextStep()
+        setIsProcessing(false); // NOVO: Libera processamento
       }, 1000)
       return
     }
 
     proceedToNextStep()
-  }, [step, selectedAnswer, quizData]);
+    setIsProcessing(false); // NOVO: Libera processamento
+  }, [step, selectedAnswer, quizData, isProcessing, proceedToNextStep, quizSteps, getPersonalizedOptions]);
 
   const handleAnswerSelect = useCallback((answer: string) => {
+    if (isProcessing && step === 1) return; // NOVO: Previne múltiplos cliques apenas para step 1
+    setIsProcessing(true); // NOVO: Inicia processamento
+
     setSelectedAnswer(answer)
 
-    if (step === 1) {
-      enviarEvento('quiz_start', {
-        perfil_selecionado: answer,
-        auto_advance: true,
-        step: 1
-      });
-      
-      setUserGender(answer)
-      localStorage.setItem("userGender", answer)
-      
-      setTimeout(() => {
-        handleNext()
-      }, 800)
-      return
-    }
+    try { // NOVO: Try-catch para a lógica de seleção
+      if (step === 1) {
+        enviarEvento('quiz_start', {
+          perfil_selecionado: answer,
+          auto_advance: true,
+          step: 1,
+          timestamp: new Date().toISOString()
+        });
+        
+        setUserGender(answer)
+        localStorage.setItem("userGender", answer)
+        
+        setTimeout(() => {
+          handleNext()
+          setIsProcessing(false); // NOVO: Libera processamento após timeout
+        }, 800) // Corrigido para 800ms
+        return
+      }
 
-    enviarEvento('selecionou_resposta', {
-      numero_etapa: step,
-      pergunta: quizSteps[step - 1]?.question || `Etapa ${step}`,
-      resposta: answer
-    });
-  }, [step]);
+      enviarEvento('selecionou_resposta', {
+        numero_etapa: step,
+        pergunta: quizSteps[step - 1]?.question || `Etapa ${step}`,
+        resposta: answer,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('Erro ao selecionar resposta:', error);
+      enviarEvento('erro_selecionou_resposta', {
+        numero_etapa: step,
+        erro: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+    setIsProcessing(false); // NOVO: Libera processamento para outros steps imediatamente
+  }, [step, isProcessing, handleNext, quizSteps, setUserGender, selectedAnswer]); // Adicionado selectedAnswer e quizSteps
 
   useEffect(() => {
-    const saved = localStorage.getItem("quizData")
-    const savedBonuses = localStorage.getItem("unlockedBonuses")
-    const savedValue = localStorage.getItem("totalValue")
-    const savedGender = localStorage.getItem("userGender")
-    const savedAnswers = localStorage.getItem("quizAnswers")
+    stepStartTimeRef.current = Date.now(); // NOVO: Inicia contador de tempo na etapa
 
-    if (saved) setQuizData(JSON.parse(saved))
-    if (savedBonuses) setUnlockedBonuses(JSON.parse(savedBonuses))
-    if (savedValue) setTotalValue(Number.parseInt(savedValue))
-    if (savedGender) setUserGender(savedGender)
-    if (savedAnswers) {
-      window.quizAnswers = JSON.parse(savedAnswers)
+    try { // NOVO: Try-catch para localStorage
+      const saved = localStorage.getItem("quizData")
+      const savedBonuses = localStorage.getItem("unlockedBonuses")
+      const savedValue = localStorage.getItem("totalValue")
+      const savedGender = localStorage.getItem("userGender")
+      const savedAnswers = localStorage.getItem("quizAnswers")
+
+      if (saved) setQuizData(JSON.parse(saved))
+      if (savedBonuses) setUnlockedBonuses(JSON.parse(savedBonuses))
+      if (savedValue) setTotalValue(Number.parseInt(savedValue))
+      if (savedGender) setUserGender(savedGender)
+      if (savedAnswers) {
+        window.quizAnswers = JSON.parse(savedAnswers)
+      }
+    } catch (error: any) {
+      console.error('Erro ao carregar dados do localStorage:', error);
+      enviarEvento('erro_carregar_localstorage', {
+        numero_etapa: step,
+        erro: error.message,
+        timestamp: new Date().toISOString()
+      });
     }
 
     const loadTimer = setTimeout(() => setIsLoaded(true), 100)
@@ -622,10 +770,40 @@ export default function QuizStep() {
     const currentStepData = quizSteps[step - 1];
     enviarEvento('visualizou_etapa_quiz', {
       numero_etapa: step,
-      pergunta: currentStepData?.question || `Etapa ${step}`
+      pergunta: currentStepData?.question || `Etapa ${step}`,
+      timestamp: new Date().toISOString()
     });
+    // NOVO: Evento específico por etapa
+    enviarEvento(`visualizou_etapa_${step}`, {
+      numero_etapa: step,
+      pergunta: currentStepData?.question,
+      timestamp: new Date().toISOString()
+    });
+    // NOVO: Eventos específicos para etapas críticas
+    if (step === 11) {
+      enviarEvento('visualizou_etapa_11_reportagem', {
+        numero_etapa: 11,
+        tipo: 'ciencia_e_evidencia',
+        timestamp: new Date().toISOString()
+      });
+      trackStep11Scroll(); // NOVO: Inicia rastreamento de scroll para Etapa 11
+    }
+    if (step === 12) {
+      enviarEvento('visualizou_etapa_12_whatsapp', {
+        numero_etapa: 12,
+        tipo: 'simulacao_whatsapp',
+        timestamp: new Date().toISOString()
+      });
+    }
+    if (step === 13) {
+      enviarEvento('visualizou_etapa_13_desbloqueio', {
+        numero_etapa: 13,
+        tipo: 'codigo_desbloqueado',
+        timestamp: new Date().toISOString()
+      });
+    }
 
-    let autoAdvanceTimer
+    let autoAdvanceTimer: NodeJS.Timeout | undefined;
     if (currentStepData?.autoAdvance) {
       autoAdvanceTimer = setTimeout(() => {
         proceedToNextStep()
@@ -635,8 +813,36 @@ export default function QuizStep() {
     return () => {
       clearTimeout(loadTimer)
       if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer)
+      // NOVO: Rastreamento de tempo na etapa ao sair
+      if (stepStartTimeRef.current) {
+        const timeSpent = (Date.now() - stepStartTimeRef.current) / 1000;
+        enviarEvento('tempo_etapa_quiz_saida', {
+          numero_etapa: step,
+          tempo_segundos: timeSpent,
+          timestamp: new Date().toISOString()
+        });
+      }
     }
-  }, [step]);
+  }, [step, proceedToNextStep, trackStep11Scroll]); // Adicionado trackStep11Scroll
+
+  // NOVO: Rastreamento de abandono
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (step > 1 && !selectedAnswer && !isProcessing) { // Verifica se não está processando
+        enviarEvento('abandonou_quiz', {
+          numero_etapa: step,
+          pergunta: quizSteps[step - 1]?.question,
+          timestamp: new Date().toISOString()
+        });
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [step, selectedAnswer, isProcessing, quizSteps]);
 
   const handleStep12Complete = useCallback(() => {
     setStep12Completed(true)
@@ -649,6 +855,13 @@ export default function QuizStep() {
   const handleBonusUnlockComplete = useCallback(() => {
     setShowBonusUnlock(false)
     
+    enviarEvento('completou_bonus_unlock', { // NOVO: Rastreamento de conclusão do bônus
+      numero_etapa: step,
+      bonus_id: newBonus?.id,
+      bonus_titulo: newBonus?.title,
+      timestamp: new Date().toISOString()
+    });
+
     const currentUrl = new URL(window.location.href);
     let utmString = '';
     
@@ -668,12 +881,13 @@ export default function QuizStep() {
     } else {
       router.push(`/resultado${utmString}`)
     }
-  }, [step, router])
+  }, [step, router, newBonus]);
 
   const handleBack = useCallback(() => {
     enviarEvento('retornou_etapa', {
       de_etapa: step,
-      para_etapa: step > 1 ? step - 1 : 'inicio'
+      para_etapa: step > 1 ? step - 1 : 'inicio',
+      timestamp: new Date().toISOString()
     });
     
     const currentUrl = new URL(window.location.href);
@@ -698,7 +912,7 @@ export default function QuizStep() {
   }, [step, router])
 
   const getStepIcon = (stepNumber: number, index: number) => {
-    const iconMaps = {
+    const iconMaps: { [key: number]: (typeof User)[] } = { // Tipagem corrigida
       1: [User, Users],
       2: [Calendar, TrendingUp, Target, Zap],
       3: [Clock, Calendar, MessageCircle, Heart],
@@ -716,7 +930,17 @@ export default function QuizStep() {
   }
 
   const getPersonalizedQuestion = () => {
-    return getPersonalizedContent(currentStep.question, userGender)
+    try { // NOVO: Try-catch
+      return getPersonalizedContent(currentStep.question, userGender)
+    } catch (error: any) {
+      console.error('Erro ao obter personalized question:', error);
+      enviarEvento('erro_personalized_question', {
+        numero_etapa: step,
+        erro: error.message,
+        timestamp: new Date().toISOString()
+      });
+      return currentStep.question; // Fallback
+    }
   }
 
   const getPersonalizedDescription = () => {
@@ -724,12 +948,27 @@ export default function QuizStep() {
     if (typeof desc === 'function') {
       try {
         return desc()
-      } catch (error) {
+      } catch (error: any) {
         console.error('Erro ao executar função de description:', error)
+        enviarEvento('erro_personalized_description_func', {
+          numero_etapa: step,
+          erro: error.message,
+          timestamp: new Date().toISOString()
+        });
         return ''
       }
     }
-    return getPersonalizedContent(desc, userGender)
+    try { // NOVO: Try-catch
+      return getPersonalizedContent(desc, userGender)
+    } catch (error: any) {
+      console.error('Erro ao obter personalized description:', error);
+      enviarEvento('erro_personalized_description', {
+        numero_etapa: step,
+        erro: error.message,
+        timestamp: new Date().toISOString()
+      });
+      return desc; // Fallback
+    }
   }
 
   const getPersonalizedSubtext = () => {
@@ -737,20 +976,49 @@ export default function QuizStep() {
     if (typeof subtext === 'function') {
       try {
         return subtext()
-      } catch (error) {
+      } catch (error: any) {
         console.error('Erro ao executar função de subtext:', error)
+        enviarEvento('erro_personalized_subtext_func', {
+          numero_etapa: step,
+          erro: error.message,
+          timestamp: new Date().toISOString()
+        });
         return ''
       }
     }
-    return getPersonalizedContent(subtext, userGender)
+    try { // NOVO: Try-catch
+      return getPersonalizedContent(subtext, userGender)
+    } catch (error: any) {
+      console.error('Erro ao obter personalized subtext:', error);
+      enviarEvento('erro_personalized_subtext', {
+        numero_etapa: step,
+        erro: error.message,
+        timestamp: new Date().toISOString()
+      });
+      return subtext; // Fallback
+    }
   }
 
   const getPersonalizedOptions = () => {
-    const options = getPersonalizedContent(currentStep.options, userGender)
-    return Array.isArray(options) ? options : currentStep.options
+    try { // NOVO: Try-catch
+      const options = getPersonalizedContent(currentStep.options, userGender)
+      return Array.isArray(options) ? options : currentStep.options
+    } catch (error: any) {
+      console.error('Erro ao obter personalized options:', error);
+      enviarEvento('erro_personalized_options', {
+        numero_etapa: step,
+        erro: error.message,
+        timestamp: new Date().toISOString()
+      });
+      return currentStep.options; // Fallback
+    }
   }
 
   if (!currentStep) {
+    enviarEvento('erro_current_step_nao_encontrado', { // NOVO: Rastreamento de erro
+      numero_etapa: step,
+      timestamp: new Date().toISOString()
+    });
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white text-xl">Cargando...</div>
@@ -768,7 +1036,7 @@ export default function QuizStep() {
               variant="ghost"
               onClick={handleBack}
               className="text-white hover:bg-white/20 border border-white/20"
-              disabled={currentStep?.autoAdvance}
+              disabled={currentStep?.autoAdvance || isProcessing} // NOVO: Desabilita botão voltar durante processamento
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver
@@ -832,9 +1100,13 @@ export default function QuizStep() {
                     initial={{ x: -50, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ delay: 0.3, duration: 0.3 }}
-                    disabled={selectedAnswer !== ""}
+                    disabled={isProcessing} // CORRIGIDO: Usa isProcessing
                   >
-                    👨 SOY HOMBRE
+                    {isProcessing && selectedAnswer === "SOY HOMBRE" ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto"></div>
+                    ) : (
+                      '👨 SOY HOMBRE'
+                    )}
                   </motion.button>
 
                   <motion.button
@@ -845,9 +1117,13 @@ export default function QuizStep() {
                     initial={{ x: 50, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ delay: 0.4, duration: 0.3 }}
-                    disabled={selectedAnswer !== ""}
+                    disabled={isProcessing} // CORRIGIDO: Usa isProcessing
                   >
-                    👩 SOY MUJER
+                    {isProcessing && selectedAnswer === "SOY MUJER" ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto"></div>
+                    ) : (
+                      '👩 SOY MUJER'
+                    )}
                   </motion.button>
                 </div>
 
@@ -908,8 +1184,13 @@ export default function QuizStep() {
                           onClick={handleNext}
                           size="lg"
                           className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-3 px-6 rounded-full shadow-lg w-full sm:w-auto"
+                          disabled={isProcessing} // NOVO: Desabilita botão durante processamento
                         >
-                          VER MI PLAN PERSONALIZADO
+                          {isProcessing ? (
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                          ) : (
+                            'VER MI PLAN PERSONALIZADO'
+                          )}
                           <ArrowRight className="w-5 h-5 ml-2" />
                         </Button>
                       </motion.div>
@@ -944,7 +1225,7 @@ export default function QuizStep() {
         {step !== 1 && step !== 12 && step !== 13 && (
           <>
             {/* Testimonial Display */}
-            {currentStep?.elements?.testimonialDisplay && (currentStep?.elements?.testimonialText || currentStep?.elements?.testimonialData) && (
+            {currentStep?.elements?.testimonialDisplay && (currentStep?.elements?.testimonialText || (currentStep?.elements?.testimonialData && currentStep.elements.testimonialData())) && ( // Corrigido
               <motion.div 
                 initial={{ opacity: 0, y: 20 }} 
                 animate={{ opacity: 1, y: 0 }} 
@@ -968,6 +1249,16 @@ export default function QuizStep() {
                               duration: 2,
                               repeat: Number.POSITIVE_INFINITY,
                               ease: "easeInOut",
+                            }}
+                            onError={(e: any) => { // NOVO: Rastreamento de erro de imagem
+                              console.error('Erro ao carregar imagem de depoimento:', e.target.src);
+                              enviarEvento('erro_carregar_imagem', {
+                                numero_etapa: step,
+                                tipo: 'depoimento',
+                                url: e.target.src,
+                                timestamp: new Date().toISOString()
+                              });
+                              e.target.style.display = 'none'; // Esconde imagem quebrada
                             }}
                           />
                         ) : (
@@ -1054,6 +1345,16 @@ export default function QuizStep() {
                             duration: 3,
                             repeat: Number.POSITIVE_INFINITY,
                             ease: "easeInOut",
+                          }}
+                          onError={(e: any) => { // NOVO: Rastreamento de erro de imagem
+                            console.error('Erro ao carregar imagem de especialista:', e.target.src);
+                            enviarEvento('erro_carregar_imagem', {
+                              numero_etapa: step,
+                              tipo: 'especialista',
+                              url: e.target.src,
+                              timestamp: new Date().toISOString()
+                            });
+                            e.target.style.display = 'none';
                           }}
                         />
                       ) : (
@@ -1159,6 +1460,16 @@ export default function QuizStep() {
                             repeat: Number.POSITIVE_INFINITY,
                             ease: "easeInOut",
                           }}
+                          onError={(e: any) => { // NOVO: Rastreamento de erro de imagem
+                            console.error('Erro ao carregar imagem de especialista:', e.target.src);
+                            enviarEvento('erro_carregar_imagem', {
+                              numero_etapa: step,
+                              tipo: 'especialista',
+                              url: e.target.src,
+                              timestamp: new Date().toISOString()
+                            });
+                            e.target.style.display = 'none';
+                          }}
                         />
                       ) : (
                         <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-600 to-purple-700 rounded-full flex items-center justify-center">
@@ -1198,7 +1509,7 @@ export default function QuizStep() {
                         <div className="text-gray-300 text-center mb-8 text-sm sm:text-base whitespace-pre-wrap">
                           {step === 13 ? (
                             <div className="space-y-6">
-                              {getPersonalizedDescription().split('**').map((section, index) => {
+                              {getPersonalizedDescription().split('**').map((section: string, index: number) => { // Tipagem corrigida
                                 if (index % 2 === 1) {
                                   return <strong key={index} className="text-orange-400">{section}</strong>
                                 }
@@ -1234,6 +1545,16 @@ export default function QuizStep() {
                                 src={currentStep.elements.reportageImage}
                                 alt="Reportagem BBC sobre neurociência"
                                 className="w-full rounded-lg shadow-xl border border-gray-600 hover:shadow-2xl transition-shadow duration-300"
+                                onError={(e: any) => { // NOVO: Rastreamento de erro de imagem
+                                  console.error('Erro ao carregar imagem de reportagem:', e.target.src);
+                                  enviarEvento('erro_carregar_imagem', {
+                                    numero_etapa: step,
+                                    tipo: 'reportagem',
+                                    url: e.target.src,
+                                    timestamp: new Date().toISOString()
+                                  });
+                                  e.target.style.display = 'none';
+                                }}
                               />
                             </motion.div>
                           )}
@@ -1249,6 +1570,16 @@ export default function QuizStep() {
                                 src={currentStep.elements.curiousImage}
                                 alt="Evidência científica curiosa"
                                 className="w-full rounded-lg shadow-xl border border-gray-600 hover:shadow-2xl transition-shadow duration-300"
+                                onError={(e: any) => { // NOVO: Rastreamento de erro de imagem
+                                  console.error('Erro ao carregar imagem de evidência:', e.target.src);
+                                  enviarEvento('erro_carregar_imagem', {
+                                    numero_etapa: step,
+                                    tipo: 'evidencia',
+                                    url: e.target.src,
+                                    timestamp: new Date().toISOString()
+                                  });
+                                  e.target.style.display = 'none';
+                                }}
                               />
                               <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold">
                                 NEUROCIÊNCIA
@@ -1289,7 +1620,7 @@ export default function QuizStep() {
 
                       {getPersonalizedOptions().length > 0 && (
                         <div className="space-y-3 sm:space-y-4">
-                          {getPersonalizedOptions().map((option, index) => (
+                          {getPersonalizedOptions().map((option: string, index: number) => ( // Tipagem corrigida
                             <motion.div
                               key={index}
                               initial={{ opacity: 0, x: -20 }}
@@ -1305,6 +1636,7 @@ export default function QuizStep() {
                                     ? "bg-gradient-to-r from-orange-500 to-red-600 text-white border-orange-500 shadow-lg scale-105"
                                     : "bg-gray-800 text-white border-gray-600 hover:bg-gray-700 hover:border-gray-500 shadow-sm"
                                 }`}
+                                disabled={isProcessing} // NOVO: Desabilita botão durante processamento
                               >
                                 <div className="flex items-center w-full">
                                   <div className={`mr-3 sm:mr-4 ${selectedAnswer === option ? "text-white" : "text-orange-400"}`}>
@@ -1371,8 +1703,13 @@ export default function QuizStep() {
                             onClick={handleNext}
                             size="lg"
                             className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-3 px-6 sm:py-4 sm:px-8 rounded-full shadow-lg w-full sm:w-auto text-sm sm:text-base"
+                            disabled={isProcessing} // NOVO: Desabilita botão durante processamento
                           >
-                            {step === 13 ? "Ver Resultado" : "Siguiente Pregunta"}
+                            {isProcessing ? (
+                              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                            ) : (
+                              `${step === 13 ? "Ver Resultado" : "Siguiente Pregunta"}`
+                            )}
                             <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
                           </Button>
                         </motion.div>
@@ -1393,8 +1730,6 @@ export default function QuizStep() {
             transition={{ delay: 0.4 }}
             className="text-center space-y-2 mt-6"
           >
-
-
             {currentStep?.elements?.counter && (
               <p className="text-white text-xs sm:text-sm bg-white/10 px-3 py-1 rounded-full inline-block">
                 👥 {peopleCount} {currentStep.elements.counter}
@@ -1432,7 +1767,20 @@ export default function QuizStep() {
 
       {/* Modal de Desbloqueio de Bonificação */}
       <AnimatePresence>
-        {showBonusUnlock && newBonus && <BonusUnlock bonus={newBonus} onComplete={handleBonusUnlockComplete} />}
+        {showBonusUnlock && newBonus && (
+          <BonusUnlock 
+            bonus={newBonus} 
+            onComplete={() => {
+              handleBonusUnlockComplete();
+              enviarEvento('viu_bonus_unlock', { // NOVO: Rastreamento de visualização do bônus
+                numero_etapa: step,
+                bonus_id: newBonus?.id,
+                bonus_titulo: newBonus?.title,
+                timestamp: new Date().toISOString()
+              });
+            }} 
+          />
+        )}
       </AnimatePresence>
     </div>
   )
