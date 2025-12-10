@@ -146,12 +146,18 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
   useEffect(() => {
     if (animationComplete && !onCompleteCalledRef.current) {
       onCompleteCalledRef.current = true
+      // ✅ GA4: Rastrear conclusão da animação do WhatsApp Mockup
+      enviarEvento('completou_whatsapp_mockup', {
+        numero_etapa: 12,
+        success_percentage: successPercentage,
+        timestamp: new Date().toISOString()
+      });
       const timeoutId = setTimeout(() => {
         onComplete && onComplete()
       }, 1000)
       timeoutsRef.current.push(timeoutId)
     }
-  }, [animationComplete, onComplete])
+  }, [animationComplete, onComplete, successPercentage])
 
   return (
     <div className="flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-8 mb-8">
@@ -300,7 +306,7 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
   )
 }
 
-// === ✅ COMPONENTE CODE UNLOCK REVEAL CORRIGIDO - SEM BUGS ===
+// === COMPONENTE CODE UNLOCK REVEAL ===
 const CodeUnlockReveal = ({ onComplete, userGender }) => {
   const [displayText, setDisplayText] = useState("")
   const [isDecrypting, setIsDecrypting] = useState(true)
@@ -314,7 +320,6 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
     return `🎯 TU PLAN A PERSONALIZADO ESTÁ LISTO\n\nDespués de crear tu demostración específica, he confirmado que tu situación tiene **89% de probabilidad de éxito** usando el Plan A.\n\n${insight}\n\nEsta es solo la PRIMERA de las 21 técnicas específicas para tu caso:\n\n${technique}`;
   }, [userGender]);
 
-  // ✅ CORREÇÃO: Caracteres aleatórios pré-gerados (sem tremulação)
   const getRandomChars = useCallback((length) => {
     const chars = '!@#$%^&*()_+-=[]{}|;:,.<>?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     return Array.from({length}, () => chars[Math.floor(Math.random() * chars.length)]);
@@ -328,10 +333,8 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
       const randomChars = getRandomChars(targetText.length);
       let revealIndex = 0;
 
-      // ✅ CORREÇÃO: Animação otimizada e mais rápida
       intervalId = setInterval(() => {
         if (revealIndex < targetText.length) {
-          // ✅ CORREÇÃO: Construção eficiente da string (sem tremulação)
           const newText = targetText.substring(0, revealIndex + 1) + 
                          randomChars.slice(revealIndex + 1).join('');
           setDisplayText(newText);
@@ -340,15 +343,20 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           clearInterval(intervalId);
           setIsDecrypting(false);
           setDecryptionComplete(true);
-          setDisplayText(targetText); // ✅ Texto final limpo
+          setDisplayText(targetText);
           
-          // ✅ CORREÇÃO: Botão aparece IMEDIATAMENTE após descriptografia
+          // ✅ GA4: Rastrear conclusão da descriptografia
+          enviarEvento('completou_code_unlock', {
+            numero_etapa: 13,
+            timestamp: new Date().toISOString()
+          });
+
           setTimeout(() => {
             setContentRevealed(true);
             setShowButton(true);
-          }, 100); // Apenas 100ms para suavizar transição
+          }, 100);
         }
-      }, 8); // ✅ CORREÇÃO: Ainda mais rápido (8ms por caractere)
+      }, 8);
     }
 
     return () => {
@@ -414,10 +422,9 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           <span className="text-white">PLAN</span> <span className="text-green-500">DESBLOQUEADO</span>
         </h2>
 
-        {/* ✅ CORREÇÃO: Texto sempre visível (opacity: 1) */}
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }} // ✅ SEMPRE VISÍVEL
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
           className="bg-gray-900/80 border border-green-700 rounded-lg p-4 sm:p-6 mb-8 shadow-lg"
         >
@@ -427,18 +434,25 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
         </motion.div>
 
 
-        {/* ✅ CORREÇÃO: Botão com aparição mais rápida */}
         <AnimatePresence>
           {showButton && (
             <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.8 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.8 }}
-              transition={{ duration: 0.3, type: "spring", stiffness: 200 }} // ✅ Mais rápido
+              transition={{ duration: 0.3, type: "spring", stiffness: 200 }}
               className="mt-8"
             >
               <Button
-                onClick={onComplete}
+                onClick={() => {
+                  // ✅ GA4: Rastrear clique no botão principal do CodeUnlockReveal
+                  enviarEvento('clicou_botao_quiz', {
+                    numero_etapa: 13,
+                    tipo_botao: 'acessar_plano_completo',
+                    timestamp: new Date().toISOString()
+                  });
+                  onComplete();
+                }}
                 size="lg"
                 className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 px-8 rounded-full shadow-lg w-full sm:w-auto text-lg transform hover:scale-105 transition-all duration-200"
               >
@@ -449,16 +463,23 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           )}
         </AnimatePresence>
 
-        {/* ✅ CORREÇÃO: Botão de emergência mais rápido */}
         {!showButton && decryptionComplete && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 2 }} // ✅ Reduzido de 5s para 2s
+            transition={{ delay: 0.5 }} // Reduzido de 2s para 0.5s para ser mais rápido
             className="mt-8"
           >
             <Button
-              onClick={onComplete}
+              onClick={() => {
+                // ✅ GA4: Rastrear clique no botão de emergência do CodeUnlockReveal
+                enviarEvento('clicou_botao_quiz', {
+                  numero_etapa: 13,
+                  tipo_botao: 'continuar_resultado_emergencia',
+                  timestamp: new Date().toISOString()
+                });
+                onComplete();
+              }}
               size="lg"
               className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-4 px-8 rounded-full shadow-lg w-full sm:w-auto text-lg"
             >
@@ -489,8 +510,23 @@ export default function QuizStep() {
   const [step12Completed, setStep12Completed] = useState(false)
   const [step13AnimationComplete, setStep13AnimationComplete] = useState(false)
 
+  // ✅ GA4: Ref para rastrear o tempo de permanência em cada etapa
+  const stepStartTimeRef = useRef(null)
+
   const currentStep = quizSteps[step - 1]
   const progress = (step / 13) * 100
+
+  // ✅ GA4: Função auxiliar para rastrear cliques em botões
+  const trackButtonClick = useCallback((buttonType, extraProps = {}) => {
+    enviarEvento('clicou_botao_quiz', {
+      numero_etapa: step,
+      tipo_botao: buttonType,
+      pergunta: currentStep?.question || `Etapa ${step}`,
+      timestamp: new Date().toISOString(),
+      ...extraProps
+    });
+  }, [step, currentStep]);
+
 
   const proceedToNextStep = useCallback(() => {
     const currentUrl = new URL(window.location.href);
@@ -509,10 +545,13 @@ export default function QuizStep() {
 
     const currentStepData = quizSteps[step - 1];
     if (currentStepData?.bonusUnlock && !unlockedBonuses.includes(currentStepData.bonusUnlock.id)) {
+      // ✅ GA4: Rastrear desbloqueio de bônus
       enviarEvento('desbloqueou_bonus', {
         numero_etapa: step,
         bonus_id: currentStepData.bonusUnlock.id,
-        bonus_titulo: currentStepData.bonusUnlock.title
+        bonus_titulo: currentStepData.bonusUnlock.title,
+        bonus_valor: currentStepData.bonusUnlock.value,
+        timestamp: new Date().toISOString()
       });
 
       const newUnlockedBonuses = [...unlockedBonuses, currentStepData.bonusUnlock.id]
@@ -528,40 +567,119 @@ export default function QuizStep() {
       }
       setNewBonus(personalizedBonus)
 
-      localStorage.setItem("unlockedBonuses", JSON.stringify(newUnlockedBonuses))
-      localStorage.setItem("totalValue", newTotalValue.toString())
+      try {
+        localStorage.setItem("unlockedBonuses", JSON.stringify(newUnlockedBonuses))
+        localStorage.setItem("totalValue", newTotalValue.toString())
+        // ✅ GA4: Rastrear sucesso ao salvar bônus no localStorage
+        enviarEvento('salvou_bonus_localstorage', {
+          numero_etapa: step,
+          bonus_id: currentStepData.bonusUnlock.id,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error("Erro ao salvar bônus no localStorage:", error)
+        // ✅ GA4: Rastrear erro ao salvar bônus no localStorage
+        enviarEvento('erro_salvar_bonus_localstorage', {
+          numero_etapa: step,
+          bonus_id: currentStepData.bonusUnlock.id,
+          erro: error.message,
+          timestamp: new Date().toISOString()
+        });
+      }
 
       setShowBonusUnlock(true)
+      // ✅ GA4: Rastrear visualização do modal de bônus
+      enviarEvento('viu_bonus_unlock_modal', {
+        numero_etapa: step,
+        bonus_id: currentStepData.bonusUnlock.id,
+        timestamp: new Date().toISOString()
+      });
       return
     }
 
     if (step < 13) {
       router.push(`/quiz/${step + 1}${utmString}`)
     } else {
+      // ✅ GA4: Rastrear conclusão do quiz
       enviarEvento('concluiu_quiz', {
         total_etapas_completadas: 13,
-        total_bonus_desbloqueados: unlockedBonuses.length
+        total_bonus_desbloqueados: unlockedBonuses.length,
+        timestamp: new Date().toISOString()
       });
       
       router.push(`/resultado${utmString}`)
     }
-  }, [step, router]);
+  }, [step, router, unlockedBonuses, totalValue])
 
   const handleNext = useCallback(() => {
+    // ✅ GA4: Rastrear tentativa de avançar sem resposta (validação)
+    if (!selectedAnswer && getPersonalizedOptions().length > 0 && !currentStep?.autoAdvance) {
+      enviarEvento('tentou_avancar_sem_resposta', {
+        numero_etapa: step,
+        pergunta: currentStep?.question || `Etapa ${step}`,
+        timestamp: new Date().toISOString()
+      });
+      console.warn('Resposta não selecionada. Não é possível avançar.');
+      return;
+    }
+
+    // ✅ GA4: Rastrear avanço de etapa
     enviarEvento('avancou_etapa', {
       numero_etapa: step,
       pergunta: quizSteps[step - 1]?.question || `Etapa ${step}`,
-      resposta_selecionada: selectedAnswer
+      resposta_selecionada: selectedAnswer,
+      timestamp: new Date().toISOString()
     });
+
+    // ✅ GA4: Rastrear tempo na etapa antes de avançar
+    if (stepStartTimeRef.current) {
+      const timeSpent = (Date.now() - stepStartTimeRef.current) / 1000;
+      enviarEvento('tempo_etapa_quiz', {
+        numero_etapa: step,
+        pergunta: currentStep?.question || `Etapa ${step}`,
+        tempo_segundos: timeSpent,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     const newQuizData = { ...quizData, [step]: selectedAnswer }
     setQuizData(newQuizData)
-    localStorage.setItem("quizData", JSON.stringify(newQuizData))
+    try {
+      localStorage.setItem("quizData", JSON.stringify(newQuizData))
+      // ✅ GA4: Rastrear sucesso ao salvar quizData no localStorage
+      enviarEvento('salvou_quiz_data_localstorage', {
+        numero_etapa: step,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Erro ao salvar quizData no localStorage:", error)
+      // ✅ GA4: Rastrear erro ao salvar quizData no localStorage
+      enviarEvento('erro_salvar_quiz_data_localstorage', {
+        numero_etapa: step,
+        erro: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     const answers = window.quizAnswers || {}
     answers[`question${step}`] = selectedAnswer
     window.quizAnswers = answers
-    localStorage.setItem("quizAnswers", JSON.stringify(answers))
+    try {
+      localStorage.setItem("quizAnswers", JSON.stringify(answers))
+      // ✅ GA4: Rastrear sucesso ao salvar quizAnswers no localStorage
+      enviarEvento('salvou_quiz_answers_localstorage', {
+        numero_etapa: step,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Erro ao salvar quizAnswers no localStorage:", error)
+      // ✅ GA4: Rastrear erro ao salvar quizAnswers no localStorage
+      enviarEvento('erro_salvar_quiz_answers_localstorage', {
+        numero_etapa: step,
+        erro: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     const currentStepData = quizSteps[step - 1];
     if (currentStepData?.elements?.analysisText || currentStepData?.elements?.profileAnalysis) {
@@ -574,56 +692,166 @@ export default function QuizStep() {
     }
 
     proceedToNextStep()
-  }, [step, selectedAnswer, quizData]);
+  }, [step, selectedAnswer, quizData, currentStep, proceedToNextStep, getPersonalizedOptions])
 
   const handleAnswerSelect = useCallback((answer: string) => {
-    setSelectedAnswer(answer)
+    try {
+      setSelectedAnswer(answer)
 
-    if (step === 1) {
-      enviarEvento('quiz_start', {
-        perfil_selecionado: answer,
-        auto_advance: true,
-        step: 1
+      if (step === 1) {
+        // ✅ GA4: Rastrear início do quiz (step 1)
+        enviarEvento('quiz_start', {
+          perfil_selecionado: answer,
+          auto_advance: true,
+          step: 1,
+          timestamp: new Date().toISOString()
+        });
+        
+        setUserGender(answer)
+        try {
+          localStorage.setItem("userGender", answer)
+          // ✅ GA4: Rastrear sucesso ao salvar userGender no localStorage
+          enviarEvento('salvou_user_gender_localstorage', {
+            numero_etapa: step,
+            genero: answer,
+            timestamp: new Date().toISOString()
+          });
+        } catch (error) {
+          console.error("Erro ao salvar userGender no localStorage:", error)
+          // ✅ GA4: Rastrear erro ao salvar userGender no localStorage
+          enviarEvento('erro_salvar_user_gender_localstorage', {
+            numero_etapa: step,
+            genero: answer,
+            erro: error.message,
+            timestamp: new Date().toISOString()
+          });
+        }
+        
+        setTimeout(() => {
+          handleNext()
+        }, 800)
+        return
+      }
+
+      // ✅ GA4: Rastrear seleção de resposta
+      enviarEvento('selecionou_resposta', {
+        numero_etapa: step,
+        pergunta: quizSteps[step - 1]?.question || `Etapa ${step}`,
+        resposta: answer,
+        timestamp: new Date().toISOString()
       });
-      
-      setUserGender(answer)
-      localStorage.setItem("userGender", answer)
-      
-      setTimeout(() => {
-        handleNext()
-      }, 800)
-      return
+    } catch (error) {
+      console.error("Erro em handleAnswerSelect:", error)
+      // ✅ GA4: Rastrear erro na seleção de resposta
+      enviarEvento('erro_selecionou_resposta', {
+        numero_etapa: step,
+        pergunta: quizSteps[step - 1]?.question || `Etapa ${step}`,
+        resposta: answer,
+        erro: error.message,
+        timestamp: new Date().toISOString()
+      });
     }
-
-    enviarEvento('selecionou_resposta', {
-      numero_etapa: step,
-      pergunta: quizSteps[step - 1]?.question || `Etapa ${step}`,
-      resposta: answer
-    });
-  }, [step]);
+  }, [step, handleNext])
 
   useEffect(() => {
-    const saved = localStorage.getItem("quizData")
-    const savedBonuses = localStorage.getItem("unlockedBonuses")
-    const savedValue = localStorage.getItem("totalValue")
-    const savedGender = localStorage.getItem("userGender")
-    const savedAnswers = localStorage.getItem("quizAnswers")
+    // ✅ GA4: Rastrear tempo na etapa anterior ao sair
+    if (stepStartTimeRef.current && step > 1) {
+      const timeSpent = (Date.now() - stepStartTimeRef.current) / 1000;
+      enviarEvento('tempo_etapa_quiz', {
+        numero_etapa: step - 1, // Etapa anterior
+        pergunta: quizSteps[step - 2]?.question || `Etapa ${step - 1}`,
+        tempo_segundos: timeSpent,
+        timestamp: new Date().toISOString()
+      });
+    }
+    stepStartTimeRef.current = Date.now(); // Inicia o timer para a etapa atual
 
-    if (saved) setQuizData(JSON.parse(saved))
-    if (savedBonuses) setUnlockedBonuses(JSON.parse(savedBonuses))
-    if (savedValue) setTotalValue(Number.parseInt(savedValue))
-    if (savedGender) setUserGender(savedGender)
-    if (savedAnswers) {
-      window.quizAnswers = JSON.parse(savedAnswers)
+    try {
+      const saved = localStorage.getItem("quizData")
+      const savedBonuses = localStorage.getItem("unlockedBonuses")
+      const savedValue = localStorage.getItem("totalValue")
+      const savedGender = localStorage.getItem("userGender")
+      const savedAnswers = localStorage.getItem("quizAnswers")
+
+      if (saved) setQuizData(JSON.parse(saved))
+      if (savedBonuses) setUnlockedBonuses(JSON.parse(savedBonuses))
+      if (savedValue) setTotalValue(Number.parseInt(savedValue))
+      if (savedGender) setUserGender(savedGender)
+      if (savedAnswers) {
+        window.quizAnswers = JSON.parse(savedAnswers)
+      }
+    } catch (error) {
+      console.error("Erro ao carregar dados do localStorage:", error)
+      // ✅ GA4: Rastrear erro ao carregar dados do localStorage
+      enviarEvento('erro_carregar_localstorage', {
+        numero_etapa: step,
+        erro: error.message,
+        timestamp: new Date().toISOString()
+      });
     }
 
     const loadTimer = setTimeout(() => setIsLoaded(true), 100)
 
     const currentStepData = quizSteps[step - 1];
+    // ✅ GA4: Rastrear visualização de etapa genérica
     enviarEvento('visualizou_etapa_quiz', {
       numero_etapa: step,
-      pergunta: currentStepData?.question || `Etapa ${step}`
+      pergunta: currentStepData?.question || `Etapa ${step}`,
+      timestamp: new Date().toISOString()
     });
+    // ✅ GA4: Rastrear visualização de etapa específica
+    enviarEvento(`visualizou_etapa_${step}`, {
+      numero_etapa: step,
+      pergunta: currentStepData?.question || `Etapa ${step}`,
+      timestamp: new Date().toISOString()
+    });
+
+    // ✅ GA4: Rastreamento específico para a etapa 11 (reportagem)
+    if (step === 11) {
+      enviarEvento('visualizou_etapa_11_reportagem', {
+        numero_etapa: 11,
+        tipo: 'ciencia_e_evidencia',
+        timestamp: new Date().toISOString(),
+        user_gender: savedGender // Usar savedGender para consistência
+      });
+
+      // ✅ GA4: Scroll tracking para imagens da etapa 11
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const imageName = entry.target.alt || 'imagem-desconhecida';
+            enviarEvento('viu_imagem_etapa_11', {
+              numero_etapa: 11,
+              tipo_imagem: imageName,
+              timestamp: new Date().toISOString()
+            });
+            observer.unobserve(entry.target); // Rastrear apenas uma vez
+          }
+        });
+      }, { threshold: 0.5 }); // 50% da imagem visível
+
+      const images = document.querySelectorAll('[alt*="Reportagem"], [alt*="Evidência"]');
+      images.forEach(img => observer.observe(img));
+
+      return () => {
+        clearTimeout(loadTimer);
+        if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer);
+        observer.disconnect(); // Limpar observer ao sair da etapa
+      };
+    }
+
+    // ✅ GA4: Rastreamento de abandono
+    const handleBeforeUnload = () => {
+      if (step > 1 && !selectedAnswer) { // Se não for a primeira etapa e não houver resposta selecionada
+        enviarEvento('abandonou_quiz', {
+          numero_etapa: step,
+          pergunta: quizSteps[step - 1]?.question || `Etapa ${step}`,
+          timestamp: new Date().toISOString()
+        });
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
 
     let autoAdvanceTimer
     if (currentStepData?.autoAdvance) {
@@ -635,8 +863,9 @@ export default function QuizStep() {
     return () => {
       clearTimeout(loadTimer)
       if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer)
+      window.removeEventListener('beforeunload', handleBeforeUnload); // Limpar listener
     }
-  }, [step]);
+  }, [step, selectedAnswer, proceedToNextStep]) // Adicionado selectedAnswer e proceedToNextStep para o useEffect
 
   const handleStep12Complete = useCallback(() => {
     setStep12Completed(true)
@@ -648,6 +877,12 @@ export default function QuizStep() {
 
   const handleBonusUnlockComplete = useCallback(() => {
     setShowBonusUnlock(false)
+    // ✅ GA4: Rastrear conclusão do bônus (fechamento do modal)
+    enviarEvento('completou_bonus_unlock', {
+      numero_etapa: step,
+      bonus_id: newBonus?.id,
+      timestamp: new Date().toISOString()
+    });
     
     const currentUrl = new URL(window.location.href);
     let utmString = '';
@@ -668,12 +903,14 @@ export default function QuizStep() {
     } else {
       router.push(`/resultado${utmString}`)
     }
-  }, [step, router])
+  }, [step, router, newBonus])
 
   const handleBack = useCallback(() => {
+    // ✅ GA4: Rastrear retorno de etapa
     enviarEvento('retornou_etapa', {
       de_etapa: step,
-      para_etapa: step > 1 ? step - 1 : 'inicio'
+      para_etapa: step > 1 ? step - 1 : 'inicio',
+      timestamp: new Date().toISOString()
     });
     
     const currentUrl = new URL(window.location.href);
@@ -726,6 +963,12 @@ export default function QuizStep() {
         return desc()
       } catch (error) {
         console.error('Erro ao executar função de description:', error)
+        // ✅ GA4: Rastrear erro na função de descrição
+        enviarEvento('erro_get_personalized_description', {
+          numero_etapa: step,
+          erro: error.message,
+          timestamp: new Date().toISOString()
+        });
         return ''
       }
     }
@@ -739,6 +982,12 @@ export default function QuizStep() {
         return subtext()
       } catch (error) {
         console.error('Erro ao executar função de subtext:', error)
+        // ✅ GA4: Rastrear erro na função de subtexto
+        enviarEvento('erro_get_personalized_subtext', {
+          numero_etapa: step,
+          erro: error.message,
+          timestamp: new Date().toISOString()
+        });
         return ''
       }
     }
@@ -766,7 +1015,10 @@ export default function QuizStep() {
           <div className="flex items-center justify-between mb-4">
             <Button
               variant="ghost"
-              onClick={handleBack}
+              onClick={() => {
+                trackButtonClick('voltar');
+                handleBack();
+              }}
               className="text-white hover:bg-white/20 border border-white/20"
               disabled={currentStep?.autoAdvance}
             >
@@ -825,7 +1077,10 @@ export default function QuizStep() {
 
                 <div className="space-y-4 max-w-md mx-auto">
                   <motion.button
-                    onClick={() => handleAnswerSelect("SOY HOMBRE")}
+                    onClick={() => {
+                      trackButtonClick('selecionar_genero_hombre');
+                      handleAnswerSelect("SOY HOMBRE");
+                    }}
                     className="w-full p-6 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white rounded-xl text-xl sm:text-2xl font-bold transform transition-all duration-200 hover:scale-105 shadow-lg border-2 border-blue-400"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -838,7 +1093,10 @@ export default function QuizStep() {
                   </motion.button>
 
                   <motion.button
-                    onClick={() => handleAnswerSelect("SOY MUJER")}
+                    onClick={() => {
+                      trackButtonClick('selecionar_genero_mujer');
+                      handleAnswerSelect("SOY MUJER");
+                    }}
                     className="w-full p-6 bg-gradient-to-r from-pink-600 to-purple-800 hover:from-pink-500 hover:to-purple-700 text-white rounded-xl text-xl sm:text-2xl font-bold transform transition-all duration-200 hover:scale-105 shadow-lg border-2 border-pink-400"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -905,7 +1163,10 @@ export default function QuizStep() {
                         className="mt-6"
                       >
                         <Button
-                          onClick={handleNext}
+                          onClick={() => {
+                            trackButtonClick('ver_plan_personalizado');
+                            handleNext();
+                          }}
                           size="lg"
                           className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-3 px-6 rounded-full shadow-lg w-full sm:w-auto"
                         >
@@ -1234,6 +1495,16 @@ export default function QuizStep() {
                                 src={currentStep.elements.reportageImage}
                                 alt="Reportagem BBC sobre neurociência"
                                 className="w-full rounded-lg shadow-xl border border-gray-600 hover:shadow-2xl transition-shadow duration-300"
+                                // ✅ GA4: Rastrear erro de carregamento de imagem
+                                onError={(e) => {
+                                  console.error("Erro ao carregar imagem de reportagem:", e.target.src);
+                                  enviarEvento('erro_carregar_imagem', {
+                                    numero_etapa: step,
+                                    imagem_url: e.target.src,
+                                    timestamp: new Date().toISOString()
+                                  });
+                                  e.target.style.display = 'none'; // Esconder imagem quebrada
+                                }}
                               />
                             </motion.div>
                           )}
@@ -1249,6 +1520,16 @@ export default function QuizStep() {
                                 src={currentStep.elements.curiousImage}
                                 alt="Evidência científica curiosa"
                                 className="w-full rounded-lg shadow-xl border border-gray-600 hover:shadow-2xl transition-shadow duration-300"
+                                // ✅ GA4: Rastrear erro de carregamento de imagem
+                                onError={(e) => {
+                                  console.error("Erro ao carregar imagem de evidência:", e.target.src);
+                                  enviarEvento('erro_carregar_imagem', {
+                                    numero_etapa: step,
+                                    imagem_url: e.target.src,
+                                    timestamp: new Date().toISOString()
+                                  });
+                                  e.target.style.display = 'none'; // Esconder imagem quebrada
+                                }}
                               />
                               <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold">
                                 NEUROCIÊNCIA
@@ -1298,7 +1579,13 @@ export default function QuizStep() {
                               className="relative"
                             >
                               <button
-                                onClick={() => handleAnswerSelect(option)}
+                                onClick={() => {
+                                  trackButtonClick('selecionar_opcao', {
+                                    opcao_selecionada: option,
+                                    index_opcao: index
+                                  });
+                                  handleAnswerSelect(option);
+                                }}
                                 data-option={option}
                                 className={`w-full p-4 sm:p-6 text-left justify-start text-wrap h-auto rounded-lg border-2 transition-all duration-200 transform hover:scale-102 ${
                                   selectedAnswer === option
@@ -1368,7 +1655,10 @@ export default function QuizStep() {
                           className="mt-8 text-center"
                         >
                           <Button
-                            onClick={handleNext}
+                            onClick={() => {
+                              trackButtonClick('proxima_pergunta');
+                              handleNext();
+                            }}
                             size="lg"
                             className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-3 px-6 sm:py-4 sm:px-8 rounded-full shadow-lg w-full sm:w-auto text-sm sm:text-base"
                           >
