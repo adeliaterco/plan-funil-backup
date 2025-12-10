@@ -43,31 +43,91 @@ import { BonusUnlock } from "@/components/bonus-unlock"
 import { ValueCounter } from "@/components/value-counter"
 import { LoadingAnalysis } from "@/components/loading-analysis"
 
+// ✅ CORREÇÃO: Função de limpeza de cache SÓ PARA BROWSER
+function clearCorruptedCache() {
+  if (typeof window === 'undefined') return; // ✅ CRÍTICO: Só executa no browser
+  
+  try {
+    // Limpa localStorage corrompido
+    const keys = ['quizData', 'unlockedBonuses', 'totalValue', 'userGender', 'quizAnswers'];
+    keys.forEach(key => {
+      try {
+        const item = localStorage.getItem(key);
+        if (item) {
+          JSON.parse(item); // Testa se é JSON válido
+        }
+      } catch (error) {
+        console.log(`Removendo ${key} corrompido:`, error);
+        localStorage.removeItem(key);
+      }
+    });
+
+    // Força limpeza do Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+          console.log('Removendo SW:', registration);
+          registration.unregister();
+        });
+      });
+    }
+
+    // Limpa cache do navegador
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        names.forEach(name => {
+          console.log('Removendo cache:', name);
+          caches.delete(name);
+        });
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao limpar cache:', error);
+  }
+}
+
 // ✅ CORREÇÃO: Função segura para localStorage
 function safeLocalStorageGet(key) {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : null;
+      if (!item) return null;
+      
+      // ✅ Testa se é JSON válido
+      const parsed = JSON.parse(item);
+      return parsed;
     }
   } catch (error) {
-    console.error(`Erro ao ler localStorage[${key}]:`, error);
-    // Limpa o item corrompido
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.removeItem(key);
+    console.error(`localStorage[${key}] corrompido, removendo:`, error);
+    // ✅ Remove item corrompido
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.removeItem(key);
+      }
+    } catch (e) {
+      console.error('Erro ao remover:', e);
     }
   }
   return null;
 }
 
-// ✅ CORREÇÃO: Função segura para salvar no localStorage
+// ✅ CORREÇÃO: Função com validação de dados
 function safeLocalStorageSet(key, value) {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
+      // ✅ Valida antes de salvar
+      if (value === undefined || value === null) {
+        localStorage.removeItem(key);
+        return;
+      }
       localStorage.setItem(key, JSON.stringify(value));
     }
   } catch (error) {
     console.error(`Erro ao salvar localStorage[${key}]:`, error);
+    // ✅ Se erro de cota, limpa cache
+    if (error.name === 'QuotaExceededError') {
+      clearCorruptedCache();
+    }
   }
 }
 
@@ -355,7 +415,7 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
   )
 }
 
-// === ✅ COMPONENTE CODE UNLOCK REVEAL CORRIGIDO - SEM BUGS ===
+// === ✅ COMPONENTE CODE UNLOCK REVEAL CORRIGIDO ===
 const CodeUnlockReveal = ({ onComplete, userGender }) => {
   const [displayText, setDisplayText] = useState("")
   const [isDecrypting, setIsDecrypting] = useState(true)
@@ -661,22 +721,41 @@ export default function QuizStep() {
     });
   }, [step, handleNext]);
 
-  // ✅ CORREÇÃO: useEffect com localStorage seguro
+  // ✅ CORREÇÃO CRÍTICA: useEffect com inicialização robusta
   useEffect(() => {
-    const saved = safeLocalStorageGet("quizData")
-    const savedBonuses = safeLocalStorageGet("unlockedBonuses")
-    const savedValue = safeLocalStorageGet("totalValue")
-    const savedGender = safeLocalStorageGet("userGender")
-    const savedAnswers = safeLocalStorageGet("quizAnswers")
-
-    if (saved) setQuizData(saved)
-    if (savedBonuses) setUnlockedBonuses(savedBonuses)
-    if (savedValue) setTotalValue(savedValue)
-    if (savedGender) setUserGender(savedGender)
-    if (savedAnswers) {
-      safeSetQuizAnswers(savedAnswers)
+    // ✅ Executa limpeza SÓ no browser
+    if (typeof window !== 'undefined') {
+      clearCorruptedCache();
     }
 
+    const initializeData = () => {
+      try {
+        const saved = safeLocalStorageGet("quizData")
+        const savedBonuses = safeLocalStorageGet("unlockedBonuses")
+        const savedValue = safeLocalStorageGet("totalValue")
+        const savedGender = safeLocalStorageGet("userGender")
+        const savedAnswers = safeLocalStorageGet("quizAnswers")
+
+        // ✅ Validação de dados
+        if (saved && typeof saved === 'object') setQuizData(saved)
+        if (Array.isArray(savedBonuses)) setUnlockedBonuses(savedBonuses)
+        if (typeof savedValue === 'number') setTotalValue(savedValue)
+        if (typeof savedGender === 'string') setUserGender(savedGender)
+        if (savedAnswers && typeof savedAnswers === 'object') {
+          safeSetQuizAnswers(savedAnswers)
+        }
+
+      } catch (error) {
+        console.error('Erro na inicialização:', error);
+        // ✅ Reset em caso de erro
+        if (typeof window !== 'undefined') {
+          clearCorruptedCache();
+        }
+      }
+    };
+
+    initializeData();
+    
     const loadTimer = setTimeout(() => setIsLoaded(true), 100)
 
     const currentStepData = quizSteps[step - 1];
@@ -696,7 +775,7 @@ export default function QuizStep() {
       clearTimeout(loadTimer)
       if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer)
     }
-  }, [step, proceedToNextStep]);
+  }, [step]); 
 
   const handleStep12Complete = useCallback(() => {
     setStep12Completed(true)
@@ -810,10 +889,16 @@ export default function QuizStep() {
     return Array.isArray(options) ? options : currentStep.options
   }
 
+  // ✅ VERIFICAÇÃO DE STEP INVÁLIDO
   if (!currentStep) {
+    // ✅ Se step inválido, limpa e redireciona
+    if (typeof window !== 'undefined') {
+      clearCorruptedCache();
+      router.push('/');
+    }
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-white text-xl">Cargando...</div>
+        <div className="text-white text-xl">Redirecionando...</div>
       </div>
     )
   }
@@ -935,7 +1020,7 @@ export default function QuizStep() {
           </motion.div>
         )}
 
-        {/* ✅ STEP 12 - VERSÃO FUNCIONAL COMPLETA */}
+        {/* ✅ STEP 12 */}
         {step === 12 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -948,8 +1033,6 @@ export default function QuizStep() {
                   <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-6 leading-tight">
                     🔥 <span className="text-red-500">ESTO ES LO QUE ELLA REALMENTE TE</span> RESPONDERÍA
                   </h2>
-                  
-                  
                   
                   <WhatsAppMockup userGender={userGender} onComplete={handleStep12Complete} />
                   
@@ -982,7 +1065,7 @@ export default function QuizStep() {
           </motion.div>
         )}
 
-        {/* ✅ STEP 13 - CÓDIGO DESBLOQUEADO SEM BUGS */}
+        {/* ✅ STEP 13 */}
         {step === 13 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -1442,7 +1525,7 @@ export default function QuizStep() {
           </>
         )}
 
-        {/* Prueba Social - OTIMIZADA (sem números agressivos) */}
+        {/* Prueba Social */}
         {step > 2 && !currentStep?.autoAdvance && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -1450,8 +1533,6 @@ export default function QuizStep() {
             transition={{ delay: 0.4 }}
             className="text-center space-y-2 mt-6"
           >
-
-
             {currentStep?.elements?.counter && (
               <p className="text-white text-xs sm:text-sm bg-white/10 px-3 py-1 rounded-full inline-block">
                 👥 {peopleCount} {currentStep.elements.counter}
