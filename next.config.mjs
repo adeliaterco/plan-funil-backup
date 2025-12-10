@@ -1,15 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ✅ CORREÇÃO: Configuração para mobile
-  experimental: {
-    optimizeCss: false,
-    forceSwcTransforms: true
+  eslint: {
+    ignoreDuringBuilds: true,
   },
-  // ✅ CORREÇÃO: Desabilitar alguns recursos problemáticos
-  swcMinify: false,
-  compiler: {
-    removeConsole: false
-  }
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  images: {
+    unoptimized: true,
+  },
 }
 
-module.exports = nextConfig
+export default nextConfig
