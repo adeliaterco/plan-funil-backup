@@ -200,13 +200,6 @@ export default function HomePageOptimized() {
           </div>
         )}
 
-        {/* ✅ LOGO PEQUENO */}
-        <div className="absolute top-6 left-6">
-          <div className="text-orange-500 font-bold text-lg tracking-wider">
-            PLAN <span className="text-white">/</span> <span className="text-red-500">A</span>
-          </div>
-        </div>
-
         {/* ✅ CONTAINER PRINCIPAL */}
         <div className="text-center max-w-4xl mx-auto px-6">
           
