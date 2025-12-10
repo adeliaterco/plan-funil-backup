@@ -39,6 +39,8 @@ export default function ResultPageFixed() {
   const startTimeRef = useRef(Date.now())
   const decryptIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const videoContainerRef = useRef<HTMLDivElement>(null)
+  const revelationTrackedRef = useRef<Set<number>>(new Set())
+  const scrollTrackedRef = useRef<Set<number>>(new Set())
 
   // ===== VERIFICAÇÃO DE AMBIENTE BROWSER =====
   useEffect(() => {
@@ -53,6 +55,13 @@ export default function ResultPageFixed() {
       const savedGender = localStorage.getItem("userGender") || ""
       const savedAnswers = JSON.parse(localStorage.getItem("quizAnswers") || "{}")
       
+      if (!savedGender || Object.keys(savedAnswers).length === 0) {
+        console.warn("Dados do quiz não encontrados");
+        enviarEvento('aviso_dados_quiz_nao_encontrados', {
+          timestamp: new Date().toISOString()
+        });
+      }
+      
       setUserGender(savedGender)
       setUserAnswers(savedAnswers)
 
@@ -61,14 +70,26 @@ export default function ResultPageFixed() {
       enviarEvento("viu_resultado_dopamina_v4", {
         timestamp: new Date().toISOString(),
         user_gender: savedGender,
-        version: "matrix_continuity"
+        version: "matrix_continuity",
+        tem_dados_quiz: Object.keys(savedAnswers).length > 0
       })
 
       startTimeRef.current = Date.now()
 
+      // ✅ CORRIGIDO: Aumentar intervalo para ser mais realista
       const interval = setInterval(() => {
-        setActiveBuyers(prev => prev + Math.floor(Math.random() * 2) + 1)
-      }, 45000)
+        setActiveBuyers(prev => {
+          const newValue = prev + Math.floor(Math.random() * 2) + 1
+          
+          // ✅ NOVO: Rastrear quando contador muda
+          enviarEvento('contador_compradores_atualizado', {
+            novo_valor: newValue,
+            timestamp: new Date().toISOString()
+          });
+          
+          return newValue
+        })
+      }, 180000) // A cada 3 minutos (mais realista)
 
       return () => {
         clearInterval(interval)
@@ -77,14 +98,24 @@ export default function ResultPageFixed() {
           enviarEvento('tempo_pagina_resultado_dopamina', {
             tempo_segundos: timeSpent,
             conversao: false,
-            version: "matrix_continuity"
+            revelacoes_vistas: currentRevelation,
+            viu_vsl: showVSL,
+            viu_oferta: showOffer,
+            viu_cta_final: showFinalCTA,
+            version: "matrix_continuity",
+            timestamp: new Date().toISOString()
           })
         }
       }
     } catch (error) {
       console.error("Erro na inicialização:", error)
+      
+      enviarEvento('erro_inicializacao_resultado', {
+        erro: error instanceof Error ? error.message : 'Erro desconhecido',
+        timestamp: new Date().toISOString()
+      });
     }
-  }, [isBrowser])
+  }, [isBrowser, currentRevelation, showVSL, showOffer, showFinalCTA])
 
   // ===== PROGRESSÃO AUTOMÁTICA DE REVELAÇÕES ===== 
   useEffect(() => {
@@ -108,20 +139,60 @@ export default function ResultPageFixed() {
           setIsDecrypting(false);
           setDecryptedText("PLAN COMPLETO LIBERADO");
           setCurrentRevelation(1);
+          
+          // ✅ NOVO: Rastrear revelação 1
+          if (!revelationTrackedRef.current.has(1)) {
+            revelationTrackedRef.current.add(1);
+            enviarEvento('viu_revelacao_1_codigo_incompleto', {
+              numero_revelacao: 1,
+              timestamp: new Date().toISOString(),
+              user_gender: userGender
+            });
+          }
         }, 3000),
         
         setTimeout(() => {
           setShowVSL(true);
           setCurrentRevelation(2);
+          
+          // ✅ NOVO: Rastrear revelação 2
+          if (!revelationTrackedRef.current.has(2)) {
+            revelationTrackedRef.current.add(2);
+            enviarEvento('viu_revelacao_2_vsl', {
+              numero_revelacao: 2,
+              timestamp: new Date().toISOString(),
+              user_gender: userGender
+            });
+          }
         }, 6000),
         
         setTimeout(() => {
           setShowOffer(true);
           setCurrentRevelation(3);
+          
+          // ✅ NOVO: Rastrear revelação 3
+          if (!revelationTrackedRef.current.has(3)) {
+            revelationTrackedRef.current.add(3);
+            enviarEvento('viu_revelacao_3_oferta', {
+              numero_revelacao: 3,
+              timestamp: new Date().toISOString(),
+              user_gender: userGender
+            });
+          }
         }, 9000),
         
         setTimeout(() => {
           setShowFinalCTA(true);
+          
+          // ✅ NOVO: Rastrear revelação 4
+          if (!revelationTrackedRef.current.has(4)) {
+            revelationTrackedRef.current.add(4);
+            enviarEvento('viu_revelacao_4_cta_final', {
+              numero_revelacao: 4,
+              timestamp: new Date().toISOString(),
+              user_gender: userGender
+            });
+          }
         }, 12000),
       ]
 
@@ -134,8 +205,36 @@ export default function ResultPageFixed() {
       }
     } catch (error) {
       console.error("Erro na progressão de revelações:", error)
+      
+      enviarEvento('erro_progressao_revelacoes', {
+        erro: error instanceof Error ? error.message : 'Erro desconhecido',
+        timestamp: new Date().toISOString()
+      });
     }
-  }, [])
+  }, [userGender])
+
+  // ✅ NOVO: Rastreamento de Scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.pageYOffset;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const scrollPercent = Math.round((scrollTop / docHeight) * 100);
+      
+      // Rastrear a cada 25% de scroll
+      if (scrollPercent % 25 === 0 && scrollPercent > 0 && !scrollTrackedRef.current.has(scrollPercent)) {
+        scrollTrackedRef.current.add(scrollPercent);
+        
+        enviarEvento('scroll_resultado', {
+          percentual_scroll: scrollPercent,
+          timestamp: new Date().toISOString(),
+          user_gender: userGender
+        });
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [userGender]);
 
   // ✅ CORREÇÃO DEFINITIVA DO VÍDEO - USANDO dangerouslySetInnerHTML
   useEffect(() => {
@@ -154,6 +253,18 @@ export default function ResultPageFixed() {
           </div>
         `
 
+        // ✅ NOVO: Rastrear clique no vídeo
+        const videoElement = videoContainerRef.current.querySelector('vturb-smartplayer');
+        if (videoElement) {
+          videoElement.addEventListener('click', () => {
+            enviarEvento('clicou_video_vsl', {
+              numero_revelacao: 2,
+              timestamp: new Date().toISOString(),
+              user_gender: userGender
+            });
+          });
+        }
+
         // ✅ CARREGAR O SCRIPT APÓS INSERIR O HTML
         const existingScript = document.querySelector('script[src="https://scripts.converteai.net/ea3c2dc1-1976-40a2-b0fb-c5055f82bfaf/players/6938c3eeb96ec714286a4c2b/v4/player.js"]')
         
@@ -164,10 +275,34 @@ export default function ResultPageFixed() {
           
           s.onload = () => {
             console.log("Script VTurb carregado com sucesso!")
+            
+            // ✅ NOVO: Rastrear carregamento bem-sucedido
+            enviarEvento('video_vsl_carregado_sucesso', {
+              timestamp: new Date().toISOString(),
+              user_gender: userGender
+            });
           }
           
           s.onerror = () => {
             console.error("Erro ao carregar script VTurb")
+            
+            // ✅ NOVO: Rastrear erro de carregamento
+            enviarEvento('erro_carregar_video_vsl', {
+              timestamp: new Date().toISOString(),
+              user_gender: userGender
+            });
+            
+            // ✅ NOVO: Mostrar fallback
+            if (videoContainerRef.current) {
+              videoContainerRef.current.innerHTML = `
+                <div style="background: #333; color: white; padding: 20px; text-align: center; border-radius: 8px;">
+                  <p>Erro ao carregar vídeo. Tente recarregar a página.</p>
+                  <button onclick="location.reload()" style="background: #ffc107; color: black; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                    Recarregar
+                  </button>
+                </div>
+              `;
+            }
           }
           
           document.head.appendChild(s)
@@ -176,7 +311,7 @@ export default function ResultPageFixed() {
     }, 500)
 
     return () => clearTimeout(timer)
-  }, [showVSL, isBrowser])
+  }, [showVSL, isBrowser, userGender])
 
   // ===== FUNÇÕES DE PERSONALIZAÇÃO =====
   const getPronoun = useCallback(() => userGender === "SOY MUJER" ? "él" : "ella", [userGender])
@@ -202,6 +337,7 @@ export default function ResultPageFixed() {
     try {
       const timeToAction = (Date.now() - startTimeRef.current) / 1000
       
+      // ✅ NOVO: Rastreamento detalhado de compra
       enviarEvento("clicou_comprar_dopamina_v4", {
         posicao: position,
         revelacao_atual: currentRevelation,
@@ -210,22 +346,46 @@ export default function ResultPageFixed() {
         situacao: getPersonalizedSituation(),
         tempo_ate_acao: timeToAction,
         conversao: true,
+        viu_vsl: showVSL,
+        viu_oferta: showOffer,
+        viu_cta_final: showFinalCTA,
         version: "matrix_continuity"
       })
       
       enviarEvento('tempo_pagina_resultado_dopamina', {
         tempo_segundos: timeToAction,
         conversao: true,
-        version: "matrix_continuity"
+        posicao_cta: position,
+        version: "matrix_continuity",
+        timestamp: new Date().toISOString()
       })
       
       setTimeout(() => {
-        window.open("https://pay.hotmart.com/F100142422S?off=efckjoa7&checkoutMode=10", "_blank")
+        const paymentWindow = window.open("https://pay.hotmart.com/F100142422S?off=efckjoa7&checkoutMode=10", "_blank")
+        
+        if (!paymentWindow) {
+          console.error("Popup bloqueado - tentando redirecionamento");
+          
+          // ✅ NOVO: Rastrear popup bloqueado
+          enviarEvento('popup_bloqueado_resultado', {
+            posicao: position,
+            timestamp: new Date().toISOString()
+          });
+          
+          window.location.href = "https://pay.hotmart.com/F100142422S?off=efckjoa7&checkoutMode=10"
+        }
       }, 100)
     } catch (error) {
       console.error("Erro na função de compra:", error)
+      
+      // ✅ NOVO: Rastrear erro de compra
+      enviarEvento('erro_clicou_comprar', {
+        posicao: position,
+        erro: error instanceof Error ? error.message : 'Erro desconhecido',
+        timestamp: new Date().toISOString()
+      });
     }
-  }, [currentRevelation, userGender, getPersonalizedSituation, isBrowser])
+  }, [currentRevelation, userGender, getPersonalizedSituation, isBrowser, showVSL, showOffer, showFinalCTA])
 
   // ===== FEEDBACK TÁTIL =====
   const handleTouchFeedback = useCallback(() => {
@@ -258,6 +418,7 @@ export default function ResultPageFixed() {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: isLoaded ? 1 : 0, scale: isLoaded ? 1 : 0.8 }}
               className="text-center mb-12"
+              data-revelation="1"
             >
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-green-400 mb-6">
                 <span className="text-white">PLAN</span> <span className="text-green-500">RESULTADO</span>
@@ -305,6 +466,7 @@ export default function ResultPageFixed() {
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="mb-12"
+                  data-revelation="1"
                 >
                   <div className="bg-red-900/20 border-2 border-red-500 rounded-xl p-8">
                     <div className="text-center mb-6">
@@ -363,6 +525,7 @@ export default function ResultPageFixed() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className="mb-12"
+                  data-revelation="2"
                 >
                   <div className="bg-blue-900/20 border-2 border-blue-500 rounded-xl p-8">
                     <div className="text-center mb-6">
@@ -403,6 +566,7 @@ export default function ResultPageFixed() {
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="mb-12"
+                  data-revelation="3"
                 >
                   <Card className="bg-black/80 text-white shadow-2xl border-yellow-400/50 border-2 backdrop-blur-sm">
                     <CardContent className="p-6 sm:p-8 text-center">
@@ -533,6 +697,7 @@ export default function ResultPageFixed() {
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="mb-12"
+                  data-revelation="4"
                 >
                   <div className="bg-black/80 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border-2 border-yellow-400">
                     
@@ -679,7 +844,6 @@ export default function ResultPageFixed() {
             z-index: 0;
           }
 
-          /* Resto do CSS igual ao anterior... */
           .mobile-padding {
             padding: clamp(1rem, 4vw, 2rem) clamp(0.75rem, 3vw, 1rem);
           }
