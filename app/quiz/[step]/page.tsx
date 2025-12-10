@@ -43,11 +43,66 @@ import { BonusUnlock } from "@/components/bonus-unlock"
 import { ValueCounter } from "@/components/value-counter"
 import { LoadingAnalysis } from "@/components/loading-analysis"
 
-// Função para enviar eventos a Google Analytics
+// ✅ CORREÇÃO: Função segura para localStorage
+function safeLocalStorageGet(key) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : null;
+    }
+  } catch (error) {
+    console.error(`Erro ao ler localStorage[${key}]:`, error);
+    // Limpa o item corrompido
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.removeItem(key);
+    }
+  }
+  return null;
+}
+
+// ✅ CORREÇÃO: Função segura para salvar no localStorage
+function safeLocalStorageSet(key, value) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+  } catch (error) {
+    console.error(`Erro ao salvar localStorage[${key}]:`, error);
+  }
+}
+
+// ✅ CORREÇÃO: Função segura para envio de eventos
 function enviarEvento(nombre_evento, propriedades = {}) {
-  if (typeof window !== 'undefined' && window.gtag) {
-    window.gtag('event', nombre_evento, propriedades);
-    console.log('Evento enviado:', nombre_evento, propriedades);
+  try {
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('event', nombre_evento, propriedades);
+      console.log('Evento enviado:', nombre_evento, propriedades);
+    }
+  } catch (error) {
+    console.error('Erro ao enviar evento:', error);
+  }
+}
+
+// ✅ CORREÇÃO: Função segura para acessar window.quizAnswers
+function safeGetQuizAnswers() {
+  try {
+    if (typeof window !== 'undefined') {
+      return window.quizAnswers || {};
+    }
+  } catch (error) {
+    console.error('Erro ao acessar window.quizAnswers:', error);
+  }
+  return {};
+}
+
+// ✅ CORREÇÃO: Função segura para definir window.quizAnswers
+function safeSetQuizAnswers(answers) {
+  try {
+    if (typeof window !== 'undefined') {
+      window.quizAnswers = answers;
+    }
+  } catch (error) {
+    console.error('Erro ao definir window.quizAnswers:', error);
   }
 }
 
@@ -420,7 +475,6 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           </p>
         </motion.div>
 
-        {/* ✅ CORREÇÃO 2: Botão sempre clicável */}
         <AnimatePresence>
           {showButton && (
             <motion.div
@@ -504,7 +558,7 @@ export default function QuizStep() {
       }
     }
     
-    if (utmParams.toString() !== '') {
+    if (utmString !== '') {
       utmString = '?' + utmParams.toString();
     }
 
@@ -529,8 +583,8 @@ export default function QuizStep() {
       }
       setNewBonus(personalizedBonus)
 
-      localStorage.setItem("unlockedBonuses", JSON.stringify(newUnlockedBonuses))
-      localStorage.setItem("totalValue", newTotalValue.toString())
+      safeLocalStorageSet("unlockedBonuses", newUnlockedBonuses)
+      safeLocalStorageSet("totalValue", newTotalValue)
 
       setShowBonusUnlock(true)
       return
@@ -557,12 +611,13 @@ export default function QuizStep() {
 
     const newQuizData = { ...quizData, [step]: selectedAnswer }
     setQuizData(newQuizData)
-    localStorage.setItem("quizData", JSON.stringify(newQuizData))
+    safeLocalStorageSet("quizData", newQuizData)
 
-    const answers = window.quizAnswers || {}
+    // ✅ CORREÇÃO: Uso seguro do window.quizAnswers
+    const answers = safeGetQuizAnswers()
     answers[`question${step}`] = selectedAnswer
-    window.quizAnswers = answers
-    localStorage.setItem("quizAnswers", JSON.stringify(answers))
+    safeSetQuizAnswers(answers)
+    safeLocalStorageSet("quizAnswers", answers)
 
     const currentStepData = quizSteps[step - 1];
     if (currentStepData?.elements?.analysisText || currentStepData?.elements?.profileAnalysis) {
@@ -577,7 +632,6 @@ export default function QuizStep() {
     proceedToNextStep()
   }, [step, selectedAnswer, quizData, proceedToNextStep]);
 
-  // ✅ CORREÇÃO 1: Removido a verificação inicial de isProcessing
   const handleAnswerSelect = useCallback((answer: string) => {
     setSelectedAnswer(answer);
 
@@ -589,9 +643,8 @@ export default function QuizStep() {
       });
       
       setUserGender(answer);
-      localStorage.setItem("userGender", answer);
+      safeLocalStorageSet("userGender", answer);
       
-      // ✅ CORREÇÃO 1: Usar isProcessing para evitar múltiplos cliques
       setIsProcessing(true);
       
       setTimeout(() => {
@@ -608,19 +661,20 @@ export default function QuizStep() {
     });
   }, [step, handleNext]);
 
+  // ✅ CORREÇÃO: useEffect com localStorage seguro
   useEffect(() => {
-    const saved = localStorage.getItem("quizData")
-    const savedBonuses = localStorage.getItem("unlockedBonuses")
-    const savedValue = localStorage.getItem("totalValue")
-    const savedGender = localStorage.getItem("userGender")
-    const savedAnswers = localStorage.getItem("quizAnswers")
+    const saved = safeLocalStorageGet("quizData")
+    const savedBonuses = safeLocalStorageGet("unlockedBonuses")
+    const savedValue = safeLocalStorageGet("totalValue")
+    const savedGender = safeLocalStorageGet("userGender")
+    const savedAnswers = safeLocalStorageGet("quizAnswers")
 
-    if (saved) setQuizData(JSON.parse(saved))
-    if (savedBonuses) setUnlockedBonuses(JSON.parse(savedBonuses))
-    if (savedValue) setTotalValue(Number.parseInt(savedValue))
+    if (saved) setQuizData(saved)
+    if (savedBonuses) setUnlockedBonuses(savedBonuses)
+    if (savedValue) setTotalValue(savedValue)
     if (savedGender) setUserGender(savedGender)
     if (savedAnswers) {
-      window.quizAnswers = JSON.parse(savedAnswers)
+      safeSetQuizAnswers(savedAnswers)
     }
 
     const loadTimer = setTimeout(() => setIsLoaded(true), 100)
@@ -1424,11 +1478,11 @@ export default function QuizStep() {
         {showAnalysis && (
           <LoadingAnalysis
             message={
-              currentStep?.elements?.analysisText ||
-              currentStep?.elements?.profileAnalysis ||
+              currentStepData?.elements?.analysisText ||
+              currentStepData?.elements?.profileAnalysis ||
               "Analizando tus respuestas..."
             }
-            successMessage={currentStep?.elements?.successRate}
+            successMessage={currentStepData?.elements?.successRate}
           />
         )}
       </AnimatePresence>
