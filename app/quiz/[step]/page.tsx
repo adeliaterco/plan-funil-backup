@@ -43,18 +43,40 @@ import { BonusUnlock } from "@/components/bonus-unlock"
 import { ValueCounter } from "@/components/value-counter"
 import { LoadingAnalysis } from "@/components/loading-analysis"
 
-// ✅ CORREÇÃO: Função de limpeza de cache SÓ PARA BROWSER
-function clearCorruptedCache() {
-  if (typeof window === 'undefined') return; // ✅ CRÍTICO: Só executa no browser
+// ✅ CORREÇÃO CRÍTICA: Função centralizada para UTMs
+function getUtmString() {
+  if (typeof window === 'undefined') return '';
   
   try {
-    // Limpa localStorage corrompido
+    const currentUrl = new URL(window.location.href);
+    const utmParams = new URLSearchParams();
+    
+    // Coleta TODOS os parâmetros UTM e de tracking
+    for (const [key, value] of currentUrl.searchParams.entries()) {
+      if (key.startsWith('utm_') || key.startsWith('fbclid') || key.startsWith('gclid') || key.startsWith('ref')) {
+        utmParams.append(key, value);
+      }
+    }
+    
+    const utmString = utmParams.toString();
+    return utmString ? `?${utmString}` : '';
+  } catch (error) {
+    console.error('Erro ao construir UTM string:', error);
+    return '';
+  }
+}
+
+// ✅ CORREÇÃO: Função de limpeza de cache SÓ PARA BROWSER
+function clearCorruptedCache() {
+  if (typeof window === 'undefined') return;
+  
+  try {
     const keys = ['quizData', 'unlockedBonuses', 'totalValue', 'userGender', 'quizAnswers'];
     keys.forEach(key => {
       try {
         const item = localStorage.getItem(key);
         if (item) {
-          JSON.parse(item); // Testa se é JSON válido
+          JSON.parse(item);
         }
       } catch (error) {
         console.log(`Removendo ${key} corrompido:`, error);
@@ -62,7 +84,6 @@ function clearCorruptedCache() {
       }
     });
 
-    // Força limpeza do Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(registrations => {
         registrations.forEach(registration => {
@@ -72,7 +93,6 @@ function clearCorruptedCache() {
       });
     }
 
-    // Limpa cache do navegador
     if ('caches' in window) {
       caches.keys().then(names => {
         names.forEach(name => {
@@ -93,13 +113,11 @@ function safeLocalStorageGet(key) {
       const item = localStorage.getItem(key);
       if (!item) return null;
       
-      // ✅ Testa se é JSON válido
       const parsed = JSON.parse(item);
       return parsed;
     }
   } catch (error) {
     console.error(`localStorage[${key}] corrompido, removendo:`, error);
-    // ✅ Remove item corrompido
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         localStorage.removeItem(key);
@@ -115,7 +133,6 @@ function safeLocalStorageGet(key) {
 function safeLocalStorageSet(key, value) {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
-      // ✅ Valida antes de salvar
       if (value === undefined || value === null) {
         localStorage.removeItem(key);
         return;
@@ -124,7 +141,6 @@ function safeLocalStorageSet(key, value) {
     }
   } catch (error) {
     console.error(`Erro ao salvar localStorage[${key}]:`, error);
-    // ✅ Se erro de cota, limpa cache
     if (error.name === 'QuotaExceededError') {
       clearCorruptedCache();
     }
@@ -607,20 +623,9 @@ export default function QuizStep() {
   const currentStep = quizSteps[step - 1]
   const progress = (step / 13) * 100
 
+  // ✅ CORREÇÃO: proceedToNextStep com UTM corrigida
   const proceedToNextStep = useCallback(() => {
-    const currentUrl = new URL(window.location.href);
-    let utmString = '';
-    
-    const utmParams = new URLSearchParams();
-    for (const [key, value] of currentUrl.searchParams.entries()) {
-      if (key.startsWith('utm_')) {
-        utmParams.append(key, value);
-      }
-    }
-    
-    if (utmString !== '') {
-      utmString = '?' + utmParams.toString();
-    }
+    const utmString = getUtmString(); // ✅ Usando função centralizada
 
     const currentStepData = quizSteps[step - 1];
     if (currentStepData?.bonusUnlock && !unlockedBonuses.includes(currentStepData.bonusUnlock.id)) {
@@ -673,7 +678,6 @@ export default function QuizStep() {
     setQuizData(newQuizData)
     safeLocalStorageSet("quizData", newQuizData)
 
-    // ✅ CORREÇÃO: Uso seguro do window.quizAnswers
     const answers = safeGetQuizAnswers()
     answers[`question${step}`] = selectedAnswer
     safeSetQuizAnswers(answers)
@@ -721,9 +725,7 @@ export default function QuizStep() {
     });
   }, [step, handleNext]);
 
-  // ✅ CORREÇÃO CRÍTICA: useEffect com inicialização robusta
   useEffect(() => {
-    // ✅ Executa limpeza SÓ no browser
     if (typeof window !== 'undefined') {
       clearCorruptedCache();
     }
@@ -736,7 +738,6 @@ export default function QuizStep() {
         const savedGender = safeLocalStorageGet("userGender")
         const savedAnswers = safeLocalStorageGet("quizAnswers")
 
-        // ✅ Validação de dados
         if (saved && typeof saved === 'object') setQuizData(saved)
         if (Array.isArray(savedBonuses)) setUnlockedBonuses(savedBonuses)
         if (typeof savedValue === 'number') setTotalValue(savedValue)
@@ -747,7 +748,6 @@ export default function QuizStep() {
 
       } catch (error) {
         console.error('Erro na inicialização:', error);
-        // ✅ Reset em caso de erro
         if (typeof window !== 'undefined') {
           clearCorruptedCache();
         }
@@ -785,22 +785,11 @@ export default function QuizStep() {
     setStep13AnimationComplete(true)
   }, [])
 
+  // ✅ CORREÇÃO: handleBonusUnlockComplete com UTM corrigida
   const handleBonusUnlockComplete = useCallback(() => {
     setShowBonusUnlock(false)
     
-    const currentUrl = new URL(window.location.href);
-    let utmString = '';
-    
-    const utmParams = new URLSearchParams();
-    for (const [key, value] of currentUrl.searchParams.entries()) {
-      if (key.startsWith('utm_')) {
-        utmParams.append(key, value);
-      }
-    }
-    
-    if (utmParams.toString() !== '') {
-      utmString = '?' + utmParams.toString();
-    }
+    const utmString = getUtmString(); // ✅ Usando função centralizada
     
     if (step < 13) {
       router.push(`/quiz/${step + 1}${utmString}`)
@@ -809,25 +798,14 @@ export default function QuizStep() {
     }
   }, [step, router])
 
+  // ✅ CORREÇÃO: handleBack com UTM corrigida
   const handleBack = useCallback(() => {
     enviarEvento('retornou_etapa', {
       de_etapa: step,
       para_etapa: step > 1 ? step - 1 : 'inicio'
     });
     
-    const currentUrl = new URL(window.location.href);
-    let utmString = '';
-    
-    const utmParams = new URLSearchParams();
-    for (const [key, value] of currentUrl.searchParams.entries()) {
-      if (key.startsWith('utm_')) {
-        utmParams.append(key, value);
-      }
-    }
-    
-    if (utmParams.toString() !== '') {
-      utmString = '?' + utmParams.toString();
-    }
+    const utmString = getUtmString(); // ✅ Usando função centralizada
     
     if (step > 1) {
       router.push(`/quiz/${step - 1}${utmString}`)
@@ -889,9 +867,7 @@ export default function QuizStep() {
     return Array.isArray(options) ? options : currentStep.options
   }
 
-  // ✅ VERIFICAÇÃO DE STEP INVÁLIDO
   if (!currentStep) {
-    // ✅ Se step inválido, limpa e redireciona
     if (typeof window !== 'undefined') {
       clearCorruptedCache();
       router.push('/');
