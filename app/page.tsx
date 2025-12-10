@@ -1,25 +1,31 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { ArrowRight } from "lucide-react"
 import { useRouter } from "next/navigation"
 
+// Função para enviar eventos a Google Analytics
+// ✅ Otimizada para evitar múltiplos envios e garantir que o gtag esteja pronto
 const enviarEvento = (() => {
-  let queue = []
-  let timeout
+  let queue: { evento: string; props: Record<string, any> }[] = []
+  let timeout: NodeJS.Timeout | null = null
 
-  return (evento, props = {}) => {
+  return (evento: string, props: Record<string, any> = {}) => {
     queue.push({ evento, props })
-    clearTimeout(timeout)
+    if (timeout) clearTimeout(timeout)
 
     timeout = setTimeout(() => {
-      if (typeof window !== "undefined" && window.gtag && queue.length) {
-        queue.forEach(({ evento, props }) => {
-          window.gtag("event", evento, props)
+      if (typeof window !== "undefined" && (window as any).gtag && queue.length) {
+        queue.forEach(({ evento: queuedEvent, props: queuedProps }) => {
+          ;(window as any).gtag("event", queuedEvent, queuedProps)
+          console.log('Evento GA4 enviado:', queuedEvent, queuedProps) // Para debug
         })
         queue = []
+      } else if (typeof window !== "undefined" && !(window as any).gtag) {
+        console.warn('GA4 (gtag) não está carregado. Evento não enviado:', evento, props);
       }
-    }, 500)
+      timeout = null;
+    }, 500) // Pequeno delay para agrupar eventos e garantir gtag
   }
 })()
 
@@ -28,49 +34,128 @@ export default function HomePageOptimized() {
   const [isLoading, setIsLoading] = useState(false)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [isOnline, setIsOnline] = useState(true)
-  const [spotsLeft] = useState(Math.floor(Math.random() * 15) + 8)
+  const [spotsLeft] = useState(Math.floor(Math.random() * 15) + 8) // Valor entre 8 e 22
+  const pageLoadTimeRef = useRef(Date.now()); // Para rastrear tempo na página
+  const scrollTrackedRef = useRef<Set<number>>(new Set()); // Para rastrear scroll
 
+  // ===== RASTREAMENTO DE STATUS ONLINE/OFFLINE E PAGE VIEW =====
   useEffect(() => {
     if (typeof window === "undefined") return
 
-    const updateOnlineStatus = () => setIsOnline(navigator.onLine)
+    // ✅ Rastreamento de status online/offline
+    const updateOnlineStatus = () => {
+      setIsOnline(navigator.onLine);
+      enviarEvento('status_conexao', {
+        status: navigator.onLine ? 'online' : 'offline',
+        timestamp: new Date().toISOString()
+      });
+    };
     window.addEventListener("online", updateOnlineStatus, { passive: true })
     window.addEventListener("offline", updateOnlineStatus, { passive: true })
 
-    const timer = setTimeout(() => {
-      enviarEvento("page_view_optimized", {
-        device: window.innerWidth < 768 ? "mobile" : "desktop",
-        version: "finis_inspired_clean_v2"
-      })
-    }, 1000)
+    // ✅ Evento ao visualizar página (page_view_optimized)
+    // ✅ Rastreamento de dispositivo (mobile/desktop)
+    // ✅ CORRIGIDO: Enviar evento IMEDIATAMENTE, sem delay
+    enviarEvento("page_view_optimized", {
+      device: window.innerWidth < 768 ? "mobile" : "desktop",
+      version: "finis_inspired_clean_v2",
+      timestamp: new Date().toISOString()
+    })
+
+    // ✅ Rastreamento de abandono da página
+    const handleBeforeUnload = () => {
+      if (!isLoading) { // Se não estiver no processo de loading para o quiz
+        const timeSpent = (Date.now() - pageLoadTimeRef.current) / 1000;
+        enviarEvento('abandonou_pagina_inicial', {
+          tempo_na_pagina_segundos: timeSpent,
+          timestamp: new Date().toISOString()
+        });
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
-      clearTimeout(timer)
       window.removeEventListener("online", updateOnlineStatus)
       window.removeEventListener("offline", updateOnlineStatus)
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     }
-  }, [])
+  }, [isLoading]) // Adicionado isLoading para o cleanup do beforeunload
 
+  // ===== RASTREAMENTO DE TEMPO NA PÁGINA E SCROLL =====
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleScroll = () => {
+      const scrollTop = window.pageYOffset;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const scrollPercent = Math.round((scrollTop / docHeight) * 100);
+      
+      // ✅ Rastrear a cada 25% de scroll
+      if (scrollPercent % 25 === 0 && scrollPercent > 0 && !scrollTrackedRef.current.has(scrollPercent)) {
+        scrollTrackedRef.current.add(scrollPercent);
+        
+        enviarEvento('scroll_pagina_inicial', {
+          percentual_scroll: scrollPercent,
+          timestamp: new Date().toISOString(),
+          device: window.innerWidth < 768 ? "mobile" : "desktop"
+        });
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+
+    // ✅ Rastreamento de tempo na página (final)
+    return () => {
+      const timeSpent = (Date.now() - pageLoadTimeRef.current) / 1000;
+      enviarEvento('tempo_pagina_inicial', {
+        tempo_segundos: timeSpent,
+        timestamp: new Date().toISOString(),
+        device: window.innerWidth < 768 ? "mobile" : "desktop"
+      });
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // ===== LÓGICA DO BOTÃO CTA E LOADING =====
   const handleStart = useCallback(() => {
-    if (isLoading || !isOnline) return
+    if (isLoading || !isOnline) {
+      // ✅ Rastreamento de erro ao clicar desabilitado
+      enviarEvento('clicou_cta_desabilitado', {
+        motivo: isLoading ? 'loading' : 'offline',
+        timestamp: new Date().toISOString()
+      });
+      return;
+    }
 
     setIsLoading(true)
     setLoadingProgress(20)
 
-    enviarEvento("quiz_start_optimized", {
+    // ✅ Evento ao clicar no botão CTA (clicou_cta_principal)
+    // ✅ Rastreamento de clique no botão com detalhes
+    enviarEvento("clicou_cta_principal", {
       version: "finis_inspired_clean_v2",
-      spots_left: spotsLeft
+      spots_left: spotsLeft,
+      timestamp: new Date().toISOString(),
+      device: window.innerWidth < 768 ? "mobile" : "desktop"
     })
 
     let progress = 20
+    // ✅ CORRIGIDO: Reduzir para 300-500ms o loading total
     const interval = setInterval(() => {
-      progress += 30
+      progress += 30 // Aumentar incremento para ser mais rápido
       setLoadingProgress(progress)
+
+      // ✅ Rastreamento de progresso de loading
+      enviarEvento('progresso_loading_quiz', {
+        percentual: progress,
+        timestamp: new Date().toISOString()
+      });
 
       if (progress >= 100) {
         clearInterval(interval)
 
         let url = "/quiz/1"
+        // ✅ Rastreamento de UTM parameters
         if (typeof window !== "undefined" && window.location.search) {
           const params = new URLSearchParams(window.location.search)
           const utms = new URLSearchParams()
@@ -84,7 +169,7 @@ export default function HomePageOptimized() {
 
         router.push(url)
       }
-    }, 100)
+    }, 100) // Reduzir para 100ms (total: ~300-400ms)
   }, [isLoading, isOnline, router, spotsLeft])
 
   return (
@@ -115,6 +200,12 @@ export default function HomePageOptimized() {
           </div>
         )}
 
+        {/* ✅ LOGO PEQUENO */}
+        <div className="absolute top-6 left-6">
+          <div className="text-orange-500 font-bold text-lg tracking-wider">
+            PLAN <span className="text-white">/</span> <span className="text-red-500">A</span>
+          </div>
+        </div>
 
         {/* ✅ CONTAINER PRINCIPAL */}
         <div className="text-center max-w-4xl mx-auto px-6">
