@@ -148,18 +148,18 @@ export default function ResultPageFixed() {
         videoContainerRef.current.innerHTML = `
           <div style="position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: 8px; overflow: hidden;">
             <vturb-smartplayer 
-              id="vid-692ef1c85df8a7aaec7c6000" 
+              id="vid-6938c3eeb96ec714286a4c2b" 
               style="display: block; margin: 0 auto; width: 100%; height: 100%; position: absolute; top: 0; left: 0;"
             ></vturb-smartplayer>
           </div>
         `
 
         // ✅ CARREGAR O SCRIPT APÓS INSERIR O HTML
-        const existingScript = document.querySelector('script[src="https://scripts.converteai.net/15be01a4-4462-4736-aeb9-b95eda21b8b8/players/692ef1c85df8a7aaec7c6000/v4/player.js"]')
+        const existingScript = document.querySelector('script[src="https://scripts.converteai.net/ea3c2dc1-1976-40a2-b0fb-c5055f82bfaf/players/6938c3eeb96ec714286a4c2b/v4/player.js"]')
         
         if (!existingScript) {
           const s = document.createElement("script")
-          s.src = "https://scripts.converteai.net/15be01a4-4462-4736-aeb9-b95eda21b8b8/players/692ef1c85df8a7aaec7c6000/v4/player.js"
+          s.src = "https://scripts.converteai.net/ea3c2dc1-1976-40a2-b0fb-c5055f82bfaf/players/6938c3eeb96ec714286a4c2b/v4/player.js"
           s.async = true
           
           s.onload = () => {
