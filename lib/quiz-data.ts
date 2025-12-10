@@ -304,7 +304,7 @@ export const quizSteps = [
         id: 1,
         question: "¡NO DEJES QUE LA PERSONA QUE AMAS SALGA DE TU VIDA PARA SIEMPRE!",
         description: "INICIANDO ANÁLISIS PSICOLÓGICO - Para revelar si ella aún siente algo por ti, necesito mapear tu perfil emocional específico.",
-        subtext: "DATO CRÍTICO #1 - Tu género influye directamente en cómo ella procesa la separación:",
+        subtext: "Tu género influye directamente en cómo ella procesa la separación:",
         options: ["SOY HOMBRE", "SOY MUJER"],
         warning: "⚠️ IMPORTANTE: Este análisis fue desarrollado basándose en 12,000 casos reales de reconquista. Cada respuesta ajusta tu diagnóstico.",
         elements: {
@@ -318,7 +318,7 @@ export const quizSteps = [
         id: 2,
         question: "MAPEANDO TU PERFIL EMOCIONAL...",
         description: "Tu edad determina qué técnicas psicológicas tendrán mayor impacto en tu caso específico.",
-        subtext: "DATO CRÍTICO #2 - Selecciona tu rango de edad:",
+        subtext: "Selecciona tu rango de edad:",
         options: [
             "18-29 años → Fase de alta intensidad emocional",
             "30-39 años → Período de madurez y estabilidad", 
@@ -336,7 +336,7 @@ export const quizSteps = [
         id: 3,
         question: "CALCULANDO PROBABILIDADES DE RECONQUISTA...",
         description: "El tiempo de separación es el factor más crítico para determinar qué técnicas usar y cuándo aplicarlas.",
-        subtext: "DATO CRÍTICO #3 - ¿Cuánto tiempo llevan separados?",
+        subtext: "¿Cuánto tiempo llevan separados?",
         options: [
             "Menos de 1 semana → Ventana de oportunidad crítica",
             "1-4 semanas → Período de reflexión activa", 
@@ -353,7 +353,7 @@ export const quizSteps = [
         id: 4,
         question: "IDENTIFICANDO PATRÓN DE RUPTURA...",
         description: "Cómo terminó la relación revela su estado emocional actual y define qué estrategia psicológica será más efectiva.",
-        subtext: "DATO CRÍTICO #4 - ¿Cómo fue la separación?",
+        subtext: "¿Cómo fue la separación?",
         options: {
             SOY_HOMBRE: [
                 "Ella terminó conmigo → Patrón de rechazo activo",
@@ -375,7 +375,7 @@ export const quizSteps = [
         id: 5,
         question: "ANALIZANDO INTENSIDAD EMOCIONAL...",
         description: "La duración de la relación determina la profundidad del vínculo emocional y qué técnicas de reconexión usar.",
-        subtext: "DATO CRÍTICO #5 - ¿Cuánto tiempo estuvieron juntos?",
+        subtext: "¿Cuánto tiempo estuvieron juntos?",
         options: [
             "Más de 3 años → Vínculo profundo establecido",
             "1-3 años → Conexión emocional sólida", 
@@ -391,7 +391,7 @@ export const quizSteps = [
         id: 6,
         question: "DETECTANDO TU PUNTO DE DOLOR PRINCIPAL...",
         description: "Tu mayor sufrimiento revela qué necesitas sanar ANTES de aplicar cualquier técnica de reconquista.",
-        subtext: "DATO CRÍTICO #6 - ¿Cuál fue la parte más dolorosa?",
+        subtext: "¿Cuál fue la parte más dolorosa?",
         options: {
             SOY_HOMBRE: [
                 "😔 La soledad y el vacío → Necesitas 'Protocolo de Autoconfianza'",
@@ -419,7 +419,7 @@ export const quizSteps = [
         id: 7,
         question: "EVALUANDO TU SITUACIÓN ACTUAL...",
         description: "Tu situación presente define tu PUNTO DE PARTIDA y qué estrategia específica necesitas aplicar primero.",
-        subtext: "DATO CRÍTICO #7 - ¿Cuál es tu situación actual con tu ex?",
+        subtext: "¿Cuál es tu situación actual con tu ex?",
         options: {
             SOY_HOMBRE: [
                 "🧐 Contacto cero → Estrategia de 'Ruptura del Silencio'",
@@ -449,7 +449,7 @@ export const quizSteps = [
         id: 8,
         question: "ANALIZANDO FACTOR DE COMPETENCIA...",
         description: "Esta información determina la URGENCIA de tu estrategia y qué técnicas avanzadas necesitarás.",
-        subtext: "DATO CRÍTICO #8 - ¿Ya está saliendo con otra persona?",
+        subtext: "¿Ya está saliendo con otra persona?",
         options: {
             SOY_HOMBRE: [
                 "🚫 Está soltera → Estrategia estándar aplicable",
