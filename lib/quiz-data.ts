@@ -505,7 +505,6 @@ export const quizSteps = [
         id: 11,
         question: "MIENTRAS ANALIZO TU CASO, DESCUBRE LA CIENCIA DETRAS DE ESTE METODO",
         description: "Una investigación reciente revela por qué el PLAN A funciona a nivel neurológico y psicológico.",
-        subtext: "Estudios recientes confirman que las técnicas que usaremos son avaladas por ciencia:",
         options: ["CONTINUAR PARA VER MIS RESULTADOS"],
         elements: {
             scientificEvidence: true,
