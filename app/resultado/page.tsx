@@ -21,6 +21,35 @@ import { Card, CardContent } from "@/components/ui/card"
 import { CountdownTimer } from "@/components/countdown-timer"
 import { enviarEvento } from "../../lib/analytics"
 
+// ✅ CORREÇÃO: Função UTM para checkout
+function getUtmString() {
+  if (typeof window === 'undefined') return '';
+  
+  try {
+    const currentUrl = new URL(window.location.href);
+    const utmParams = new URLSearchParams();
+    
+    // Coleta TODOS os parâmetros de tracking
+    for (const [key, value] of currentUrl.searchParams.entries()) {
+      if (key.startsWith('utm_') || 
+          key.startsWith('fbclid') || 
+          key.startsWith('gclid') || 
+          key.startsWith('ref') ||
+          key.startsWith('source') ||
+          key.startsWith('medium') ||
+          key.startsWith('campaign')) {
+        utmParams.append(key, value);
+      }
+    }
+    
+    const utmString = utmParams.toString();
+    return utmString ? `&${utmString}` : ''; // ✅ usando & porque URL já tem parâmetros
+  } catch (error) {
+    console.error('Erro ao construir UTM para checkout:', error);
+    return '';
+  }
+}
+
 export default function ResultPageFixed() {
   // ===== ESTADOS =====
   const [isLoaded, setIsLoaded] = useState(false)
@@ -67,21 +96,24 @@ export default function ResultPageFixed() {
 
       setTimeout(() => setIsLoaded(true), 300)
 
+      // ✅ NOVO: Log das UTMs atuais
+      console.log('🔍 UTMs atuais na página resultado:', window.location.search);
+      console.log('🔗 UTM string que será anexada:', getUtmString());
+
       enviarEvento("viu_resultado_dopamina_v4", {
         timestamp: new Date().toISOString(),
         user_gender: savedGender,
         version: "matrix_continuity",
-        tem_dados_quiz: Object.keys(savedAnswers).length > 0
+        tem_dados_quiz: Object.keys(savedAnswers).length > 0,
+        utm_params: window.location.search // ✅ NOVO: Log das UTMs
       })
 
       startTimeRef.current = Date.now()
 
-      // ✅ CORRIGIDO: Aumentar intervalo para ser mais realista
       const interval = setInterval(() => {
         setActiveBuyers(prev => {
           const newValue = prev + Math.floor(Math.random() * 2) + 1
           
-          // ✅ NOVO: Rastrear quando contador muda
           enviarEvento('contador_compradores_atualizado', {
             novo_valor: newValue,
             timestamp: new Date().toISOString()
@@ -89,7 +121,7 @@ export default function ResultPageFixed() {
           
           return newValue
         })
-      }, 180000) // A cada 3 minutos (mais realista)
+      }, 180000)
 
       return () => {
         clearInterval(interval)
@@ -140,7 +172,6 @@ export default function ResultPageFixed() {
           setDecryptedText("PLAN COMPLETO LIBERADO");
           setCurrentRevelation(1);
           
-          // ✅ NOVO: Rastrear revelação 1
           if (!revelationTrackedRef.current.has(1)) {
             revelationTrackedRef.current.add(1);
             enviarEvento('viu_revelacao_1_codigo_incompleto', {
@@ -155,7 +186,6 @@ export default function ResultPageFixed() {
           setShowVSL(true);
           setCurrentRevelation(2);
           
-          // ✅ NOVO: Rastrear revelação 2
           if (!revelationTrackedRef.current.has(2)) {
             revelationTrackedRef.current.add(2);
             enviarEvento('viu_revelacao_2_vsl', {
@@ -170,7 +200,6 @@ export default function ResultPageFixed() {
           setShowOffer(true);
           setCurrentRevelation(3);
           
-          // ✅ NOVO: Rastrear revelação 3
           if (!revelationTrackedRef.current.has(3)) {
             revelationTrackedRef.current.add(3);
             enviarEvento('viu_revelacao_3_oferta', {
@@ -184,7 +213,6 @@ export default function ResultPageFixed() {
         setTimeout(() => {
           setShowFinalCTA(true);
           
-          // ✅ NOVO: Rastrear revelação 4
           if (!revelationTrackedRef.current.has(4)) {
             revelationTrackedRef.current.add(4);
             enviarEvento('viu_revelacao_4_cta_final', {
@@ -213,14 +241,12 @@ export default function ResultPageFixed() {
     }
   }, [userGender])
 
-  // ✅ NOVO: Rastreamento de Scroll
   useEffect(() => {
     const handleScroll = () => {
       const scrollTop = window.pageYOffset;
       const docHeight = document.documentElement.scrollHeight - window.innerHeight;
       const scrollPercent = Math.round((scrollTop / docHeight) * 100);
       
-      // Rastrear a cada 25% de scroll
       if (scrollPercent % 25 === 0 && scrollPercent > 0 && !scrollTrackedRef.current.has(scrollPercent)) {
         scrollTrackedRef.current.add(scrollPercent);
         
@@ -236,14 +262,11 @@ export default function ResultPageFixed() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [userGender]);
 
-  // ✅ CORREÇÃO DEFINITIVA DO VÍDEO - USANDO dangerouslySetInnerHTML
   useEffect(() => {
     if (!showVSL || !isBrowser || !videoContainerRef.current) return
 
-    // Aguardar um pouco para o DOM estar pronto
     const timer = setTimeout(() => {
       if (videoContainerRef.current) {
-        // ✅ INSERIR O HTML DIRETO NO DOM
         videoContainerRef.current.innerHTML = `
           <div style="position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: 8px; overflow: hidden;">
             <vturb-smartplayer 
@@ -253,7 +276,6 @@ export default function ResultPageFixed() {
           </div>
         `
 
-        // ✅ NOVO: Rastrear clique no vídeo
         const videoElement = videoContainerRef.current.querySelector('vturb-smartplayer');
         if (videoElement) {
           videoElement.addEventListener('click', () => {
@@ -265,7 +287,6 @@ export default function ResultPageFixed() {
           });
         }
 
-        // ✅ CARREGAR O SCRIPT APÓS INSERIR O HTML
         const existingScript = document.querySelector('script[src="https://scripts.converteai.net/ea3c2dc1-1976-40a2-b0fb-c5055f82bfaf/players/6938c3eeb96ec714286a4c2b/v4/player.js"]')
         
         if (!existingScript) {
@@ -276,7 +297,6 @@ export default function ResultPageFixed() {
           s.onload = () => {
             console.log("Script VTurb carregado com sucesso!")
             
-            // ✅ NOVO: Rastrear carregamento bem-sucedido
             enviarEvento('video_vsl_carregado_sucesso', {
               timestamp: new Date().toISOString(),
               user_gender: userGender
@@ -286,13 +306,11 @@ export default function ResultPageFixed() {
           s.onerror = () => {
             console.error("Erro ao carregar script VTurb")
             
-            // ✅ NOVO: Rastrear erro de carregamento
             enviarEvento('erro_carregar_video_vsl', {
               timestamp: new Date().toISOString(),
               user_gender: userGender
             });
             
-            // ✅ NOVO: Mostrar fallback
             if (videoContainerRef.current) {
               videoContainerRef.current.innerHTML = `
                 <div style="background: #333; color: white; padding: 20px; text-align: center; border-radius: 8px;">
@@ -330,12 +348,20 @@ export default function ResultPageFixed() {
     return "Contacto limitado"
   }, [userAnswers])
 
-  // ===== FUNÇÃO DE COMPRA OTIMIZADA =====
+  // ✅ CORREÇÃO: Função de compra com UTM preservada
   const handlePurchase = useCallback((position = "principal") => {
     if (!isBrowser) return
 
     try {
       const timeToAction = (Date.now() - startTimeRef.current) / 1000
+      
+      // ✅ NOVO: Construir URL com UTMs
+      const utmString = getUtmString();
+      const baseCheckoutUrl = "https://pay.hotmart.com/F100142422S?off=efckjoa7&checkoutMode=10";
+      const fullCheckoutUrl = `${baseCheckoutUrl}${utmString}`;
+      
+      // ✅ DEBUG: Log da URL final
+      console.log('🔗 URL do checkout com UTM:', fullCheckoutUrl);
       
       // ✅ NOVO: Rastreamento detalhado de compra
       enviarEvento("clicou_comprar_dopamina_v4", {
@@ -349,7 +375,9 @@ export default function ResultPageFixed() {
         viu_vsl: showVSL,
         viu_oferta: showOffer,
         viu_cta_final: showFinalCTA,
-        version: "matrix_continuity"
+        version: "matrix_continuity",
+        // ✅ NOVO: Incluir UTMs no evento
+        utm_data: utmString
       })
       
       enviarEvento('tempo_pagina_resultado_dopamina', {
@@ -357,28 +385,28 @@ export default function ResultPageFixed() {
         conversao: true,
         posicao_cta: position,
         version: "matrix_continuity",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        checkout_url: fullCheckoutUrl // ✅ NOVO: Log da URL para debug
       })
       
       setTimeout(() => {
-        const paymentWindow = window.open("https://pay.hotmart.com/F100142422S?off=efckjoa7&checkoutMode=10", "_blank")
+        const paymentWindow = window.open(fullCheckoutUrl, "_blank") // ✅ CORREÇÃO: URL com UTM
         
         if (!paymentWindow) {
           console.error("Popup bloqueado - tentando redirecionamento");
           
-          // ✅ NOVO: Rastrear popup bloqueado
           enviarEvento('popup_bloqueado_resultado', {
             posicao: position,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            checkout_url: fullCheckoutUrl
           });
           
-          window.location.href = "https://pay.hotmart.com/F100142422S?off=efckjoa7&checkoutMode=10"
+          window.location.href = fullCheckoutUrl // ✅ CORREÇÃO: URL com UTM
         }
       }, 100)
     } catch (error) {
       console.error("Erro na função de compra:", error)
       
-      // ✅ NOVO: Rastrear erro de compra
       enviarEvento('erro_clicou_comprar', {
         posicao: position,
         erro: error instanceof Error ? error.message : 'Erro desconhecido',
@@ -400,6 +428,7 @@ export default function ResultPageFixed() {
 
   return (
     <>
+      {/* O resto do JSX permanece exatamente igual */}
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
         <meta name="format-detection" content="telephone=no" />
