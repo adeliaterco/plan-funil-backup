@@ -1,3 +1,4 @@
+// components/QuizStep.tsx
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
@@ -26,33 +27,52 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { 
-  quizSteps, 
-  socialProofMessages, 
+import {
+  quizSteps,
+  socialProofMessages,
   getPersonalizedContent,
   getExName,
   getExAvatar,
   getPersonalizedFirstMessage,
   getPersonalizedExResponse,
   getPersonalizedFollowUp,
-  getHeaderName,
   getPersonalizedFirstInsight,
   getPersonalizedTechnique,
-} from "@/lib/quiz-data"
+  getUserGender as getQuizDataUserGender, // Renomeado para evitar conflito
+  getUserAnswer, // Importado para validação
+} from "@/lib/quiz-data" // Assumindo que quiz-data.ts está em lib/
 import { BonusUnlock } from "@/components/bonus-unlock"
-import { ValueCounter } from "@/components/value-counter"
 import { LoadingAnalysis } from "@/components/loading-analysis"
 
-// Função para enviar eventos a Google Analytics
-function enviarEvento(nombre_evento, propriedades = {}) {
+// 
+// 1. Função para enviar eventos a Google Analytics (Robustez Aumentada)
+// 
+function enviarEvento(nombre_evento: string, propriedades: Record<string, any> = {}) {
   if (typeof window !== 'undefined' && window.gtag) {
-    window.gtag('event', nombre_evento, propriedades);
-    console.log('Evento enviado:', nombre_evento, propriedades);
+    try {
+      window.gtag('event', nombre_evento, {
+        ...propriedades,
+        timestamp: new Date().toISOString(), // Adiciona timestamp automaticamente
+      });
+      console.log('Evento GA4 enviado:', nombre_evento, propriedades);
+    } catch (error) {
+      console.error('Erro ao enviar evento GA4:', nombre_evento, error);
+      // Opcional: Enviar erro para um serviço de monitoramento de erros
+    }
+  } else {
+    console.warn('gtag não está disponível ou não está no ambiente do navegador.');
   }
 }
 
-// === COMPONENTE WHATSAPP MOCKUP FUNCIONAL ===
-const WhatsAppMockup = ({ userGender, onComplete }) => {
+// 
+// 2. COMPONENTE WHATSAPP MOCKUP FUNCIONAL (Com Rastreamento GA4)
+// 
+interface WhatsAppMockupProps {
+  userGender: string;
+  onComplete: () => void;
+}
+
+const WhatsAppMockup: React.FC<WhatsAppMockupProps> = ({ userGender, onComplete }) => {
   const [currentMessage, setCurrentMessage] = useState(0)
   const [isTyping, setIsTyping] = useState(false)
   const [analysisPoints, setAnalysisPoints] = useState([
@@ -63,14 +83,14 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
   ])
   const [successPercentage, setSuccessPercentage] = useState(0)
   const [animationComplete, setAnimationComplete] = useState(false)
-  
-  const hasStartedRef = useRef(false)
-  const timeoutsRef = useRef([])
-  const onCompleteCalledRef = useRef(false)
-  const intervalRef = useRef(null)
 
-  const updateAnalysisPoint = useCallback((pointIndex, status) => {
-    setAnalysisPoints(prev => prev.map((point, index) => 
+  const hasStartedRef = useRef(false)
+  const timeoutsRef = useRef<NodeJS.Timeout[]>([])
+  const onCompleteCalledRef = useRef(false)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  const updateAnalysisPoint = useCallback((pointIndex: number, status: 'pending' | 'active' | 'completed') => {
+    setAnalysisPoints(prev => prev.map((point, index) =>
       index === pointIndex ? { ...point, status } : point
     ))
   }, [])
@@ -79,14 +99,14 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
     let current = 0
     const target = 89
     const increment = target / 15
-    
+
     if (intervalRef.current) clearInterval(intervalRef.current)
-    
+
     intervalRef.current = setInterval(() => {
       current += increment
       if (current >= target) {
         current = target
-        clearInterval(intervalRef.current)
+        clearInterval(intervalRef.current as NodeJS.Timeout)
         intervalRef.current = null
         setAnimationComplete(true)
       }
@@ -98,34 +118,35 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
     if (hasStartedRef.current) return
     hasStartedRef.current = true
 
-    const addTimeout = (callback, delay) => {
+    const addTimeout = (callback: () => void, delay: number) => {
       const timeoutId = setTimeout(callback, delay)
       timeoutsRef.current.push(timeoutId)
       return timeoutId
     }
 
+    // Tempos ajustados para melhor legibilidade
     const sequence = [
       { delay: 500, action: () => {
         setCurrentMessage(1)
         updateAnalysisPoint(0, 'active')
       }},
-      { delay: 1200, action: () => {
+      { delay: 1500, action: () => { // Aumentado
         setIsTyping(true)
         updateAnalysisPoint(0, 'completed')
         updateAnalysisPoint(1, 'active')
       }},
-      { delay: 2000, action: () => {
+      { delay: 2500, action: () => { // Aumentado
         setIsTyping(false)
         setCurrentMessage(2)
         updateAnalysisPoint(1, 'completed')
         updateAnalysisPoint(2, 'active')
       }},
-      { delay: 3000, action: () => {
+      { delay: 4000, action: () => { // Aumentado
         setCurrentMessage(3)
         updateAnalysisPoint(2, 'completed')
         updateAnalysisPoint(3, 'active')
       }},
-      { delay: 4000, action: () => {
+      { delay: 5500, action: () => { // Aumentado
         updateAnalysisPoint(3, 'completed')
         animateSuccessPercentage()
       }}
@@ -146,12 +167,17 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
   useEffect(() => {
     if (animationComplete && !onCompleteCalledRef.current) {
       onCompleteCalledRef.current = true
+      // GA4 Tracking: Conclusão da animação do WhatsApp Mockup
+      enviarEvento('completou_whatsapp_mockup', {
+        numero_etapa: 12,
+        success_percentage: successPercentage,
+      });
       const timeoutId = setTimeout(() => {
         onComplete && onComplete()
       }, 1000)
       timeoutsRef.current.push(timeoutId)
     }
-  }, [animationComplete, onComplete])
+  }, [animationComplete, onComplete, successPercentage])
 
   return (
     <div className="flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-8 mb-8">
@@ -159,7 +185,7 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
       <div className="w-[300px] h-[600px] relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-[35px] p-2 shadow-2xl">
         <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[150px] h-[25px] bg-black rounded-b-[15px] z-10"></div>
         <div className="bg-black h-full rounded-[28px] overflow-hidden flex flex-col">
-          
+
           {/* WhatsApp Header */}
           <div className="bg-[#075e54] pt-9 pb-4 px-4 flex items-center text-white text-sm">
             <div className="mr-2 text-lg">←</div>
@@ -176,14 +202,14 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
               <span>⋮</span>
             </div>
           </div>
-          
+
           {/* Chat Messages */}
           <div className="flex-1 bg-[#ece5dd] p-4 overflow-y-auto relative" style={{backgroundImage: `url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'><rect width='20' height='20' fill='%23ece5dd'/><rect x='0' y='0' width='10' height='10' fill='%23e8ddd4'/><rect x='10' y='10' width='10' height='10' fill='%23e8ddd4'/></svg>")`}}>
-            
+
             <div className="text-center my-2">
               <span className="bg-black/10 text-gray-600 px-3 py-1 rounded-full text-xs">Hoy</span>
             </div>
-            
+
             {/* Mensaje del usuario */}
             <AnimatePresence>
               {currentMessage >= 1 && (
@@ -198,7 +224,7 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
                 </motion.div>
               )}
             </AnimatePresence>
-            
+
             {/* Typing indicator */}
             {isTyping && (
               <motion.div
@@ -213,7 +239,7 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
                 </div>
               </motion.div>
             )}
-            
+
             {/* Respuesta de la ex */}
             <AnimatePresence>
               {currentMessage >= 2 && (
@@ -228,7 +254,7 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
                 </motion.div>
               )}
             </AnimatePresence>
-            
+
             {/* Segundo mensaje del usuario */}
             <AnimatePresence>
               {currentMessage >= 3 && (
@@ -244,7 +270,7 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
               )}
             </AnimatePresence>
           </div>
-          
+
           {/* WhatsApp Input */}
           <div className="bg-gray-100 p-2">
             <div className="bg-white rounded-full flex items-center px-4 py-2 gap-2">
@@ -256,17 +282,17 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
           </div>
         </div>
       </div>
-      
+
       {/* Análise em tempo real */}
       <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl p-6 text-white max-w-sm w-full">
         <h3 className="text-lg font-bold text-center mb-4">
           📊 ANÁLISIS PSICOLÓGICO EN TIEMPO REAL
         </h3>
-        
+
         <div className="space-y-3 mb-6">
           {analysisPoints.map((point, index) => (
-            <motion.div 
-              key={index} 
+            <motion.div
+              key={index}
               className="flex items-center gap-3 p-2 bg-white/10 rounded-lg"
               animate={{
                 scale: point.status === 'active' ? [1, 1.05, 1] : 1,
@@ -281,14 +307,14 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
                 point.status === 'active' ? 'bg-green-500 text-white animate-pulse' :
                 'bg-green-500 text-white'
               }`}>
-                {point.status === 'completed' ? '✓' : 
+                {point.status === 'completed' ? '✓' :
                  point.status === 'active' ? '⚡' : '⏳'}
               </div>
               <div className="text-sm flex-1">{point.text}</div>
             </motion.div>
           ))}
         </div>
-        
+
         <div className="text-center">
           <div className="w-24 h-24 border-4 border-white/20 border-t-green-500 rounded-full flex flex-col items-center justify-center mx-auto animate-spin-slow">
             <div className="text-2xl font-bold text-green-400">{successPercentage}%</div>
@@ -300,39 +326,52 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
   )
 }
 
-// === ✅ COMPONENTE CODE UNLOCK REVEAL CORRIGIDO - SEM BUGS ===
-const CodeUnlockReveal = ({ onComplete, userGender }) => {
+// 
+// 3. COMPONENTE CODE UNLOCK REVEAL (Com Rastreamento GA4)
+// 
+interface CodeUnlockRevealProps {
+  onComplete: () => void;
+  userGender: string;
+}
+
+const CodeUnlockReveal: React.FC<CodeUnlockRevealProps> = ({ onComplete, userGender }) => {
   const [displayText, setDisplayText] = useState("")
   const [isDecrypting, setIsDecrypting] = useState(true)
-  const [contentRevealed, setContentRevealed] = useState(false)
   const [showButton, setShowButton] = useState(false)
   const [decryptionComplete, setDecryptionComplete] = useState(false)
+  const decryptionStartTimeRef = useRef<number | null>(null);
 
   const fullContent = useCallback(() => {
-    const insight = getPersonalizedFirstInsight();
-    const technique = getPersonalizedTechnique();
-    return `🎯 TU PLAN A PERSONALIZADO ESTÁ LISTO\n\nDespués de crear tu demostración específica, he confirmado que tu situación tiene **89% de probabilidad de éxito** usando el Plan A.\n\n${insight}\n\nEsta es solo la PRIMERA de las 21 técnicas específicas para tu caso:\n\n${technique}`;
+    try {
+      const insight = getPersonalizedFirstInsight();
+      const technique = getPersonalizedTechnique();
+      return `🎯 TU PLAN A PERSONALIZADO ESTÁ LISTO\n\nDespués de crear tu demostración específica, he confirmado que tu situación tiene **89% de probabilidad de éxito** usando el Plan A.\n\n${insight}\n\nEsta es solo la PRIMERA de las 21 técnicas específicas para tu caso:\n\n${technique}`;
+    } catch (error) {
+      enviarEvento('erro_get_personalized_content', {
+        componente: 'CodeUnlockReveal',
+        erro: (error as Error).message,
+      });
+      return "Error al cargar el contenido personalizado.";
+    }
   }, [userGender]);
 
-  // ✅ CORREÇÃO: Caracteres aleatórios pré-gerados (sem tremulação)
-  const getRandomChars = useCallback((length) => {
+  const getRandomChars = useCallback((length: number) => {
     const chars = '!@#$%^&*()_+-=[]{}|;:,.<>?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     return Array.from({length}, () => chars[Math.floor(Math.random() * chars.length)]);
   }, []);
 
   useEffect(() => {
-    let intervalId;
+    let intervalId: NodeJS.Timeout | undefined;
 
     if (isDecrypting) {
+      decryptionStartTimeRef.current = Date.now(); // Inicia o timer
       const targetText = fullContent();
       const randomChars = getRandomChars(targetText.length);
       let revealIndex = 0;
 
-      // ✅ CORREÇÃO: Animação otimizada e mais rápida
       intervalId = setInterval(() => {
         if (revealIndex < targetText.length) {
-          // ✅ CORREÇÃO: Construção eficiente da string (sem tremulação)
-          const newText = targetText.substring(0, revealIndex + 1) + 
+          const newText = targetText.substring(0, revealIndex + 1) +
                          randomChars.slice(revealIndex + 1).join('');
           setDisplayText(newText);
           revealIndex++;
@@ -340,19 +379,23 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           clearInterval(intervalId);
           setIsDecrypting(false);
           setDecryptionComplete(true);
-          setDisplayText(targetText); // ✅ Texto final limpo
-          
-          // ✅ CORREÇÃO: Botão aparece IMEDIATAMENTE após descriptografia
+          setDisplayText(targetText);
+
+          const timeTaken = (Date.now() - (decryptionStartTimeRef.current || Date.now())) / 1000;
+          enviarEvento('completou_code_unlock', { // GA4 Tracking
+            numero_etapa: 13,
+            tempo_descriptografia_segundos: timeTaken,
+          });
+
           setTimeout(() => {
-            setContentRevealed(true);
             setShowButton(true);
-          }, 100); // Apenas 100ms para suavizar transição
+          }, 100);
         }
-      }, 8); // ✅ CORREÇÃO: Ainda mais rápido (8ms por caractere)
+      }, 8);
     }
 
     return () => {
-      clearInterval(intervalId);
+      if (intervalId) clearInterval(intervalId);
     };
   }, [isDecrypting, fullContent, getRandomChars]);
 
@@ -414,10 +457,9 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           <span className="text-white">PLAN</span> <span className="text-green-500">DESBLOQUEADO</span>
         </h2>
 
-        {/* ✅ CORREÇÃO: Texto sempre visível (opacity: 1) */}
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }} // ✅ SEMPRE VISÍVEL
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
           className="bg-gray-900/80 border border-green-700 rounded-lg p-4 sm:p-6 mb-8 shadow-lg"
         >
@@ -426,15 +468,13 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           </p>
         </motion.div>
 
-
-        {/* ✅ CORREÇÃO: Botão com aparição mais rápida */}
         <AnimatePresence>
           {showButton && (
             <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.8 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.8 }}
-              transition={{ duration: 0.3, type: "spring", stiffness: 200 }} // ✅ Mais rápido
+              transition={{ duration: 0.3, type: "spring", stiffness: 200 }}
               className="mt-8"
             >
               <Button
@@ -449,12 +489,11 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
           )}
         </AnimatePresence>
 
-        {/* ✅ CORREÇÃO: Botão de emergência mais rápido */}
         {!showButton && decryptionComplete && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 2 }} // ✅ Reduzido de 5s para 2s
+            transition={{ delay: 0.5 }} // Ajustado para 0.5s
             className="mt-8"
           >
             <Button
@@ -472,233 +511,37 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
   );
 };
 
+// 
+// 4. COMPONENTE QUIZSTEP PRINCIPAL (Com Rastreamento GA4 Completo)
+// 
 export default function QuizStep() {
   const params = useParams()
   const router = useRouter()
   const step = Number.parseInt(params.step as string)
   const [selectedAnswer, setSelectedAnswer] = useState<string>("")
-  const [quizData, setQuizData] = useState<any>({})
+  const [quizData, setQuizData] = useState<Record<number, string>>({})
   const [unlockedBonuses, setUnlockedBonuses] = useState<number[]>([])
   const [totalValue, setTotalValue] = useState(0)
   const [showBonusUnlock, setShowBonusUnlock] = useState(false)
   const [showAnalysis, setShowAnalysis] = useState(false)
   const [newBonus, setNewBonus] = useState<any>(null)
   const [isLoaded, setIsLoaded] = useState(false)
-  const [peopleCount, setPeopleCount] = useState(17)
+  const [peopleCount, setPeopleCount] = useState(Math.floor(Math.random() * 50) + 100); // Mais dinâmico
   const [userGender, setUserGender] = useState<string>("")
   const [step12Completed, setStep12Completed] = useState(false)
-  const [step13AnimationComplete, setStep13AnimationComplete] = useState(false)
+  const [canContinueStep11, setCanContinueStep11] = useState(false); // Para delay no botão da etapa 11
+
+  const stepStartTimeRef = useRef<number | null>(null); // Ref para rastrear tempo na etapa
+  const quizContainerRef = useRef<HTMLDivElement>(null); // Ref para scroll tracking
 
   const currentStep = quizSteps[step - 1]
-  const progress = (step / 13) * 100
+  const progress = (step / quizSteps.length) * 100 // Usar quizSteps.length para total de etapas
 
-  const proceedToNextStep = useCallback(() => {
-    const currentUrl = new URL(window.location.href);
-    let utmString = '';
-    
-    const utmParams = new URLSearchParams();
-    for (const [key, value] of currentUrl.searchParams.entries()) {
-      if (key.startsWith('utm_')) {
-        utmParams.append(key, value);
-      }
-    }
-    
-    if (utmParams.toString() !== '') {
-      utmString = '?' + utmParams.toString();
-    }
-
-    const currentStepData = quizSteps[step - 1];
-    if (currentStepData?.bonusUnlock && !unlockedBonuses.includes(currentStepData.bonusUnlock.id)) {
-      enviarEvento('desbloqueou_bonus', {
-        numero_etapa: step,
-        bonus_id: currentStepData.bonusUnlock.id,
-        bonus_titulo: currentStepData.bonusUnlock.title
-      });
-
-      const newUnlockedBonuses = [...unlockedBonuses, currentStepData.bonusUnlock.id]
-      const newTotalValue = totalValue + currentStepData.bonusUnlock.value
-
-      setUnlockedBonuses(newUnlockedBonuses)
-      setTotalValue(newTotalValue)
-
-      const personalizedBonus = {
-        ...currentStepData.bonusUnlock,
-        title: currentStepData.bonusUnlock?.title || 'Bonus desbloqueado',
-        description: currentStepData.bonusUnlock?.description || 'Descripción del bonus',
-      }
-      setNewBonus(personalizedBonus)
-
-      localStorage.setItem("unlockedBonuses", JSON.stringify(newUnlockedBonuses))
-      localStorage.setItem("totalValue", newTotalValue.toString())
-
-      setShowBonusUnlock(true)
-      return
-    }
-
-    if (step < 13) {
-      router.push(`/quiz/${step + 1}${utmString}`)
-    } else {
-      enviarEvento('concluiu_quiz', {
-        total_etapas_completadas: 13,
-        total_bonus_desbloqueados: unlockedBonuses.length
-      });
-      
-      router.push(`/resultado${utmString}`)
-    }
-  }, [step, router]);
-
-  const handleNext = useCallback(() => {
-    enviarEvento('avancou_etapa', {
-      numero_etapa: step,
-      pergunta: quizSteps[step - 1]?.question || `Etapa ${step}`,
-      resposta_selecionada: selectedAnswer
-    });
-
-    const newQuizData = { ...quizData, [step]: selectedAnswer }
-    setQuizData(newQuizData)
-    localStorage.setItem("quizData", JSON.stringify(newQuizData))
-
-    const answers = window.quizAnswers || {}
-    answers[`question${step}`] = selectedAnswer
-    window.quizAnswers = answers
-    localStorage.setItem("quizAnswers", JSON.stringify(answers))
-
-    const currentStepData = quizSteps[step - 1];
-    if (currentStepData?.elements?.analysisText || currentStepData?.elements?.profileAnalysis) {
-      setShowAnalysis(true)
-      setTimeout(() => {
-        setShowAnalysis(false)
-        proceedToNextStep()
-      }, 1000)
-      return
-    }
-
-    proceedToNextStep()
-  }, [step, selectedAnswer, quizData]);
-
-  const handleAnswerSelect = useCallback((answer: string) => {
-    setSelectedAnswer(answer)
-
-    if (step === 1) {
-      enviarEvento('quiz_start', {
-        perfil_selecionado: answer,
-        auto_advance: true,
-        step: 1
-      });
-      
-      setUserGender(answer)
-      localStorage.setItem("userGender", answer)
-      
-      setTimeout(() => {
-        handleNext()
-      }, 800)
-      return
-    }
-
-    enviarEvento('selecionou_resposta', {
-      numero_etapa: step,
-      pergunta: quizSteps[step - 1]?.question || `Etapa ${step}`,
-      resposta: answer
-    });
-  }, [step]);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("quizData")
-    const savedBonuses = localStorage.getItem("unlockedBonuses")
-    const savedValue = localStorage.getItem("totalValue")
-    const savedGender = localStorage.getItem("userGender")
-    const savedAnswers = localStorage.getItem("quizAnswers")
-
-    if (saved) setQuizData(JSON.parse(saved))
-    if (savedBonuses) setUnlockedBonuses(JSON.parse(savedBonuses))
-    if (savedValue) setTotalValue(Number.parseInt(savedValue))
-    if (savedGender) setUserGender(savedGender)
-    if (savedAnswers) {
-      window.quizAnswers = JSON.parse(savedAnswers)
-    }
-
-    const loadTimer = setTimeout(() => setIsLoaded(true), 100)
-
-    const currentStepData = quizSteps[step - 1];
-    enviarEvento('visualizou_etapa_quiz', {
-      numero_etapa: step,
-      pergunta: currentStepData?.question || `Etapa ${step}`
-    });
-
-    let autoAdvanceTimer
-    if (currentStepData?.autoAdvance) {
-      autoAdvanceTimer = setTimeout(() => {
-        proceedToNextStep()
-      }, 2000)
-    }
-
-    return () => {
-      clearTimeout(loadTimer)
-      if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer)
-    }
-  }, [step]);
-
-  const handleStep12Complete = useCallback(() => {
-    setStep12Completed(true)
-  }, [])
-
-  const handleStep13Complete = useCallback(() => {
-    setStep13AnimationComplete(true)
-  }, [])
-
-  const handleBonusUnlockComplete = useCallback(() => {
-    setShowBonusUnlock(false)
-    
-    const currentUrl = new URL(window.location.href);
-    let utmString = '';
-    
-    const utmParams = new URLSearchParams();
-    for (const [key, value] of currentUrl.searchParams.entries()) {
-      if (key.startsWith('utm_')) {
-        utmParams.append(key, value);
-      }
-    }
-    
-    if (utmParams.toString() !== '') {
-      utmString = '?' + utmParams.toString();
-    }
-    
-    if (step < 13) {
-      router.push(`/quiz/${step + 1}${utmString}`)
-    } else {
-      router.push(`/resultado${utmString}`)
-    }
-  }, [step, router])
-
-  const handleBack = useCallback(() => {
-    enviarEvento('retornou_etapa', {
-      de_etapa: step,
-      para_etapa: step > 1 ? step - 1 : 'inicio'
-    });
-    
-    const currentUrl = new URL(window.location.href);
-    let utmString = '';
-    
-    const utmParams = new URLSearchParams();
-    for (const [key, value] of currentUrl.searchParams.entries()) {
-      if (key.startsWith('utm_')) {
-        utmParams.append(key, value);
-      }
-    }
-    
-    if (utmParams.toString() !== '') {
-      utmString = '?' + utmParams.toString();
-    }
-    
-    if (step > 1) {
-      router.push(`/quiz/${step - 1}${utmString}`)
-    } else {
-      router.push(`/${utmString}`)
-    }
-  }, [step, router])
-
-  const getStepIcon = (stepNumber: number, index: number) => {
-    const iconMaps = {
+  // 
+  // Helper Functions (Definidas antes de usar)
+  // 
+  const getStepIcon = useCallback((stepNumber: number, index: number) => {
+    const iconMaps: Record<number, (typeof User)[]> = {
       1: [User, Users],
       2: [Calendar, TrendingUp, Target, Zap],
       3: [Clock, Calendar, MessageCircle, Heart],
@@ -709,46 +552,478 @@ export default function QuizStep() {
       8: [MessageCircle, Heart, Users, TrendingUp, Smile],
       9: [Heart, TrendingUp, Target, Zap],
     }
-
     const icons = iconMaps[stepNumber] || [Heart]
     const Icon = icons[index] || Heart
     return <Icon className="w-6 h-6" />
-  }
+  }, [])
 
-  const getPersonalizedQuestion = () => {
-    return getPersonalizedContent(currentStep.question, userGender)
-  }
+  const getPersonalizedQuestion = useCallback(() => {
+    try {
+      return getPersonalizedContent(currentStep?.question, userGender)
+    } catch (error) {
+      enviarEvento('erro_get_personalized_question', {
+        numero_etapa: step,
+        erro: (error as Error).message,
+      });
+      return currentStep?.question || `Pergunta da Etapa ${step}`;
+    }
+  }, [currentStep, userGender, step])
 
-  const getPersonalizedDescription = () => {
-    const desc = currentStep.description
-    if (typeof desc === 'function') {
-      try {
+  const getPersonalizedDescription = useCallback(() => {
+    try {
+      const desc = currentStep?.description
+      if (typeof desc === 'function') {
         return desc()
-      } catch (error) {
-        console.error('Erro ao executar função de description:', error)
-        return ''
       }
+      return getPersonalizedContent(desc, userGender)
+    } catch (error) {
+      enviarEvento('erro_get_personalized_description', {
+        numero_etapa: step,
+        erro: (error as Error).message,
+      });
+      return currentStep?.description || '';
     }
-    return getPersonalizedContent(desc, userGender)
-  }
+  }, [currentStep, userGender, step])
 
-  const getPersonalizedSubtext = () => {
-    const subtext = currentStep.subtext
-    if (typeof subtext === 'function') {
-      try {
+  const getPersonalizedSubtext = useCallback(() => {
+    try {
+      const subtext = currentStep?.subtext
+      if (typeof subtext === 'function') {
         return subtext()
+      }
+      return getPersonalizedContent(subtext, userGender)
+    } catch (error) {
+      enviarEvento('erro_get_personalized_subtext', {
+        numero_etapa: step,
+        erro: (error as Error).message,
+      });
+      return currentStep?.subtext || '';
+    }
+  }, [currentStep, userGender, step])
+
+  const getPersonalizedOptions = useCallback(() => {
+    try {
+      const options = getPersonalizedContent(currentStep?.options, userGender)
+      return Array.isArray(options) ? options : currentStep?.options || []
+    } catch (error) {
+      enviarEvento('erro_get_personalized_options', {
+        numero_etapa: step,
+        erro: (error as Error).message,
+      });
+      return currentStep?.options || [];
+    }
+  }, [currentStep, userGender, step])
+
+  // 
+  // Callbacks de Navegação e Ação (Definidas antes de usar)
+  // 
+  const proceedToNextStep = useCallback(() => {
+    try {
+      const currentUrl = new URL(window.location.href);
+      let utmString = '';
+
+      const utmParams = new URLSearchParams();
+      for (const [key, value] of currentUrl.searchParams.entries()) {
+        if (key.startsWith('utm_')) {
+          utmParams.append(key, value);
+        }
+      }
+
+      if (utmParams.toString() !== '') {
+        utmString = `?${utmParams.toString()}`;
+      }
+
+      const currentStepData = quizSteps[step - 1];
+      if (currentStepData?.bonusUnlock && !unlockedBonuses.includes(currentStepData.bonusUnlock.id)) {
+        enviarEvento('desbloqueou_bonus', {
+          numero_etapa: step,
+          bonus_id: currentStepData.bonusUnlock.id,
+          bonus_titulo: currentStepData.bonusUnlock.title,
+          bonus_valor: currentStepData.bonusUnlock.value,
+        });
+
+        const newUnlockedBonuses = [...unlockedBonuses, currentStepData.bonusUnlock.id]
+        const newTotalValue = totalValue + currentStepData.bonusUnlock.value
+
+        setUnlockedBonuses(newUnlockedBonuses)
+        setTotalValue(newTotalValue)
+
+        const personalizedBonus = {
+          ...currentStepData.bonusUnlock,
+          title: currentStepData.bonusUnlock?.title || 'Bonus desbloqueado',
+          description: currentStepData.bonusUnlock?.description || 'Descripción del bonus',
+        }
+        setNewBonus(personalizedBonus)
+
+        try {
+          localStorage.setItem("unlockedBonuses", JSON.stringify(newUnlockedBonuses))
+          localStorage.setItem("totalValue", newTotalValue.toString())
+          enviarEvento('salvou_bonus_data', { numero_etapa: step, status: 'sucesso' });
+        } catch (error) {
+          console.error('Erro ao salvar bonus data no localStorage:', error);
+          enviarEvento('erro_salvar_bonus_data', { numero_etapa: step, erro: (error as Error).message });
+        }
+
+        setShowBonusUnlock(true)
+        enviarEvento('viu_bonus_unlock', { numero_etapa: step, bonus_id: currentStepData.bonusUnlock.id });
+        return
+      }
+
+      if (step < quizSteps.length) {
+        router.push(`/quiz/${step + 1}${utmString}`)
+      } else {
+        enviarEvento('concluiu_quiz', {
+          total_etapas_completadas: quizSteps.length,
+          total_bonus_desbloqueados: unlockedBonuses.length
+        });
+
+        router.push(`/resultado${utmString}`)
+      }
+    } catch (error) {
+      console.error('Erro em proceedToNextStep:', error);
+      enviarEvento('erro_proceed_to_next_step', { numero_etapa: step, erro: (error as Error).message });
+    }
+  }, [step, router, unlockedBonuses, totalValue, quizSteps.length])
+
+  const handleNext = useCallback(() => {
+    try {
+      const options = getPersonalizedOptions();
+      if (options.length > 0 && !selectedAnswer) {
+        enviarEvento('tentou_avancar_sem_resposta', {
+          numero_etapa: step,
+          pergunta: quizSteps[step - 1]?.question,
+        });
+        console.warn(`Etapa ${step}: Nenhuma resposta selecionada. Não é possível avançar.`);
+        return; // Impede o avanço se nenhuma resposta for selecionada e houver opções
+      }
+
+      // Rastreamento de tempo na etapa anterior
+      if (stepStartTimeRef.current) {
+        const timeSpent = (Date.now() - stepStartTimeRef.current) / 1000;
+        enviarEvento('tempo_etapa_quiz', {
+          numero_etapa: step,
+          pergunta: quizSteps[step - 1]?.question || `Etapa ${step}`,
+          tempo_segundos: timeSpent,
+        });
+      }
+
+      enviarEvento('avancou_etapa', {
+        numero_etapa: step,
+        pergunta: quizSteps[step - 1]?.question || `Etapa ${step}`,
+        resposta_selecionada: selectedAnswer,
+      });
+
+      const newQuizData = { ...quizData, [step]: selectedAnswer }
+      setQuizData(newQuizData)
+
+      try {
+        localStorage.setItem("quizData", JSON.stringify(newQuizData))
+        enviarEvento('salvou_quiz_data', { numero_etapa: step, status: 'sucesso' });
       } catch (error) {
-        console.error('Erro ao executar função de subtext:', error)
-        return ''
+        console.error('Erro ao salvar quizData no localStorage:', error);
+        enviarEvento('erro_salvar_quiz_data', { numero_etapa: step, erro: (error as Error).message });
+      }
+
+      const answers = typeof window !== 'undefined' && window.quizAnswers ? window.quizAnswers : {}
+      answers[`question${step}`] = selectedAnswer
+      if (typeof window !== 'undefined') window.quizAnswers = answers;
+
+      try {
+        localStorage.setItem("quizAnswers", JSON.stringify(answers))
+        enviarEvento('salvou_quiz_answers', { numero_etapa: step, status: 'sucesso' });
+      } catch (error) {
+        console.error('Erro ao salvar quizAnswers no localStorage:', error);
+        enviarEvento('erro_salvar_quiz_answers', { numero_etapa: step, erro: (error as Error).message });
+      }
+
+      const currentStepData = quizSteps[step - 1];
+      if (currentStepData?.elements?.analysisText || currentStepData?.elements?.profileAnalysis) {
+        setShowAnalysis(true)
+        setTimeout(() => {
+          setShowAnalysis(false)
+          proceedToNextStep()
+        }, 1000)
+        return
+      }
+
+      proceedToNextStep()
+    } catch (error) {
+      console.error('Erro em handleNext:', error);
+      enviarEvento('erro_handle_next', { numero_etapa: step, erro: (error as Error).message });
+    }
+  }, [step, selectedAnswer, quizData, proceedToNextStep, getPersonalizedOptions])
+
+  const handleAnswerSelect = useCallback((answer: string) => {
+    try {
+      setSelectedAnswer(answer)
+
+      if (step === 1) {
+        enviarEvento('quiz_start', {
+          perfil_selecionado: answer,
+          auto_advance: true,
+          step: 1
+        });
+
+        setUserGender(answer)
+        try {
+          localStorage.setItem("userGender", answer)
+          enviarEvento('salvou_user_gender', { numero_etapa: step, status: 'sucesso', genero: answer });
+        } catch (error) {
+          console.error('Erro ao salvar userGender no localStorage:', error);
+          enviarEvento('erro_salvar_user_gender', { numero_etapa: step, erro: (error as Error).message });
+        }
+
+        setTimeout(() => {
+          handleNext()
+        }, 800) // Ajustado para 800ms para melhor UX
+        return
+      }
+
+      enviarEvento('selecionou_resposta', {
+        numero_etapa: step,
+        pergunta: quizSteps[step - 1]?.question || `Etapa ${step}`,
+        resposta: answer
+      });
+    } catch (error) {
+      console.error('Erro em handleAnswerSelect:', error);
+      enviarEvento('erro_handle_answer_select', { numero_etapa: step, erro: (error as Error).message });
+    }
+  }, [step, handleNext])
+
+  const handleBonusUnlockComplete = useCallback(() => {
+    try {
+      setShowBonusUnlock(false)
+      enviarEvento('completou_bonus_unlock', {
+        numero_etapa: step,
+        bonus_id: newBonus?.id,
+      });
+
+      const currentUrl = new URL(window.location.href);
+      let utmString = '';
+
+      const utmParams = new URLSearchParams();
+      for (const [key, value] of currentUrl.searchParams.entries()) {
+        if (key.startsWith('utm_')) {
+          utmParams.append(key, value);
+        }
+      }
+
+      if (utmParams.toString() !== '') {
+        utmString = `?${utmParams.toString()}`;
+      }
+
+      if (step < quizSteps.length) {
+        router.push(`/quiz/${step + 1}${utmString}`)
+      } else {
+        router.push(`/resultado${utmString}`)
+      }
+    } catch (error) {
+      console.error('Erro em handleBonusUnlockComplete:', error);
+      enviarEvento('erro_handle_bonus_unlock_complete', { numero_etapa: step, erro: (error as Error).message });
+    }
+  }, [step, router, newBonus, quizSteps.length])
+
+  const handleBack = useCallback(() => {
+    try {
+      // Rastreamento de tempo na etapa anterior
+      if (stepStartTimeRef.current) {
+        const timeSpent = (Date.now() - stepStartTimeRef.current) / 1000;
+        enviarEvento('tempo_etapa_quiz', {
+          numero_etapa: step,
+          pergunta: quizSteps[step - 1]?.question || `Etapa ${step}`,
+          tempo_segundos: timeSpent,
+          acao: 'voltar',
+        });
+      }
+
+      enviarEvento('retornou_etapa', {
+        de_etapa: step,
+        para_etapa: step > 1 ? step - 1 : 'inicio'
+      });
+
+      const currentUrl = new URL(window.location.href);
+      let utmString = '';
+
+      const utmParams = new URLSearchParams();
+      for (const [key, value] of currentUrl.searchParams.entries()) {
+        if (key.startsWith('utm_')) {
+          utmParams.append(key, value);
+        }
+      }
+
+      if (utmParams.toString() !== '') {
+        utmString = `?${utmParams.toString()}`;
+      }
+
+      if (step > 1) {
+        router.push(`/quiz/${step - 1}${utmString}`)
+      } else {
+        router.push(`/${utmString}`)
+      }
+    } catch (error) {
+      console.error('Erro em handleBack:', error);
+      enviarEvento('erro_handle_back', { numero_etapa: step, erro: (error as Error).message });
+    }
+  }, [step, router])
+
+  const handleStep12Complete = useCallback(() => {
+    setStep12Completed(true)
+  }, [])
+
+  // 
+  // useEffects (Gerenciamento de Ciclo de Vida e Rastreamento)
+  // 
+  useEffect(() => {
+    // Inicia o timer para a etapa atual
+    stepStartTimeRef.current = Date.now();
+
+    // Carrega dados do localStorage
+    try {
+      const savedQuizData = localStorage.getItem("quizData")
+      const savedBonuses = localStorage.getItem("unlockedBonuses")
+      const savedValue = localStorage.getItem("totalValue")
+      const savedGender = localStorage.getItem("userGender")
+      const savedAnswers = localStorage.getItem("quizAnswers")
+
+      if (savedQuizData) setQuizData(JSON.parse(savedQuizData))
+      if (savedBonuses) setUnlockedBonuses(JSON.parse(savedBonuses))
+      if (savedValue) setTotalValue(Number.parseInt(savedValue))
+      if (savedGender) setUserGender(savedGender)
+      if (savedAnswers) {
+        if (typeof window !== 'undefined') window.quizAnswers = JSON.parse(savedAnswers);
+      }
+      enviarEvento('carregou_local_storage', { numero_etapa: step, status: 'sucesso' });
+    } catch (error) {
+      console.error('Erro ao carregar dados do localStorage:', error);
+      enviarEvento('erro_carregar_local_storage', { numero_etapa: step, erro: (error as Error).message });
+    }
+
+    const loadTimer = setTimeout(() => setIsLoaded(true), 100)
+
+    const currentStepData = quizSteps[step - 1];
+
+    // Rastreamento de visualização de etapa (genérico e específico)
+    enviarEvento('visualizou_etapa_quiz', {
+      numero_etapa: step,
+      pergunta: currentStepData?.question || `Etapa ${step}`
+    });
+    enviarEvento(`visualizou_etapa_${step}`, { // Evento específico por etapa
+      numero_etapa: step,
+      pergunta: currentStepData?.question || `Etapa ${step}`,
+    });
+
+    // Rastreamento específico para Etapa 11 (Reportagem)
+    if (step === 11) {
+      enviarEvento('visualizou_etapa_11_reportagem', {
+        numero_etapa: 11,
+        tipo: 'ciencia_e_evidencia',
+      });
+      // Ativa o delay para o botão "Continuar"
+      setCanContinueStep11(false);
+      const delayTimer = setTimeout(() => {
+        setCanContinueStep11(true);
+      }, 3000); // 3 segundos de delay
+      return () => clearTimeout(delayTimer);
+    }
+
+    // Rastreamento específico para Etapa 12 (WhatsApp Mockup)
+    if (step === 12) {
+      enviarEvento('visualizou_etapa_12_whatsapp', {
+        numero_etapa: 12,
+        tipo: 'simulacao_whatsapp',
+      });
+    }
+
+    // Rastreamento específico para Etapa 13 (Code Unlock)
+    if (step === 13) {
+      enviarEvento('visualizou_etapa_13_desbloqueio', {
+        numero_etapa: 13,
+        tipo: 'codigo_desbloqueado',
+      });
+    }
+
+    let autoAdvanceTimer: NodeJS.Timeout | undefined;
+    if (currentStepData?.autoAdvance) {
+      autoAdvanceTimer = setTimeout(() => {
+        proceedToNextStep()
+      }, 2000)
+    }
+
+    return () => {
+      clearTimeout(loadTimer)
+      if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer)
+
+      // Limpeza do timer de tempo na etapa ao sair
+      if (stepStartTimeRef.current) {
+        const timeSpent = (Date.now() - stepStartTimeRef.current) / 1000;
+        enviarEvento('tempo_etapa_quiz', {
+          numero_etapa: step,
+          pergunta: currentStepData?.question || `Etapa ${step}`,
+          tempo_segundos: timeSpent,
+          acao: 'saida',
+        });
       }
     }
-    return getPersonalizedContent(subtext, userGender)
-  }
+  }, [step, proceedToNextStep, quizSteps, userGender])
 
-  const getPersonalizedOptions = () => {
-    const options = getPersonalizedContent(currentStep.options, userGender)
-    return Array.isArray(options) ? options : currentStep.options
-  }
+  // Scroll Tracking para Etapa 11 (Imagens de Reportagem)
+  useEffect(() => {
+    if (step !== 11 || !quizContainerRef.current) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const imageName = entry.target.getAttribute('alt') || 'imagem-desconhecida';
+          enviarEvento('viu_imagem_etapa_11', {
+            numero_etapa: 11,
+            tipo_imagem: imageName,
+          });
+          observer.unobserve(entry.target); // Para rastrear apenas uma vez
+        }
+      });
+    }, { threshold: 0.5 }); // Rastreia quando 50% da imagem está visível
+
+    try {
+      const images = quizContainerRef.current.querySelectorAll('img[alt*="Reportagem"], img[alt*="Evidência"]');
+      images.forEach(img => observer.observe(img));
+    } catch (error) {
+      console.error('Erro ao configurar IntersectionObserver para Etapa 11:', error);
+      enviarEvento('erro_scroll_tracking_etapa_11', { numero_etapa: step, erro: (error as Error).message });
+    }
+
+    return () => observer.disconnect();
+  }, [step]);
+
+  // Rastreamento de Abandono (beforeunload)
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      try {
+        // Verifica se o usuário está em uma etapa do quiz e não selecionou uma resposta (se houver opções)
+        const options = getPersonalizedOptions();
+        if (step > 0 && step <= quizSteps.length && options.length > 0 && !selectedAnswer) {
+          enviarEvento('abandonou_quiz', {
+            numero_etapa: step,
+            pergunta: quizSteps[step - 1]?.question,
+            resposta_selecionada: selectedAnswer || 'nenhuma',
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao rastrear abandono:', error);
+        enviarEvento('erro_rastrear_abandono', { numero_etapa: step, erro: (error as Error).message });
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      }
+    };
+  }, [step, selectedAnswer, quizSteps.length, getPersonalizedOptions]);
+
 
   if (!currentStep) {
     return (
@@ -759,7 +1034,7 @@ export default function QuizStep() {
   }
 
   return (
-    <div className="min-h-screen bg-black p-4">
+    <div className="min-h-screen bg-black p-4" ref={quizContainerRef}> {/* Adicionado ref aqui */}
       <div className="max-w-4xl mx-auto">
         {/* Header com progresso */}
         <div className="mb-8">
@@ -790,7 +1065,7 @@ export default function QuizStep() {
 
           <div className="flex justify-between items-center">
             <p className="text-white text-sm">
-              Etapa {step} de 13 • {Math.round(progress)}% completado
+              Etapa {step} de {quizSteps.length} • {Math.round(progress)}% completado
             </p>
           </div>
         </div>
@@ -804,8 +1079,8 @@ export default function QuizStep() {
           >
             <Card className="bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-lg border-orange-500/30 shadow-2xl border-2">
               <CardContent className="p-6 sm:p-8 text-center">
-                
-                <motion.h1 
+
+                <motion.h1
                   initial={{ scale: 0.8 }}
                   animate={{ scale: 1 }}
                   transition={{ duration: 0.3 }}
@@ -813,8 +1088,8 @@ export default function QuizStep() {
                 >
                   🎯 <span className="text-blue-400">¿HOMBRE</span> o <span className="text-pink-400">MUJER?</span>
                 </motion.h1>
-                
-                <motion.p 
+
+                <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2, duration: 0.3 }}
@@ -862,7 +1137,7 @@ export default function QuizStep() {
                   </motion.div>
                 )}
 
-                <motion.p 
+                <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.6, duration: 0.3 }}
@@ -888,14 +1163,14 @@ export default function QuizStep() {
                   <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-6 leading-tight">
                     🔥 <span className="text-red-500">ESTO ES LO QUE ELLA REALMENTE TE</span> RESPONDERÍA
                   </h2>
-                  
+
                   <p className="text-orange-200 text-center mb-4 text-base sm:text-lg font-medium">
                     ⚠️ <strong>ADVERTENCIA:</strong> Simulación personalizada para tu situación específica
                   </p>
-                  
-                  
+
+
                   <WhatsAppMockup userGender={userGender} onComplete={handleStep12Complete} />
-                  
+
                   <AnimatePresence>
                     {step12Completed && (
                       <motion.div
@@ -915,7 +1190,7 @@ export default function QuizStep() {
                       </motion.div>
                     )}
                   </AnimatePresence>
-                  
+
                   <p className="text-gray-400 text-xs mt-3">
                     ⏰ Disponible solo por las próximas 4 horas
                   </p>
@@ -944,10 +1219,10 @@ export default function QuizStep() {
         {step !== 1 && step !== 12 && step !== 13 && (
           <>
             {/* Testimonial Display */}
-            {currentStep?.elements?.testimonialDisplay && (currentStep?.elements?.testimonialText || currentStep?.elements?.testimonialData) && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }} 
-                animate={{ opacity: 1, y: 0 }} 
+            {currentStep?.elements?.testimonialDisplay && (currentStep?.elements?.testimonialText || (currentStep?.elements?.testimonialData && currentStep.elements.testimonialData())) && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.1 }}
                 className="mb-6"
               >
@@ -982,7 +1257,7 @@ export default function QuizStep() {
                               {currentStep.elements.testimonialName || (currentStep.elements.testimonialData && currentStep.elements.testimonialData().name)}
                             </p>
                           ) : null}
-                          
+
                           <div className="flex items-center gap-1 mt-1">
                             {[...Array(5)].map((_, i) => (
                               <motion.div
@@ -998,7 +1273,7 @@ export default function QuizStep() {
                         </div>
                       </div>
 
-                      <motion.div 
+                      <motion.div
                         className="bg-gray-700/30 rounded-lg p-3 sm:p-4"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -1009,7 +1284,7 @@ export default function QuizStep() {
                         </p>
                       </motion.div>
 
-                      <motion.div 
+                      <motion.div
                         className="flex items-center justify-center gap-1 text-green-400 text-xs font-semibold bg-green-900/20 rounded-full py-1 px-3 self-center"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -1032,7 +1307,7 @@ export default function QuizStep() {
             >
               <Card className="bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-lg border-orange-500/30 shadow-2xl border-2">
                 <CardContent className="p-6 sm:p-8">
-                  
+
                   {/* Auto advance step */}
                   {currentStep?.autoAdvance && (
                     <motion.div
@@ -1217,7 +1492,7 @@ export default function QuizStep() {
 
                       {/* Evidência Científica - APENAS ETAPA 11 */}
                       {currentStep?.elements?.scientificEvidence && (
-                        <motion.div 
+                        <motion.div
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.4, delay: 0.2 }}
@@ -1234,6 +1509,15 @@ export default function QuizStep() {
                                 src={currentStep.elements.reportageImage}
                                 alt="Reportagem BBC sobre neurociência"
                                 className="w-full rounded-lg shadow-xl border border-gray-600 hover:shadow-2xl transition-shadow duration-300"
+                                onError={(e) => {
+                                  console.error('Erro ao carregar imagem de reportagem:', e);
+                                  enviarEvento('erro_carregar_imagem', {
+                                    numero_etapa: step,
+                                    imagem_url: currentStep.elements.reportageImage,
+                                    alt_text: "Reportagem BBC sobre neurociência",
+                                  });
+                                  (e.target as HTMLImageElement).style.display = 'none'; // Esconde a imagem quebrada
+                                }}
                               />
                             </motion.div>
                           )}
@@ -1249,6 +1533,15 @@ export default function QuizStep() {
                                 src={currentStep.elements.curiousImage}
                                 alt="Evidência científica curiosa"
                                 className="w-full rounded-lg shadow-xl border border-gray-600 hover:shadow-2xl transition-shadow duration-300"
+                                onError={(e) => {
+                                  console.error('Erro ao carregar imagem de evidência:', e);
+                                  enviarEvento('erro_carregar_imagem', {
+                                    numero_etapa: step,
+                                    imagem_url: currentStep.elements.curiousImage,
+                                    alt_text: "Evidência científica curiosa",
+                                  });
+                                  (e.target as HTMLImageElement).style.display = 'none'; // Esconde a imagem quebrada
+                                }}
                               />
                               <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold">
                                 NEUROCIÊNCIA
@@ -1370,9 +1663,10 @@ export default function QuizStep() {
                           <Button
                             onClick={handleNext}
                             size="lg"
-                            className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-3 px-6 sm:py-4 sm:px-8 rounded-full shadow-lg w-full sm:w-auto text-sm sm:text-base"
+                            className={`bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-3 px-6 sm:py-4 sm:px-8 rounded-full shadow-lg w-full sm:w-auto text-sm sm:text-base ${step === 11 && !canContinueStep11 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={step === 11 && !canContinueStep11}
                           >
-                            {step === 13 ? "Ver Resultado" : "Siguiente Pregunta"}
+                            {step === quizSteps.length ? "Ver Resultado" : "Siguiente Pregunta"}
                             <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
                           </Button>
                         </motion.div>
@@ -1393,8 +1687,6 @@ export default function QuizStep() {
             transition={{ delay: 0.4 }}
             className="text-center space-y-2 mt-6"
           >
-
-
             {currentStep?.elements?.counter && (
               <p className="text-white text-xs sm:text-sm bg-white/10 px-3 py-1 rounded-full inline-block">
                 👥 {peopleCount} {currentStep.elements.counter}
