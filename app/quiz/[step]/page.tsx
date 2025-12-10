@@ -43,7 +43,7 @@ import { BonusUnlock } from "@/components/bonus-unlock"
 import { ValueCounter } from "@/components/value-counter"
 import { LoadingAnalysis } from "@/components/loading-analysis"
 
-// ✅ CORREÇÃO CRÍTICA: Função centralizada para UTMs
+// ✅ CORREÇÃO CRÍTICA: Função UTM robusta com fallback
 function getUtmString() {
   if (typeof window === 'undefined') return '';
   
@@ -51,19 +51,88 @@ function getUtmString() {
     const currentUrl = new URL(window.location.href);
     const utmParams = new URLSearchParams();
     
-    // Coleta TODOS os parâmetros UTM e de tracking
+    // Lista de todos os parâmetros de tracking
+    const trackingParams = [
+      'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+      'fbclid', 'gclid', 'ref', 'source', 'campaign'
+    ];
+    
+    // Primeiro: tenta pegar da URL atual
     for (const [key, value] of currentUrl.searchParams.entries()) {
-      if (key.startsWith('utm_') || key.startsWith('fbclid') || key.startsWith('gclid') || key.startsWith('ref')) {
+      if (trackingParams.some(param => key.startsWith(param))) {
         utmParams.append(key, value);
       }
     }
     
+    // Segundo: fallback do localStorage (caso URL tenha perdido os UTMs)
+    if (utmParams.toString() === '') {
+      const savedUtms = safeLocalStorageGet('capturedUtms');
+      if (savedUtms && typeof savedUtms === 'object') {
+        Object.entries(savedUtms).forEach(([key, value]) => {
+          if (value && trackingParams.some(param => key.startsWith(param))) {
+            utmParams.append(key, value);
+          }
+        });
+      }
+    }
+    
     const utmString = utmParams.toString();
+    
+    // Debug log
+    console.log('🔍 UTM Debug:', {
+      urlAtual: window.location.href,
+      utmsEncontrados: utmString,
+      localStorage: safeLocalStorageGet('capturedUtms')
+    });
+    
     return utmString ? `?${utmString}` : '';
   } catch (error) {
     console.error('Erro ao construir UTM string:', error);
     return '';
   }
+}
+
+// ✅ NOVA: Função para capturar e salvar UTMs na inicialização
+function captureInitialUtms() {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const currentUrl = new URL(window.location.href);
+    const capturedUtms = {};
+    
+    // Captura TODOS os parâmetros de tracking
+    const trackingParams = [
+      'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+      'fbclid', 'gclid', 'ref', 'source', 'campaign'
+    ];
+    
+    for (const [key, value] of currentUrl.searchParams.entries()) {
+      if (trackingParams.some(param => key.startsWith(param))) {
+        capturedUtms[key] = value;
+      }
+    }
+    
+    // Salva no localStorage para preservar durante toda a sessão
+    if (Object.keys(capturedUtms).length > 0) {
+      safeLocalStorageSet('capturedUtms', capturedUtms);
+      console.log('✅ UTMs capturados e salvos:', capturedUtms);
+    }
+    
+  } catch (error) {
+    console.error('Erro ao capturar UTMs iniciais:', error);
+  }
+}
+
+// ✅ NOVA: Função de debug para acompanhar UTMs
+function debugUtmFlow() {
+  if (typeof window === 'undefined') return;
+  
+  console.log('🔍 UTM FLOW DEBUG:', {
+    urlAtual: window.location.href,
+    utmsNaUrl: new URL(window.location.href).searchParams.toString(),
+    utmsNoLocalStorage: safeLocalStorageGet('capturedUtms'),
+    utmStringGerada: getUtmString()
+  });
 }
 
 // ✅ CORREÇÃO: Função de limpeza de cache SÓ PARA BROWSER
@@ -625,6 +694,7 @@ export default function QuizStep() {
 
   // ✅ CORREÇÃO: proceedToNextStep com UTM corrigida
   const proceedToNextStep = useCallback(() => {
+    debugUtmFlow(); // ✅ Debug UTM flow
     const utmString = getUtmString(); // ✅ Usando função centralizada
 
     const currentStepData = quizSteps[step - 1];
@@ -728,6 +798,7 @@ export default function QuizStep() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       clearCorruptedCache();
+      captureInitialUtms(); // ✅ NOVA: Captura UTMs na inicialização
     }
 
     const initializeData = () => {
@@ -789,6 +860,7 @@ export default function QuizStep() {
   const handleBonusUnlockComplete = useCallback(() => {
     setShowBonusUnlock(false)
     
+    debugUtmFlow(); // ✅ Debug UTM flow
     const utmString = getUtmString(); // ✅ Usando função centralizada
     
     if (step < 13) {
@@ -805,6 +877,7 @@ export default function QuizStep() {
       para_etapa: step > 1 ? step - 1 : 'inicio'
     });
     
+    debugUtmFlow(); // ✅ Debug UTM flow
     const utmString = getUtmString(); // ✅ Usando função centralizada
     
     if (step > 1) {
