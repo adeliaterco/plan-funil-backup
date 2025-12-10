@@ -895,9 +895,6 @@ export default function QuizStep() {
                     🔥 <span className="text-red-500">ESTO ES LO QUE ELLA REALMENTE TE</span> RESPONDERÍA
                   </h2>
                   
-                  <p className="text-orange-200 text-center mb-4 text-base sm:text-lg font-medium">
-                    ⚠️ <strong>ADVERTENCIA:</strong> Simulación personalizada para tu situación específica
-                  </p>
                   
                   
                   <WhatsAppMockup userGender={userGender} onComplete={handleStep12Complete} />
