@@ -43,140 +43,29 @@ import { BonusUnlock } from "@/components/bonus-unlock"
 import { ValueCounter } from "@/components/value-counter"
 import { LoadingAnalysis } from "@/components/loading-analysis"
 
-// ✅ CORREÇÃO CRÍTICA: Função UTM robusta com fallback
-function getUtmString() {
-  if (typeof window === 'undefined') return '';
-  
-  try {
-    const currentUrl = new URL(window.location.href);
-    const utmParams = new URLSearchParams();
-    
-    // Lista de todos os parâmetros de tracking
-    const trackingParams = [
-      'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
-      'fbclid', 'gclid', 'ref', 'source', 'campaign'
-    ];
-    
-    // Primeiro: tenta pegar da URL atual
-    for (const [key, value] of currentUrl.searchParams.entries()) {
-      if (trackingParams.some(param => key.startsWith(param))) {
-        utmParams.append(key, value);
-      }
-    }
-    
-    // Segundo: fallback do localStorage (caso URL tenha perdido os UTMs)
-    if (utmParams.toString() === '') {
-      const savedUtms = safeLocalStorageGet('capturedUtms');
-      if (savedUtms && typeof savedUtms === 'object') {
-        Object.entries(savedUtms).forEach(([key, value]) => {
-          if (value && trackingParams.some(param => key.startsWith(param))) {
-            utmParams.append(key, value);
-          }
-        });
-      }
-    }
-    
-    const utmString = utmParams.toString();
-    
-    // Debug log
-    console.log('🔍 UTM Debug:', {
-      urlAtual: window.location.href,
-      utmsEncontrados: utmString,
-      localStorage: safeLocalStorageGet('capturedUtms')
-    });
-    
-    return utmString ? `?${utmString}` : '';
-  } catch (error) {
-    console.error('Erro ao construir UTM string:', error);
-    return '';
-  }
+// 
+// ✅ NOVAS/CORRIGIDAS FUNÇÕES HELPER PARA TRACKING
+// 
+
+// ✅ NOVA: Lista abrangente de parâmetros de tracking
+const ALL_TRACKING_PARAMS_LIST = [
+  'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+  'fbclid', 'fb_action_ids', 'fb_action_types', 'fb_source',
+  'gclid', 'gclsrc', 'dclid', 'gbraid', 'wbraid',
+  'msclkid', 'twclid', 'li_fat_id', 'ttclid', 'igshid', 'sclid',
+  'ref', 'source', 'medium', 'campaign', 'term', 'content',
+  'adgroup', 'keyword', 'placement', 'network', 'device', 'creative',
+  'matchtype', 'adposition', 'feeditemid', 'targetid'
+];
+
+// ✅ NOVA: Helper para verificar se uma chave é um parâmetro de tracking
+function isTrackingParam(key: string): boolean {
+  const lowerKey = key.toLowerCase();
+  return ALL_TRACKING_PARAMS_LIST.some(param => lowerKey.startsWith(param.toLowerCase()));
 }
 
-// ✅ NOVA: Função para capturar e salvar UTMs na inicialização
-function captureInitialUtms() {
-  if (typeof window === 'undefined') return;
-  
-  try {
-    const currentUrl = new URL(window.location.href);
-    const capturedUtms = {};
-    
-    // Captura TODOS os parâmetros de tracking
-    const trackingParams = [
-      'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
-      'fbclid', 'gclid', 'ref', 'source', 'campaign'
-    ];
-    
-    for (const [key, value] of currentUrl.searchParams.entries()) {
-      if (trackingParams.some(param => key.startsWith(param))) {
-        capturedUtms[key] = value;
-      }
-    }
-    
-    // Salva no localStorage para preservar durante toda a sessão
-    if (Object.keys(capturedUtms).length > 0) {
-      safeLocalStorageSet('capturedUtms', capturedUtms);
-      console.log('✅ UTMs capturados e salvos:', capturedUtms);
-    }
-    
-  } catch (error) {
-    console.error('Erro ao capturar UTMs iniciais:', error);
-  }
-}
-
-// ✅ NOVA: Função de debug para acompanhar UTMs
-function debugUtmFlow() {
-  if (typeof window === 'undefined') return;
-  
-  console.log('🔍 UTM FLOW DEBUG:', {
-    urlAtual: window.location.href,
-    utmsNaUrl: new URL(window.location.href).searchParams.toString(),
-    utmsNoLocalStorage: safeLocalStorageGet('capturedUtms'),
-    utmStringGerada: getUtmString()
-  });
-}
-
-// ✅ CORREÇÃO: Função de limpeza de cache SÓ PARA BROWSER
-function clearCorruptedCache() {
-  if (typeof window === 'undefined') return;
-  
-  try {
-    const keys = ['quizData', 'unlockedBonuses', 'totalValue', 'userGender', 'quizAnswers'];
-    keys.forEach(key => {
-      try {
-        const item = localStorage.getItem(key);
-        if (item) {
-          JSON.parse(item);
-        }
-      } catch (error) {
-        console.log(`Removendo ${key} corrompido:`, error);
-        localStorage.removeItem(key);
-      }
-    });
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(registrations => {
-        registrations.forEach(registration => {
-          console.log('Removendo SW:', registration);
-          registration.unregister();
-        });
-      });
-    }
-
-    if ('caches' in window) {
-      caches.keys().then(names => {
-        names.forEach(name => {
-          console.log('Removendo cache:', name);
-          caches.delete(name);
-        });
-      });
-    }
-  } catch (error) {
-    console.error('Erro ao limpar cache:', error);
-  }
-}
-
-// ✅ CORREÇÃO: Função segura para localStorage
-function safeLocalStorageGet(key) {
+// ✅ CORREÇÃO: Função segura para localStorage - GET
+function safeLocalStorageGet(key: string): any | null {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       const item = localStorage.getItem(key);
@@ -186,20 +75,20 @@ function safeLocalStorageGet(key) {
       return parsed;
     }
   } catch (error) {
-    console.error(`localStorage[${key}] corrompido, removendo:`, error);
+    console.error(`❌ [QUIZ - ERROR] localStorage[${key}] corrompido, removendo:`, error);
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         localStorage.removeItem(key);
       }
     } catch (e) {
-      console.error('Erro ao remover:', e);
+      console.error('❌ [QUIZ - ERROR] Erro ao remover:', e);
     }
   }
   return null;
 }
 
-// ✅ CORREÇÃO: Função com validação de dados
-function safeLocalStorageSet(key, value) {
+// ✅ CORREÇÃO: Função segura para localStorage - SET
+function safeLocalStorageSet(key: string, value: any) {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       if (value === undefined || value === null) {
@@ -209,22 +98,156 @@ function safeLocalStorageSet(key, value) {
       localStorage.setItem(key, JSON.stringify(value));
     }
   } catch (error) {
-    console.error(`Erro ao salvar localStorage[${key}]:`, error);
+    console.error(`❌ [QUIZ - ERROR] Erro ao salvar localStorage[${key}]:`, error);
     if (error.name === 'QuotaExceededError') {
-      clearCorruptedCache();
+      clearCorruptedCache(); // Mantém a limpeza de cache em caso de quota excedida
     }
   }
 }
 
-// ✅ CORREÇÃO: Função segura para envio de eventos
-function enviarEvento(nombre_evento, propriedades = {}) {
+// ✅ NOVA: Função para capturar e salvar TODOS os parâmetros de tracking no localStorage
+function captureAndSaveTrackingParams() {
+  if (typeof window === 'undefined') return;
+  
   try {
-    if (typeof window !== 'undefined' && window.gtag) {
-      window.gtag('event', nombre_evento, propriedades);
-      console.log('Evento enviado:', nombre_evento, propriedades);
+    const currentUrl = new URL(window.location.href);
+    const capturedParams: { [key: string]: string } = {};
+    
+    for (const [key, value] of currentUrl.searchParams.entries()) {
+      if (isTrackingParam(key)) {
+        capturedParams[key] = decodeURIComponent(value);
+        console.log(`✅ [QUIZ - CAPTURE] Capturado da URL: ${key} = ${value}`);
+      }
+    }
+    
+    // Salva no localStorage. Se não houver parâmetros, salva um objeto vazio para limpar dados antigos.
+    safeLocalStorageSet('capturedTrackingParams', capturedParams);
+    console.log('✅ [QUIZ - BACKUP] Parâmetros salvos no localStorage:', capturedParams);
+    
+  } catch (error) {
+    console.error('❌ [QUIZ - ERROR] Erro ao capturar e salvar parâmetros:', error);
+  }
+}
+
+// ✅ NOVA: Função para obter parâmetros de tracking do localStorage
+function getTrackingParamsFromLocalStorage(): { [key: string]: string } {
+  if (typeof window === 'undefined') return {};
+  
+  try {
+    const savedParams = safeLocalStorageGet('capturedTrackingParams');
+    if (savedParams && typeof savedParams === 'object') {
+      console.log('✅ [QUIZ - BACKUP] Parâmetros recuperados do localStorage:', savedParams);
+      return savedParams;
     }
   } catch (error) {
-    console.error('Erro ao enviar evento:', error);
+    console.error('❌ [QUIZ - ERROR] Erro ao recuperar parâmetros do localStorage:', error);
+  }
+  return {};
+}
+
+// ✅ CORREÇÃO CRÍTICA: Função para construir a string de query de tracking para navegação
+function buildTrackingQueryString(): string {
+  if (typeof window === 'undefined') return '';
+  
+  try {
+    const currentUrl = new URL(window.location.href);
+    const paramsToUse: { [key: string]: string } = {};
+
+    // 1. Prioriza parâmetros da URL atual
+    for (const [key, value] of currentUrl.searchParams.entries()) {
+      if (isTrackingParam(key)) {
+        paramsToUse[key] = decodeURIComponent(value);
+      }
+    }
+
+    // 2. Se a URL atual não tem parâmetros de tracking, tenta o localStorage
+    if (Object.keys(paramsToUse).length === 0) {
+      const localStorageParams = getTrackingParamsFromLocalStorage();
+      Object.assign(paramsToUse, localStorageParams);
+      console.log('📦 [QUIZ - FALLBACK] Usando parâmetros do localStorage para navegação.');
+    } else {
+      console.log('✅ [QUIZ - URL] Usando parâmetros da URL atual para navegação.');
+    }
+
+    const queryParts: string[] = [];
+    Object.entries(paramsToUse).forEach(([key, value]) => {
+      // Limita o tamanho do valor para evitar URLs excessivamente longas
+      if (value && value.trim() !== '' && value.length < 200) { 
+        queryParts.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
+      }
+    });
+
+    const queryString = queryParts.join('&');
+    console.log('🔗 [QUIZ - QUERY] Query string gerada para navegação:', queryString);
+
+    return queryString ? `?${queryString}` : '';
+  } catch (error) {
+    console.error('❌ [QUIZ - ERROR] Erro ao construir query string de tracking:', error);
+    return '';
+  }
+}
+
+// ✅ NOVA: Função de debug para acompanhar o fluxo de tracking
+function debugTrackingFlow() {
+  if (typeof window === 'undefined') return;
+  
+  console.log('🔍 [QUIZ - TRACKING FLOW DEBUG]:', {
+    urlAtual: window.location.href,
+    paramsNaUrl: new URL(window.location.href).searchParams.toString(),
+    paramsNoLocalStorage: getTrackingParamsFromLocalStorage(),
+    queryStringGeradaParaNavegacao: buildTrackingQueryString()
+  });
+}
+
+// ✅ CORREÇÃO: Função de limpeza de cache SÓ PARA BROWSER
+function clearCorruptedCache() {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const keys = ['quizData', 'unlockedBonuses', 'totalValue', 'userGender', 'quizAnswers', 'capturedTrackingParams']; // ✅ Adicionado 'capturedTrackingParams'
+    keys.forEach(key => {
+      try {
+        const item = localStorage.getItem(key);
+        if (item) {
+          JSON.parse(item);
+        }
+      } catch (error) {
+        console.log(`⚠️ [QUIZ - CACHE] Removendo ${key} corrompido:`, error);
+        localStorage.removeItem(key);
+      }
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+          console.log('⚠️ [QUIZ - CACHE] Removendo SW:', registration);
+          registration.unregister();
+        });
+      });
+    }
+
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        names.forEach(name => {
+          console.log('⚠️ [QUIZ - CACHE] Removendo cache:', name);
+          caches.delete(name);
+        });
+      });
+    }
+  } catch (error) {
+    console.error('❌ [QUIZ - ERROR] Erro ao limpar cache:', error);
+  }
+}
+
+// ✅ CORREÇÃO: Função segura para envio de eventos
+function enviarEvento(nombre_evento: string, propiedades: object = {}) {
+  try {
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', nombre_evento, propiedades);
+      console.log('✅ [QUIZ - GA4] Evento enviado:', nombre_evento, propiedades);
+    }
+  } catch (error) {
+    console.error('❌ [QUIZ - ERROR] Erro ao enviar evento GA4:', error);
   }
 }
 
@@ -232,26 +255,28 @@ function enviarEvento(nombre_evento, propriedades = {}) {
 function safeGetQuizAnswers() {
   try {
     if (typeof window !== 'undefined') {
-      return window.quizAnswers || {};
+      return (window as any).quizAnswers || {};
     }
   } catch (error) {
-    console.error('Erro ao acessar window.quizAnswers:', error);
+    console.error('❌ [QUIZ - ERROR] Erro ao acessar window.quizAnswers:', error);
   }
   return {};
 }
 
 // ✅ CORREÇÃO: Função segura para definir window.quizAnswers
-function safeSetQuizAnswers(answers) {
+function safeSetQuizAnswers(answers: object) {
   try {
     if (typeof window !== 'undefined') {
-      window.quizAnswers = answers;
+      (window as any).quizAnswers = answers;
     }
   } catch (error) {
-    console.error('Erro ao definir window.quizAnswers:', error);
+    console.error('❌ [QUIZ - ERROR] Erro ao definir window.quizAnswers:', error);
   }
 }
 
-// === COMPONENTE WHATSAPP MOCKUP FUNCIONAL ===
+// 
+// COMPONENTE WHATSAPP MOCKUP FUNCIONAL (SEM ALTERAÇÕES)
+// 
 const WhatsAppMockup = ({ userGender, onComplete }) => {
   const [currentMessage, setCurrentMessage] = useState(0)
   const [isTyping, setIsTyping] = useState(false)
@@ -500,7 +525,9 @@ const WhatsAppMockup = ({ userGender, onComplete }) => {
   )
 }
 
-// === ✅ COMPONENTE CODE UNLOCK REVEAL CORRIGIDO ===
+// 
+// COMPONENTE CODE UNLOCK REVEAL (SEM ALTERAÇÕES)
+// 
 const CodeUnlockReveal = ({ onComplete, userGender }) => {
   const [displayText, setDisplayText] = useState("")
   const [isDecrypting, setIsDecrypting] = useState(true)
@@ -671,6 +698,9 @@ const CodeUnlockReveal = ({ onComplete, userGender }) => {
   );
 };
 
+// 
+// COMPONENTE PRINCIPAL QUIZSTEP
+// 
 export default function QuizStep() {
   const params = useParams()
   const router = useRouter()
@@ -692,17 +722,18 @@ export default function QuizStep() {
   const currentStep = quizSteps[step - 1]
   const progress = (step / 13) * 100
 
-  // ✅ CORREÇÃO: proceedToNextStep com UTM corrigida
+  // ✅ CORREÇÃO: proceedToNextStep com tracking string robusta
   const proceedToNextStep = useCallback(() => {
-    debugUtmFlow(); // ✅ Debug UTM flow
-    const utmString = getUtmString(); // ✅ Usando função centralizada
+    debugTrackingFlow(); // ✅ Debug do fluxo de tracking
+    const trackingString = buildTrackingQueryString(); // ✅ Usando função centralizada e robusta
 
     const currentStepData = quizSteps[step - 1];
     if (currentStepData?.bonusUnlock && !unlockedBonuses.includes(currentStepData.bonusUnlock.id)) {
       enviarEvento('desbloqueou_bonus', {
         numero_etapa: step,
         bonus_id: currentStepData.bonusUnlock.id,
-        bonus_titulo: currentStepData.bonusUnlock.title
+        bonus_titulo: currentStepData.bonusUnlock.title,
+        tracking_string: trackingString // Log da string usada
       });
 
       const newUnlockedBonuses = [...unlockedBonuses, currentStepData.bonusUnlock.id]
@@ -726,14 +757,17 @@ export default function QuizStep() {
     }
 
     if (step < 13) {
-      router.push(`/quiz/${step + 1}${utmString}`)
+      router.push(`/quiz/${step + 1}${trackingString}`)
+      console.log(`➡️ [QUIZ - NAV] Navegando para: /quiz/${step + 1}${trackingString}`);
     } else {
       enviarEvento('concluiu_quiz', {
         total_etapas_completadas: 13,
-        total_bonus_desbloqueados: unlockedBonuses.length
+        total_bonus_desbloqueados: unlockedBonuses.length,
+        tracking_string: trackingString // Log da string usada
       });
       
-      router.push(`/resultado${utmString}`)
+      router.push(`/resultado${trackingString}`)
+      console.log(`➡️ [QUIZ - NAV] Navegando para resultado: /resultado${trackingString}`);
     }
   }, [step, router, unlockedBonuses, totalValue]);
 
@@ -798,7 +832,7 @@ export default function QuizStep() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       clearCorruptedCache();
-      captureInitialUtms(); // ✅ NOVA: Captura UTMs na inicialização
+      captureAndSaveTrackingParams(); // ✅ CRÍTICO: Captura e salva TODOS os parâmetros na inicialização
     }
 
     const initializeData = () => {
@@ -818,7 +852,7 @@ export default function QuizStep() {
         }
 
       } catch (error) {
-        console.error('Erro na inicialização:', error);
+        console.error('❌ [QUIZ - ERROR] Erro na inicialização:', error);
         if (typeof window !== 'undefined') {
           clearCorruptedCache();
         }
@@ -856,34 +890,38 @@ export default function QuizStep() {
     setStep13AnimationComplete(true)
   }, [])
 
-  // ✅ CORREÇÃO: handleBonusUnlockComplete com UTM corrigida
+  // ✅ CORREÇÃO: handleBonusUnlockComplete com tracking string robusta
   const handleBonusUnlockComplete = useCallback(() => {
     setShowBonusUnlock(false)
     
-    debugUtmFlow(); // ✅ Debug UTM flow
-    const utmString = getUtmString(); // ✅ Usando função centralizada
+    debugTrackingFlow(); // ✅ Debug do fluxo de tracking
+    const trackingString = buildTrackingQueryString(); // ✅ Usando função centralizada e robusta
     
     if (step < 13) {
-      router.push(`/quiz/${step + 1}${utmString}`)
+      router.push(`/quiz/${step + 1}${trackingString}`)
+      console.log(`➡️ [QUIZ - NAV] Navegando para: /quiz/${step + 1}${trackingString}`);
     } else {
-      router.push(`/resultado${utmString}`)
+      router.push(`/resultado${trackingString}`)
+      console.log(`➡️ [QUIZ - NAV] Navegando para resultado: /resultado${trackingString}`);
     }
   }, [step, router])
 
-  // ✅ CORREÇÃO: handleBack com UTM corrigida
+  // ✅ CORREÇÃO: handleBack com tracking string robusta
   const handleBack = useCallback(() => {
     enviarEvento('retornou_etapa', {
       de_etapa: step,
       para_etapa: step > 1 ? step - 1 : 'inicio'
     });
     
-    debugUtmFlow(); // ✅ Debug UTM flow
-    const utmString = getUtmString(); // ✅ Usando função centralizada
+    debugTrackingFlow(); // ✅ Debug do fluxo de tracking
+    const trackingString = buildTrackingQueryString(); // ✅ Usando função centralizada e robusta
     
     if (step > 1) {
-      router.push(`/quiz/${step - 1}${utmString}`)
+      router.push(`/quiz/${step - 1}${trackingString}`)
+      console.log(`⬅️ [QUIZ - NAV] Voltando para: /quiz/${step - 1}${trackingString}`);
     } else {
-      router.push(`/${utmString}`)
+      router.push(`/${trackingString}`)
+      console.log(`⬅️ [QUIZ - NAV] Voltando para início: /${trackingString}`);
     }
   }, [step, router])
 
@@ -915,7 +953,7 @@ export default function QuizStep() {
       try {
         return desc()
       } catch (error) {
-        console.error('Erro ao executar função de description:', error)
+        console.error('❌ [QUIZ - ERROR] Erro ao executar função de description:', error)
         return ''
       }
     }
@@ -928,7 +966,7 @@ export default function QuizStep() {
       try {
         return subtext()
       } catch (error) {
-        console.error('Erro ao executar função de subtext:', error)
+        console.error('❌ [QUIZ - ERROR] Erro ao executar função de subtext:', error)
         return ''
       }
     }
