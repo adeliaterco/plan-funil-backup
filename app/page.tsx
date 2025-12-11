@@ -16,6 +16,116 @@ function enviarEvento(evento: string, props: Record<string, any> = {}) {
   }
 }
 
+// ✅ NOVA: Função para capturar e salvar TODOS os parâmetros de tracking
+function captureAllTrackingParams() {
+  if (typeof window === 'undefined') return {};
+  
+  try {
+    const currentUrl = new URL(window.location.href);
+    const capturedParams = {};
+    
+    // ✅ LISTA COMPLETA de parâmetros de tracking (Facebook, Google, UTMs, etc.)
+    const trackingParams = [
+      // UTMs tradicionais
+      'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+      // Facebook
+      'fbclid', 'fb_action_ids', 'fb_action_types', 'fb_source',
+      // Google
+      'gclid', 'gclsrc', 'dclid', 'gbraid', 'wbraid',
+      // Microsoft/Bing
+      'msclkid',
+      // Twitter
+      'twclid',
+      // LinkedIn
+      'li_fat_id',
+      // TikTok
+      'ttclid',
+      // Instagram
+      'igshid',
+      // Snapchat
+      'sclid',
+      // Outros parâmetros comuns
+      'ref', 'source', 'medium', 'campaign', 'term', 'content',
+      'adgroup', 'keyword', 'placement', 'network', 'device', 'creative',
+      'matchtype', 'adposition', 'feeditemid', 'targetid'
+    ];
+    
+    // Captura TODOS os parâmetros de tracking encontrados
+    for (const [key, value] of currentUrl.searchParams.entries()) {
+      if (trackingParams.some(param => key.toLowerCase().startsWith(param.toLowerCase())) || 
+          key.toLowerCase().includes('utm') || 
+          key.toLowerCase().includes('clid') || 
+          key.toLowerCase().includes('campaign') || 
+          key.toLowerCase().includes('source')) {
+        capturedParams[key] = decodeURIComponent(value);
+        console.log(`✅ [TRACKING] Capturado: ${key} = ${value}`);
+      }
+    }
+    
+    // Salva no localStorage como backup
+    if (Object.keys(capturedParams).length > 0) {
+      localStorage.setItem('capturedTrackingParams', JSON.stringify(capturedParams));
+      console.log('✅ [BACKUP] Parâmetros salvos no localStorage:', capturedParams);
+    }
+    
+    return capturedParams;
+    
+  } catch (error) {
+    console.error('❌ [ERROR] Erro ao capturar parâmetros:', error);
+    return {};
+  }
+}
+
+// ✅ NOVA: Função para recuperar parâmetros do backup
+function getTrackingParamsFromBackup() {
+  if (typeof window === 'undefined') return {};
+  
+  try {
+    const backup = localStorage.getItem('capturedTrackingParams');
+    if (backup) {
+      const parsed = JSON.parse(backup);
+      console.log('✅ [BACKUP] Parâmetros recuperados do localStorage:', parsed);
+      return parsed;
+    }
+  } catch (error) {
+    console.error('❌ [ERROR] Erro ao recuperar backup:', error);
+  }
+  
+  return {};
+}
+
+// ✅ NOVA: Função para construir URL com todos os parâmetros
+function buildUrlWithAllParams(baseUrl: string) {
+  try {
+    // Primeiro: tenta pegar da URL atual
+    let trackingParams = captureAllTrackingParams();
+    
+    // Segundo: se não encontrou nada, usa o backup
+    if (Object.keys(trackingParams).length === 0) {
+      trackingParams = getTrackingParamsFromBackup();
+      console.log('📦 [FALLBACK] Usando backup do localStorage');
+    }
+    
+    // Terceiro: constrói a URL final
+    if (Object.keys(trackingParams).length > 0) {
+      const params = new URLSearchParams(trackingParams);
+      const finalUrl = `${baseUrl}?${params.toString()}`;
+      
+      console.log('🔗 [URL FINAL] Navegando para:', finalUrl);
+      console.log('📊 [PARAMS] Total de parâmetros preservados:', Object.keys(trackingParams).length);
+      
+      return finalUrl;
+    }
+    
+    console.log('⚠️ [WARNING] Nenhum parâmetro de tracking encontrado');
+    return baseUrl;
+    
+  } catch (error) {
+    console.error('❌ [ERROR] Erro ao construir URL:', error);
+    return baseUrl;
+  }
+}
+
 export default function HomePageOptimized() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
@@ -24,13 +134,17 @@ export default function HomePageOptimized() {
   const [spotsLeft] = useState(Math.floor(Math.random() * 15) + 8)
   const pageLoadTimeRef = useRef(Date.now())
 
-  // ✅ CORREÇÃO: useEffect simplificado e seguro
+  // ✅ CORREÇÃO: useEffect com captura inicial de parâmetros
   useEffect(() => {
     try {
+      // ✅ NOVA: Captura parâmetros logo na inicialização
+      captureAllTrackingParams();
+      
       // Evento de page view simples
       enviarEvento("page_view_optimized", {
         device: typeof window !== "undefined" && window.innerWidth < 768 ? "mobile" : "desktop",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        url_params: typeof window !== "undefined" ? window.location.search : ''
       });
 
       // Status online/offline
@@ -54,7 +168,7 @@ export default function HomePageOptimized() {
     }
   }, []);
 
-  // ✅ CORREÇÃO: handleStart com tratamento de erro robusto
+  // ✅ CORREÇÃO CRÍTICA: handleStart com captura COMPLETA de parâmetros
   const handleStart = useCallback(async () => {
     if (isLoading || !isOnline) {
       enviarEvento('clicou_cta_desabilitado', {
@@ -67,54 +181,57 @@ export default function HomePageOptimized() {
       setIsLoading(true);
       setLoadingProgress(20);
 
+      // ✅ NOVA: Log detalhado do que está sendo capturado
+      console.log('🚀 [START] Iniciando captura de parâmetros...');
+      console.log('📍 [URL ATUAL]', window.location.href);
+
       enviarEvento("clicou_cta_principal", {
         device: typeof window !== "undefined" && window.innerWidth < 768 ? "mobile" : "desktop",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        url_original: typeof window !== "undefined" ? window.location.href : ''
       });
 
       // ✅ CORREÇÃO: Loading mais rápido e confiável
       let progress = 20;
       const interval = setInterval(() => {
-        progress += 40; // Incremento maior para ser mais rápido
+        progress += 40;
         setLoadingProgress(Math.min(progress, 100));
 
         if (progress >= 100) {
           clearInterval(interval);
           
-          // ✅ CORREÇÃO: Navegação com tratamento de erro
+          // ✅ CORREÇÃO CRÍTICA: Navegação com captura COMPLETA
           setTimeout(() => {
             try {
-              let url = "/quiz/1";
+              // ✅ NOVA: Usa a função robusta para construir URL
+              const finalUrl = buildUrlWithAllParams("/quiz/1");
               
-              if (typeof window !== "undefined" && window.location.search) {
-                const params = new URLSearchParams(window.location.search);
-                const utms = new URLSearchParams();
-
-                for (const [key, value] of params) {
-                  if (key.startsWith("utm_")) {
-                    utms.set(key, value);
-                  }
-                }
-
-                if (utms.toString()) {
-                  url += `?${utms.toString()}`;
-                }
-              }
-
-              console.log('Navegando para:', url);
-              router.push(url);
+              console.log('🎯 [NAVIGATION] URL final construída:', finalUrl);
+              router.push(finalUrl);
               
             } catch (error) {
-              console.error('Erro na navegação:', error);
-              // Fallback: navegação simples
-              window.location.href = "/quiz/1";
+              console.error('❌ [ERROR] Erro na navegação:', error);
+              
+              // ✅ FALLBACK: Tenta construir URL simples
+              try {
+                const backupParams = getTrackingParamsFromBackup();
+                const backupUrl = Object.keys(backupParams).length > 0 
+                  ? `/quiz/1?${new URLSearchParams(backupParams).toString()}`
+                  : "/quiz/1";
+                
+                console.log('🆘 [FALLBACK] Usando URL de backup:', backupUrl);
+                window.location.href = backupUrl;
+              } catch (fallbackError) {
+                console.error('❌ [FALLBACK ERROR] Erro no fallback:', fallbackError);
+                window.location.href = "/quiz/1";
+              }
             }
           }, 200);
         }
-      }, 50); // 50ms = loading total ~150ms
+      }, 50);
 
     } catch (error) {
-      console.error('Erro no handleStart:', error);
+      console.error('❌ [ERROR] Erro no handleStart:', error);
       setIsLoading(false);
       setLoadingProgress(0);
     }
