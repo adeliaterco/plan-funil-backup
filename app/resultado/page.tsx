@@ -656,6 +656,7 @@ export default function ResultPageFixed() {
             </motion.div>
 
             {/* ===== REVELACIÓN 1: CÓDIGO INCOMPLETO ===== */}
+            {/* MUDANÇA 1 - SEÇÃO 2: NOVA COPY "VENTANA DE 72 HORAS" */}
             <AnimatePresence>
               {currentRevelation >= 1 && (
                 <motion.div
@@ -665,29 +666,80 @@ export default function ResultPageFixed() {
                   data-revelation="1"
                 >
                   <div className="bg-red-900/20 border-2 border-red-500 rounded-xl p-8">
-                    <div className="text-center mb-6">
-                      <Lock className="w-16 h-16 text-red-400 mx-auto mb-4" />
-                      {/* MUDANÇA 1 - SEÇÃO 2: NOVA COPY */}
-                      <p className="text-white text-xl mb-6">
-                        La verdad que nadie te cuenta:
+                    
+                    <div className="text-center mb-8">
+                      <Lock className="w-20 h-20 text-red-400 mx-auto mb-6" />
+                      
+                      <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">
+                        POR QUÉ ELLA TE DEJÓ
+                        <br />
+                        <span className="text-red-400">(Y no es lo que piensas)</span>
+                      </h2>
+                    </div>
+
+                    <div className="bg-black/60 rounded-lg p-6 mb-6 border border-red-500/30">
+                      <p className="text-white text-lg sm:text-xl leading-relaxed">
+                        Ella no te dejó porque dejaste de amarla.
                         <br /><br />
-                        En los días 4-7, tu ex toma una decisión.
-                        <br />
-                        O cambiaste de verdad.
-                        <br />
-                        O eres el mismo de siempre.
+                        Te dejó porque <strong className="text-red-300">dejaste de ser el hombre que la conquistó</strong>.
                         <br /><br />
-                        Si no sabes exactamente qué hacer...
-                        <br />
-                        Tu ex se alejará.
-                        <br />
-                        Para siempre.
+                        Y aquí está el problema:
                         <br /><br />
-                        Pero si sabes...
-                        <br />
-                        Funciona en el 89% de los casos.
+                        El 97% de los hombres hacen lo mismo después de la ruptura:
                       </p>
                     </div>
+
+                    <div className="space-y-4 mb-6">
+                      <div className="bg-red-900/30 rounded-lg p-4 border-l-4 border-red-500">
+                        <p className="text-white font-bold">❌ Mandan mensajes rogando</p>
+                        <p className="text-gray-300 text-sm mt-1">Resultado: Ella te ve como débil y desesperado</p>
+                      </div>
+                      
+                      <div className="bg-red-900/30 rounded-lg p-4 border-l-4 border-red-500">
+                        <p className="text-white font-bold">❌ Intentan "ser amigos"</p>
+                        <p className="text-gray-300 text-sm mt-1">Resultado: Friendzone permanente</p>
+                      </div>
+                      
+                      <div className="bg-red-900/30 rounded-lg p-4 border-l-4 border-red-500">
+                        <p className="text-white font-bold">❌ Desaparecen completamente (contacto cero mal hecho)</p>
+                        <p className="text-gray-300 text-sm mt-1">Resultado: Ella sigue adelante y conoce a otro</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-yellow-900/30 rounded-lg p-6 border-2 border-yellow-500">
+                      <p className="text-yellow-300 font-bold text-xl mb-4 text-center">
+                        ⚡ LA VENTANA DE 72 HORAS
+                      </p>
+                      <p className="text-white text-lg leading-relaxed">
+                        Neurocientíficos de la Universidad de Stanford descubrieron algo:
+                        <br /><br />
+                        Después de una ruptura, el cerebro de tu ex pasa por 3 fases químicas en las primeras 72 horas:
+                        <br /><br />
+                        <strong className="text-yellow-400">FASE 1 (0-24h):</strong> Dopamina cae 67% → Ella siente "alivio"
+                        <br />
+                        <strong className="text-yellow-400">FASE 2 (24-48h):</strong> Oxitocina se desconecta → Ella "olvida" los buenos momentos
+                        <br />
+                        <strong className="text-yellow-400">FASE 3 (48-72h):</strong> Córtex prefrontal reescribe las memorias → Ella te ve diferente
+                        <br /><br />
+                        Si haces lo CORRECTO en cada fase...
+                        <br />
+                        <strong className="text-green-400">Puedes revertir el proceso y hacer que ella TE BUSQUE.</strong>
+                        <br /><br />
+                        Si haces lo INCORRECTO...
+                        <br />
+                        <strong className="text-red-400">Su cerebro literalmente "borra" la atracción por ti.</strong>
+                      </p>
+                    </div>
+
+                    <div className="mt-8 text-center">
+                      <p className="text-white text-xl font-bold mb-4">
+                        La pregunta es:
+                      </p>
+                      <p className="text-red-300 text-2xl sm:text-3xl font-black">
+                        ¿Sabes qué hacer en cada una de esas fases?
+                      </p>
+                    </div>
+
                   </div>
                 </motion.div>
               )}
@@ -734,7 +786,8 @@ export default function ResultPageFixed() {
               )}
             </AnimatePresence>
 
-            {/* ===== REVELAÇÃO 3: OFERTA COMPLETA ===== */}
+            {/* ===== REVELACIÓN 3: OFERTA COMPLETA ===== */}
+            {/* MUDANÇA 2 - SEÇÃO 4: NOVA ESTRUTURA DE MÓDULOS COM PREÇOS */}
             <AnimatePresence>
               {showOffer && (
                 <motion.div
@@ -754,7 +807,6 @@ export default function ResultPageFixed() {
                         De $ 297 → $ 12,99
                       </h2>
 
-                      {/* MUDANÇA 2 - SEÇÃO 4: NOVA COPY */}
                       <div className="bg-gradient-to-r from-green-900/50 to-emerald-900/50 rounded-lg p-6 mb-6 border border-green-500/50">
                         <div className="space-y-4 text-left">
                           <p className="text-white text-lg font-bold">📱 MÓDULO 1: Conversaciones (Días 1-7) - $97</p>
@@ -836,7 +888,6 @@ export default function ResultPageFixed() {
                           Después vuelve a $67. Solo para quienes completaron el análisis.
                         </p>
                       </div>
-                      {/* A seção de prova social com o contador de compradores (activeBuyers) foi removida */}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -844,6 +895,7 @@ export default function ResultPageFixed() {
             </AnimatePresence>
 
             {/* ===== SEÇÃO 4: CTA FINAL IRRESISTÍVEL ===== */}
+            {/* MUDANÇA 3 - SEÇÃO 5: NOVA COPY COM CONTRASTE FORTE ENTRE OPÇÕES */}
             <AnimatePresence>
               {showFinalCTA && (
                 <motion.div
@@ -854,17 +906,16 @@ export default function ResultPageFixed() {
                 >
                   <div className="bg-black/80 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border-2 border-yellow-400">
                     
-                    {/* MUDANÇA 3 - SEÇÃO 5: NOVA COPY */}
                     <p className="text-white text-base sm:text-lg mb-6 font-bold">
                       Tienes dos opciones:
                       <br /><br />
-                      OPCIÓN 1: Cierras esta página.
+                      <span className="text-red-400">OPCIÓN 1:</span> Cierras esta página.
                       <br />
                       Esperas a que tu ex vuelva solo.
                       <br />
                       En 6 meses, tu ex está con otra persona.
                       <br /><br />
-                      OPCIÓN 2: Haces clic ahora.
+                      <span className="text-green-400">OPCIÓN 2:</span> Haces clic ahora.
                       <br />
                       En 7 días, tu ex va a estar diferente.
                       <br />
@@ -923,8 +974,6 @@ export default function ResultPageFixed() {
                 </motion.div>
               )}
             </AnimatePresence>
-
-            {/* A seção de "GARANTÍA RÁPIDA" separada foi removida */}
 
           </div>
         </div>
