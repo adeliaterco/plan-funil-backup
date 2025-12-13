@@ -507,14 +507,14 @@ export default function ResultPageFixed() {
     return "Contacto limitado";
   }, [userAnswers]);
 
-  // ✅ CORREÇÃO: Função de compra com UTM preservada e xcod/sck/bid
+  // ✅ CORREÇÃO: Função de compra com detecção assíncrona de bloqueio de popup
   const handlePurchase = useCallback((position = "principal") => {
     if (!isBrowser) return;
 
     try {
       const timeToAction = (Date.now() - startTimeRef.current) / 1000;
       
-      // ✅ NOVA: Construir URL com TODOS os parâmetros de tracking
+      // ✅ Construir URL com TODOS os parâmetros de tracking
       const trackingQueryString = buildTrackingQueryString();
       const baseCheckoutUrl = "https://pay.hotmart.com/F100142422S?off=efckjoa7&checkoutMode=10";
       const fullCheckoutUrl = `${baseCheckoutUrl}&${trackingQueryString}`; // Adiciona com '&' pois base já tem '?'
@@ -545,11 +545,13 @@ export default function ResultPageFixed() {
         checkout_url: fullCheckoutUrl // Log da URL para debug
       });
       
+      // ✅ MELHORIA: Tenta abrir popup IMEDIATAMENTE (sem delay inicial)
+      const paymentWindow = window.open(fullCheckoutUrl, "_blank");
+      
+      // ✅ MELHORIA: Verificação assíncrona em background para detectar bloqueio mais rápido
       setTimeout(() => {
-        const paymentWindow = window.open(fullCheckoutUrl, "_blank");
-        
-        if (!paymentWindow) {
-          console.error("❌ [RESULT - CHECKOUT] Popup bloqueado - tentando redirecionamento");
+        if (!paymentWindow || paymentWindow.closed || typeof paymentWindow.closed == 'undefined') {
+          console.error("❌ [RESULT - CHECKOUT] Popup bloqueado - redirecionamento imediato");
           
           enviarEvento('popup_bloqueado_resultado', {
             posicao: position,
@@ -590,7 +592,7 @@ export default function ResultPageFixed() {
   }
 
   // 
-  // JSX PRINCIPAL (O RESTO DO CÓDIGO PERMANECE INALTERADO)
+  // JSX PRINCIPAL
   // 
   return (
     <>
