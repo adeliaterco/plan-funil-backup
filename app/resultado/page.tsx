@@ -804,7 +804,7 @@ export default function ResultPageFixed() {
                       </div>
 
                       <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mb-6 text-white">
-                        De $ 297 → $ 12,99
+                        De $ 97 → $ 12,99
                       </h2>
 
                       <div className="bg-gradient-to-r from-green-900/50 to-emerald-900/50 rounded-lg p-6 mb-6 border border-green-500/50">
@@ -830,7 +830,7 @@ export default function ResultPageFixed() {
                         Después de 47 minutos: $67
                       </p>
                       <p className="text-red-300 mobile-small-text mb-4">
-                        Después de 100 ventas: $297
+                        Después de 100 ventas: $97
                       </p>
 
                       <p className="text-green-400 font-bold mobile-urgency-text mb-2">
