@@ -751,7 +751,7 @@ export default function ResultPageFixed() {
                       </div>
 
                       <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mb-6 text-white">
-                        De R$ 297 → R$ 12,99
+                        De $ 297 → $ 12,99
                       </h2>
 
                       {/* MUDANÇA 2 - SEÇÃO 4: NOVA COPY */}
