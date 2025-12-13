@@ -667,46 +667,25 @@ export default function ResultPageFixed() {
                   <div className="bg-red-900/20 border-2 border-red-500 rounded-xl p-8">
                     <div className="text-center mb-6">
                       <Lock className="w-16 h-16 text-red-400 mx-auto mb-4" />
-                      <h2 className="text-3xl sm:text-4xl font-bold text-red-400 mb-4">
-                        🚨 ACCESO DENEGADO
-                      </h2>
+                      {/* MUDANÇA 1 - SEÇÃO 2: NOVA COPY */}
                       <p className="text-white text-xl mb-6">
-                        El plan que viste era solo el <strong className="text-red-300">14%</strong> del método completo
-                      </p>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                      <div className="bg-green-900/30 rounded-lg p-4 border border-green-500">
-                        <h4 className="text-green-400 font-bold mb-3">✅ LO QUE YA TIENES:</h4>
-                        <ul className="text-white space-y-2 text-sm">
-                          <li>→ Primer mensaje (Día 1)</li>
-                          <li>→ Respuesta simulada</li>
-                          <li>→ Follow-up básico</li>
-                          <li>→ Análisis inicial</li>
-                        </ul>
-                        <div className="bg-green-800/30 rounded p-2 mt-3">
-                          <p className="text-green-300 text-xs font-bold">Solo 14% del plan</p>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-red-900/30 rounded-lg p-4 border border-red-500">
-                        <h4 className="text-red-400 font-bold mb-3">❌ PLAN FALTANTE:</h4>
-                        <ul className="text-white space-y-2 text-sm">
-                          <li>→ Días 2-21 del método</li>
-                          <li>→ Protocolo anti-rechazo</li>
-                          <li>→ Estrategias de emergencia</li>
-                          <li>→ Scripts para cada situación</li>
-                        </ul>
-                        <div className="bg-red-800/30 rounded p-2 mt-3">
-                          <p className="text-red-300 text-xs font-bold">86% del plan bloqueado</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="text-center bg-yellow-900/30 rounded-lg p-4 border border-yellow-500">
-                      <p className="text-yellow-300 font-bold">
-                        <Zap className="inline w-5 h-5 mr-2" />
-                        Sin el plan completo, fallarás en la semana 2
+                        La verdad que nadie te cuenta:
+                        <br /><br />
+                        En los días 4-7, tu ex toma una decisión.
+                        <br />
+                        O cambiaste de verdad.
+                        <br />
+                        O eres el mismo de siempre.
+                        <br /><br />
+                        Si no sabes exactamente qué hacer...
+                        <br />
+                        Tu ex se alejará.
+                        <br />
+                        Para siempre.
+                        <br /><br />
+                        Pero si sabes...
+                        <br />
+                        Funciona en el 89% de los casos.
                       </p>
                     </div>
                   </div>
@@ -768,66 +747,54 @@ export default function ResultPageFixed() {
                     <CardContent className="p-6 sm:p-8 text-center">
                       
                       <div className="bg-yellow-400 text-black font-bold text-sm sm:text-base px-4 py-2 rounded-full inline-block mb-6">
-                        📱 PLAN A COMPLETO: DEL PLAN DEMO A LA RECONQUISTA REAL
+                        PLAN COMPLETO: 21 DÍAS
                       </div>
 
                       <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mb-6 text-white">
-                        LOS 21 DÍAS COMPLETOS PARA RECUPERAR A {getPronoun().toUpperCase()}
+                        De R$ 297 → R$ 12,99
                       </h2>
 
+                      {/* MUDANÇA 2 - SEÇÃO 4: NOVA COPY */}
                       <div className="bg-gradient-to-r from-green-900/50 to-emerald-900/50 rounded-lg p-6 mb-6 border border-green-500/50">
-                        <h3 className="text-green-400 font-bold text-lg sm:text-xl mb-4">
-                          🎁 MÉTODO COMPLETO DIVIDIDO EN MÓDULOS:
-                        </h3>
-                        
-                        <div className="space-y-4">
-                          <div className="bg-blue-900/30 rounded-lg p-4 border-l-4 border-blue-400 text-left">
-                            <h4 className="text-blue-400 font-bold mb-2 text-base sm:text-lg">
-                              <MessageCircle className="inline w-4 h-4 mr-2" />
-                              MÓDULO 1: CONVERSACIONES (Días 1-7)
-                            </h4>
-                            <p className="text-white text-sm mb-2">→ El plan que viste + 6 escenarios adicionales</p>
-                            <p className="text-white text-sm mb-2">→ ¿Qué hacer si no responde? ¿Si responde seco? ¿Si te deja en visto?</p>
-                            <p className="text-gray-400 text-xs">Valor: $97</p>
-                          </div>
-                          
-                          <div className="bg-purple-900/30 rounded-lg p-4 border-l-4 border-purple-400 text-left">
-                            <h4 className="text-purple-400 font-bold mb-2 text-base sm:text-lg">
-                              <Users className="inline w-4 h-4 mr-2" />
-                              MÓDULO 2: ENCUENTROS (Días 8-14)
-                            </h4>
-                            <p className="text-white text-sm mb-2">→ Del chat al encuentro real</p>
-                            <p className="text-white text-sm mb-2">→ Scripts exactos para cada tipo de encuentro</p>
-                            <p className="text-gray-400 text-xs">Valor: $127</p>
-                          </div>
-                          
-                          <div className="bg-orange-900/30 rounded-lg p-4 border-l-4 border-orange-400 text-left">
-                            <h4 className="text-orange-400 font-bold mb-2 text-base sm:text-lg">
-                              <Heart className="inline w-4 h-4 mr-2" />
-                              MÓDULO 3: RECONQUISTA (Días 15-21)
-                            </h4>
-                            <p className="text-white text-sm mb-2">→ Del encuentro a la relación oficial</p>
-                            <p className="text-white text-sm mb-2">→ Protocolo anti-rechazo + Plan de relación 2.0</p>
-                            <p className="text-gray-400 text-xs">Valor: $147</p>
-                          </div>
-                          
-                          <div className="bg-red-900/30 rounded-lg p-4 border-l-4 border-red-400 text-left">
-                            <h4 className="text-red-400 font-bold mb-2 text-base sm:text-lg">
-                              <Target className="inline w-4 h-4 mr-2" />
-                              MÓDULO 4: PROTOCOLO DE EMERGENCIA
-                            </h4>
-                            <p className="text-white text-sm mb-2">→ ¿Qué hacer si {getPronoun()} está con otra persona?</p>
-                            <p className="text-white text-sm mb-2">→ Técnicas avanzadas para casos "imposibles"</p>
-                            <p className="text-gray-400 text-xs">Valor: $197</p>
-                          </div>
+                        <div className="space-y-4 text-left">
+                          <p className="text-white text-lg font-bold">📱 MÓDULO 1: Conversaciones (Días 1-7) - $97</p>
+                          <p className="text-white text-lg font-bold">👥 MÓDULO 2: Encuentros (Días 8-14) - $127</p>
+                          <p className="text-white text-lg font-bold">❤️ MÓDULO 3: Reconquista (Días 15-21) - $147</p>
+                          <p className="text-white text-lg font-bold">🚨 MÓDULO 4: Protocolo de Emergencia - $197</p>
                         </div>
-                        
                         <div className="bg-black/50 rounded-lg p-4 mt-6 text-center border border-yellow-500">
-                          <p className="text-gray-300 text-sm line-through mb-2">Valor Total: $568</p>
-                          <p className="text-green-400 font-bold text-xl sm:text-2xl mb-2">Tu inversión HOY: $12,99</p>
-                          <p className="text-yellow-300 text-sm font-bold">96% de descuento solo por haber visto la vista previa</p>
+                          <p className="text-gray-300 text-sm line-through mb-2">VALOR TOTAL: $568</p>
+                          <p className="text-green-400 font-bold text-xl sm:text-2xl mb-2">TU INVERSIÓN HOY: $12,99</p>
                         </div>
                       </div>
+
+                      <p className="text-yellow-300 font-bold mobile-urgency-text mb-2">
+                        ⏳ PERO ESPERA:
+                      </p>
+                      <p className="text-white text-base sm:text-lg mb-4">
+                        Este precio es SOLO para quienes vieron el video.
+                      </p>
+                      <p className="text-red-300 mobile-small-text mb-2">
+                        Después de 47 minutos: $67
+                      </p>
+                      <p className="text-red-300 mobile-small-text mb-4">
+                        Después de 100 ventas: $297
+                      </p>
+
+                      <p className="text-green-400 font-bold mobile-urgency-text mb-2">
+                        ✅ GARANTÍA 30 DÍAS
+                      </p>
+                      <p className="text-white text-base sm:text-lg mb-2">
+                        Si no funciona, te devuelvo el 100% de tu dinero.
+                      </p>
+                      <p className="text-white text-base sm:text-lg mb-4">
+                        Sin preguntas. Sin complicaciones.
+                      </p>
+                      <p className="text-white text-base sm:text-lg mb-6">
+                        Porque estoy tan seguro de que funciona...
+                        <br />
+                        Que estoy dispuesto a apostar mi dinero en ti.
+                      </p>
 
                       <motion.div
                         animate={{
@@ -869,17 +836,7 @@ export default function ResultPageFixed() {
                           Después vuelve a $67. Solo para quienes completaron el análisis.
                         </p>
                       </div>
-
-                      <div className="flex justify-center items-center space-x-4 text-gray-300 text-sm flex-wrap gap-2">
-                        <div className="flex items-center">
-                          <Users className="mobile-social-icon text-green-400 mr-1" />
-                          <span><strong className="text-white">{activeBuyers}</strong> personas compraron hoy</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Heart className="mobile-social-icon text-red-400 mr-1" />
-                          <span><strong className="text-white">87%</strong> ya vio resultados</span>
-                        </div>
-                      </div>
+                      {/* A seção de prova social com o contador de compradores (activeBuyers) foi removida */}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -897,23 +854,34 @@ export default function ResultPageFixed() {
                 >
                   <div className="bg-black/80 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border-2 border-yellow-400">
                     
-                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white mb-4">
-                      ⚡ ÚLTIMO AVISO - COMPLETA EL PLAN EN LA VIDA REAL
-                    </h2>
-                    
+                    {/* MUDANÇA 3 - SEÇÃO 5: NOVA COPY */}
                     <p className="text-white text-base sm:text-lg mb-6 font-bold">
-                      Viste cómo funciona en el ejemplo práctico. Ahora hazlo realidad con {getPronoun()}.
+                      Tienes dos opciones:
+                      <br /><br />
+                      OPCIÓN 1: Cierras esta página.
+                      <br />
+                      Esperas a que tu ex vuelva solo.
+                      <br />
+                      En 6 meses, tu ex está con otra persona.
+                      <br /><br />
+                      OPCIÓN 2: Haces clic ahora.
+                      <br />
+                      En 7 días, tu ex va a estar diferente.
+                      <br />
+                      En 21 días, tu ex va a estar de vuelta.
+                      <br />
+                      O tu dinero de vuelta.
                     </p>
-                    
-                    <div className="bg-yellow-600/20 border border-yellow-400 rounded-lg p-4 mb-6">
-                      <p className="text-yellow-300 text-base font-bold mb-2">
-                        🎬 EL PLAN DEMOSTRÓ LOS DÍAS 1-3:
-                      </p>
-                      <p className="text-white text-sm sm:text-base">
-                        Ahora necesitas los días 4-21 para completar la reconquista real. 
-                        ¿Vale la pena $12,99 recuperar a quien amas?
-                      </p>
-                    </div>
+
+                    <p className="text-yellow-300 text-sm sm:text-base font-bold mb-2">
+                      ---
+                      <br />
+                      ⏰ TIMER: 47 MINUTOS
+                      <br />
+                      Después, el precio sube.
+                      <br />
+                      ---
+                    </p>
 
                     <motion.div
                       animate={{
@@ -934,7 +902,7 @@ export default function ResultPageFixed() {
                       >
                         <div className="text-center">
                           <div className="mobile-cta-final-text leading-tight font-black">
-                            🎬 SÍ, QUIERO COMPLETAR AHORA
+                            🎬 SÍ, QUIERO RECUPERAR A MI EX AHORA
                           </div>
                           <div className="mobile-small-text mt-1 opacity-90">
                             Los 21 días completos para reconquistar a {getPronoun()}
@@ -944,50 +912,19 @@ export default function ResultPageFixed() {
                       </Button>
                     </motion.div>
 
-                    <p className="text-yellow-300 text-sm sm:text-base font-bold">
-                      El ejemplo práctico fue perfecto. Ahora hazlo realidad antes de que sea tarde.
+                    <p className="text-yellow-300 text-sm sm:text-base font-bold mt-4">
+                      En 21 días, tu ex está de vuelta.
+                      <br />
+                      O tu dinero de vuelta.
+                      <br />
+                      Sin riesgo. Sin complicaciones.
                     </p>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* ===== SEÇÃO 5: GARANTÍA RÁPIDA ===== */}
-            <AnimatePresence>
-              {showFinalCTA && (
-                <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-12"
-                >
-                  <Card className="bg-green-50 border-green-500 border-2 shadow-2xl">
-                    <CardContent className="p-6 sm:p-8 text-center">
-                      <Shield className="w-16 h-16 text-green-600 mx-auto mb-4" />
-                      
-                      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-green-800 mb-4">
-                        GARANTÍA INCONDICIONAL DE 30 DÍAS
-                      </h2>
-                      
-                      <p className="text-green-700 text-base sm:text-lg font-bold mb-4">
-                        Si el método completo no funciona mejor que el ejemplo práctico, te devuelvo el 100% de tu dinero
-                      </p>
-                      
-                      <div className="bg-white rounded-lg p-4 border-2 border-green-500">
-                        <p className="text-green-800 text-sm sm:text-base font-semibold">
-                          <strong>Mi promesa personal:</strong> Si sigues los 21 días completos del Plan A y no ves 
-                          progreso real con {getPronoun()}, no solo te devuelvo el dinero, te doy una consulta personal 
-                          gratuita para revisar tu caso específico.
-                        </p>
-                      </div>
-                      
-                      <p className="text-green-600 text-xs sm:text-sm mt-4">
-                        Tienes 30 días completos para probarlo. La demostración fue solo el inicio.
-                      </p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* A seção de "GARANTÍA RÁPIDA" separada foi removida */}
 
           </div>
         </div>
