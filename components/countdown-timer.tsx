@@ -3,11 +3,21 @@
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 
-export function CountdownTimer() {
+interface CountdownTimerProps {
+  initialHours?: number
+  initialMinutes?: number
+  initialSeconds?: number
+}
+
+export function CountdownTimer({ 
+  initialHours = 0, 
+  initialMinutes = 47, 
+  initialSeconds = 0 
+}: CountdownTimerProps = {}) {
   const [timeLeft, setTimeLeft] = useState({
-    hours: 1,
-    minutes: 59,
-    seconds: 59,
+    hours: initialHours,
+    minutes: initialMinutes,
+    seconds: initialSeconds,
   })
 
   useEffect(() => {
